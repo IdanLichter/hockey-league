@@ -8,7 +8,8 @@ import {
   updateTeam,
   createGameStat, deleteGameStatsByGameId,
   addAdminUser, removeAdminUser,
-  getGameStatsByGameId
+  getGameStatsByGameId,
+  recalculateTeamStats, recalculatePlayerStats
 } from "@/lib/api"
 import {
   Shield, Calendar, UserCheck, Users, Settings, LogOut, Trash2, Plus,
@@ -200,6 +201,8 @@ function GamesAdmin({ games, teams, players, teamsMap, gameStats, reload }) {
       } else {
         await createGame(payload)
       }
+      // Recalculate team standings after game change
+      await recalculateTeamStats()
       resetForm()
       await reload()
     } catch (err) { alert('שגיאה: ' + err.message) }
@@ -210,6 +213,8 @@ function GamesAdmin({ games, teams, players, teamsMap, gameStats, reload }) {
     if (!confirm('למחוק את המשחק?')) return
     try {
       await deleteGame(id)
+      await recalculateTeamStats()
+      await recalculatePlayerStats()
       await reload()
     } catch (err) { alert('שגיאה: ' + err.message) }
   }
@@ -436,6 +441,8 @@ function GameStatsEditor({ game, players, teamsMap, existingStats, reload }) {
           red_cards: Number(rest.red_cards) || 0,
         })
       }
+      // Recalculate player stats after game stats change
+      await recalculatePlayerStats()
       await reload()
     } catch (err) { alert('שגיאה: ' + err.message) }
     finally { setSaving(false) }
