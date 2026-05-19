@@ -64,9 +64,9 @@ export default function FinalFour() {
   const winnerB = getSeriesWinner(seriesB, seriesBGames)
   const winnerC = getSeriesWinner(seriesC, seriesCGames)
 
-  // Semi-finals: #1 vs winner of Series A, winner B vs winner C
-  const semi1 = { t1: first, t2: winnerA, label: "חצי גמר 1" }
-  const semi2 = { t1: winnerB, t2: winnerC, label: "חצי גמר 2" }
+  // Semi-finals: #1 vs winner of Series C (#4vs#5), winner A (#2vs#7) vs winner B (#3vs#6)
+  const semi1 = { t1: first, t2: winnerC, label: "חצי גמר 1" }
+  const semi2 = { t1: winnerA, t2: winnerB, label: "חצי גמר 2" }
 
   // Find semi-final games
   const getSemiGames = (s) => {
@@ -115,9 +115,9 @@ export default function FinalFour() {
 
             <div className="relative grid grid-cols-5 gap-0 items-center" style={{ minHeight: 500 }}>
 
-              {/* Column 1: Left Playoffs (Series A on top, #1 direct below) */}
+              {/* Column 1: Left side — Series C (#4vs#5) + #1 direct → Semi 1 */}
               <div className="flex flex-col justify-center gap-8 px-2">
-                <PlayoffMatchup series={seriesA} games={seriesAGames} label="סדרה A" winner={winnerA} delay={0} />
+                <PlayoffMatchup series={seriesC} games={seriesCGames} label="סדרה C" winner={winnerC} delay={0} />
                 <DirectQualifier team={first} delay={0.1} />
               </div>
 
@@ -147,10 +147,10 @@ export default function FinalFour() {
                 <SemiMatchup semi={semi2} games={semi2Games} winner={semi2Winner} delay={0.3} />
               </div>
 
-              {/* Column 5: Right Playoffs (Series B on top, Series C below) */}
+              {/* Column 5: Right side — Series A (#2vs#7) + Series B (#3vs#6) → Semi 2 */}
               <div className="flex flex-col justify-center gap-8 px-2">
-                <PlayoffMatchup series={seriesB} games={seriesBGames} label="סדרה B" winner={winnerB} delay={0.05} />
-                <PlayoffMatchup series={seriesC} games={seriesCGames} label="סדרה C" winner={winnerC} delay={0.1} />
+                <PlayoffMatchup series={seriesA} games={seriesAGames} label="סדרה A" winner={winnerA} delay={0.05} />
+                <PlayoffMatchup series={seriesB} games={seriesBGames} label="סדרה B" winner={winnerB} delay={0.1} />
               </div>
             </div>
           </div>
