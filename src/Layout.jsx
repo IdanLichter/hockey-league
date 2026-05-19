@@ -13,7 +13,6 @@ import {
   Shield
 } from "lucide-react"
 import { useTheme } from "./lib/ThemeContext"
-import { useAuth } from "./lib/AuthContext"
 
 const navigationItems = [
   { title: "טבלה", url: "/", icon: Trophy, description: "דירוג ופלייאוף" },
@@ -28,11 +27,10 @@ export default function Layout({ children }) {
   const location = useLocation()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const { dark, toggle } = useTheme()
-  const { isAdmin } = useAuth()
-
-  const allNavItems = isAdmin
-    ? [...navigationItems, { title: "ניהול", url: "/admin", icon: Shield, description: "דף מנהלים" }]
-    : navigationItems
+  const allNavItems = [
+    ...navigationItems,
+    { title: "ניהול", url: "/admin", icon: Shield, description: "דף מנהלים" }
+  ]
 
   const isActivePage = (url) => location.pathname === url
 

@@ -11,17 +11,23 @@ CREATE TABLE IF NOT EXISTS admin_users (
 -- Enable RLS
 ALTER TABLE admin_users ENABLE ROW LEVEL SECURITY;
 
--- Only authenticated admins can read admin_users
-CREATE POLICY "Admin read admin_users" ON admin_users
-  FOR SELECT USING (
+-- Any authenticated user can check if their email is in the admin list
+CREATE POLICY "Auth users check admin status" ON admin_users
+  FOR SELECT USING (auth.role() = 'authenticated');
+
+-- Only admins can insert/update/delete admin_users
+CREATE POLICY "Admin write admin_users" ON admin_users
+  FOR INSERT WITH CHECK (
     auth.jwt() ->> 'email' IN (SELECT email FROM admin_users)
   );
 
--- Only authenticated admins can write admin_users
-CREATE POLICY "Admin write admin_users" ON admin_users
-  FOR ALL USING (
+CREATE POLICY "Admin update admin_users" ON admin_users
+  FOR UPDATE USING (
     auth.jwt() ->> 'email' IN (SELECT email FROM admin_users)
-  ) WITH CHECK (
+  );
+
+CREATE POLICY "Admin delete admin_users" ON admin_users
+  FOR DELETE USING (
     auth.jwt() ->> 'email' IN (SELECT email FROM admin_users)
   );
 
@@ -73,5 +79,5 @@ CREATE POLICY "Admin write game_stats" ON game_stats
 INSERT INTO admin_users (email, name) VALUES
   ('ilichter22@gmail.com', 'עידן ליכטר'),
   ('idorichter4@gmail.com', 'עידו ריכטר'),
-  ('uriellir@gmail.com', 'אוריאל ליר')
+  ('uriellir@gmail.com', 'אורי לירמן')
 ON CONFLICT (email) DO NOTHING;
