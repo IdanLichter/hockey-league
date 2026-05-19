@@ -161,12 +161,12 @@ export default function FinalFour() {
                 <PlayoffMatchup series={seriesB} games={seriesBGames} label="סדרה B" winner={winnerB} delay={0.1} />
               </div>
             </div>
-          </div>
 
-          {/* 3rd place match */}
-          <div className="mt-4 flex justify-center">
-            <div className="w-full max-w-md">
-              <ThirdPlaceMatchup t1={semi1Loser} t2={semi2Loser} games={thirdPlaceGames} delay={0.5} />
+            {/* 3rd place match — inside the bracket card */}
+            <div className="relative mt-4 flex justify-center">
+              <div className="w-full max-w-md">
+                <ThirdPlaceMatchup t1={semi1Loser} t2={semi2Loser} games={thirdPlaceGames} delay={0.5} />
+              </div>
             </div>
           </div>
         </div>
