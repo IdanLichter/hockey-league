@@ -124,7 +124,7 @@ export default function Statistics() {
         <h1 className="page-title flex items-center gap-2.5">
           <BarChart3 className="w-7 h-7 text-orange-500" /> סטטיסטיקות
         </h1>
-        <p className="page-subtitle mt-1">נתוני ביצועים עונת 2024-25</p>
+        <p className="page-subtitle mt-1">נתוני ביצועים עונת 2025-26</p>
       </motion.div>
 
       {/* Overview cards */}

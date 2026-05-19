@@ -48,7 +48,7 @@ export default function Home() {
           <Trophy className="w-7 h-7 text-orange-500" />
           טבלת הליגה
         </h1>
-        <p className="page-subtitle mt-1">דירוג קבוצות עונת 2024-25</p>
+        <p className="page-subtitle mt-1">דירוג קבוצות עונת 2025-26</p>
       </motion.div>
 
       {error && (

@@ -191,7 +191,7 @@ export default function Games() {
         <h1 className="page-title flex items-center gap-2.5">
           <Calendar className="w-7 h-7 text-orange-500" /> משחקים
         </h1>
-        <p className="page-subtitle mt-1">לוח משחקים ותוצאות עונת 2024-25</p>
+        <p className="page-subtitle mt-1">לוח משחקים ותוצאות עונת 2025-26</p>
       </motion.div>
 
       {/* Filters */}

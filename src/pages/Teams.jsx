@@ -34,7 +34,7 @@ export default function Teams() {
         <h1 className="page-title flex items-center gap-2.5">
           <Users className="w-7 h-7 text-orange-500" /> קבוצות
         </h1>
-        <p className="page-subtitle mt-1">{teams.length} קבוצות בליגה • עונת 2024-25</p>
+        <p className="page-subtitle mt-1">{teams.length} קבוצות בליגה • עונת 2025-26</p>
       </motion.div>
 
       <div className="space-y-3">

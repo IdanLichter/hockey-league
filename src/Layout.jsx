@@ -51,7 +51,7 @@ export default function Layout({ children }) {
               <h1 className="text-lg font-extrabold text-slate-900 dark:text-white tracking-tight">
                 ליגת הוקי
               </h1>
-              <p className="text-xs text-slate-400 dark:text-slate-500 font-medium">עונת 2024-25</p>
+              <p className="text-xs text-slate-400 dark:text-slate-500 font-medium">עונת 2025-26</p>
             </div>
           </div>
 
@@ -107,7 +107,7 @@ export default function Layout({ children }) {
             <img src="/logos/main-logo.png" alt="ליגת הוקי" className="w-8 h-8 rounded-lg object-cover" />
             <div>
               <h1 className="text-sm font-extrabold text-slate-900 dark:text-white leading-none">ליגת הוקי</h1>
-              <p className="text-[10px] text-slate-400 font-medium">עונת 2024-25</p>
+              <p className="text-[10px] text-slate-400 font-medium">עונת 2025-26</p>
             </div>
           </div>
 

@@ -102,7 +102,7 @@ export default function FinalFour() {
         <h1 className="page-title flex items-center gap-2.5">
           <Trophy className="w-7 h-7 text-orange-500" /> Final Four
         </h1>
-        <p className="page-subtitle mt-1">שלב הגמר — עונת 2024-25</p>
+        <p className="page-subtitle mt-1">שלב הגמר — עונת 2025-26</p>
       </motion.div>
 
       {/* === BRACKET === */}
