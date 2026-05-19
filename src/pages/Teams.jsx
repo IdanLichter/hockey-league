@@ -2,6 +2,7 @@ import { useState, useEffect } from "react"
 import { getTeams, getPlayers } from "@/lib/api"
 import { Users, Trophy, Target, Shield, ChevronDown, ChevronUp } from "lucide-react"
 import { motion } from "framer-motion"
+import TeamLogo from "@/components/TeamLogo"
 
 export default function Teams() {
   const [teams, setTeams] = useState([])
@@ -63,10 +64,7 @@ export default function Teams() {
                   <button onClick={() => setExpandedTeam(isExpanded ? null : team.id)} className="w-full p-4 sm:p-6 text-right">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-4">
-                        <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-white font-bold text-lg shadow-lg"
-                          style={{ backgroundColor: team.primary_color || '#f97316' }}>
-                          {team.name.charAt(0)}
-                        </div>
+                        <TeamLogo team={team} size={14} />
                         <div className="text-right">
                           <h3 className="font-bold text-lg text-slate-900 dark:text-white">{team.name}</h3>
                           <p className="text-sm text-slate-500 dark:text-slate-400">{team.city} • נוסדה {team.founded_year}</p>

@@ -2,6 +2,7 @@ import { useState, useEffect } from "react"
 import { getPlayers, getTeams } from "@/lib/api"
 import { UserCheck, Search, Filter } from "lucide-react"
 import { motion } from "framer-motion"
+import TeamLogo from "@/components/TeamLogo"
 
 export default function Players() {
   const [players, setPlayers] = useState([])
@@ -107,10 +108,7 @@ export default function Players() {
             >
               <div className="flex items-start justify-between mb-3">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm"
-                    style={{ backgroundColor: getTeamColor(player.team_id) }}>
-                    {player.jersey_number || player.first_name.charAt(0)}
-                  </div>
+                  <TeamLogo team={teamsMap[player.team_id]} size={10} />
                   <div>
                     <h3 className="font-bold text-slate-900 dark:text-white">{player.first_name} {player.last_name}</h3>
                     <p className="text-xs text-slate-500 dark:text-slate-400">{getTeamName(player.team_id)}</p>

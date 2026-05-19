@@ -2,6 +2,7 @@ import { useState, useEffect } from "react"
 import { getTeams, getPlayers, getGames, getReferees } from "@/lib/api"
 import { BarChart3, Trophy, Target, Flame, Shield, Award, Calendar, Crown, ChevronDown, ChevronUp, Gavel } from "lucide-react"
 import { motion } from "framer-motion"
+import TeamLogo from "@/components/TeamLogo"
 
 export default function Statistics() {
   const [teams, setTeams] = useState([])
@@ -254,7 +255,7 @@ export default function Statistics() {
               renderItem={(t, i) => (
                 <div key={t.id} className="flex items-center justify-between p-3 rounded-lg bg-blue-50/60 dark:bg-blue-900/20">
                   <div className="flex items-center gap-3">
-                    <div className="w-6 h-6 rounded-full" style={{ backgroundColor: t.primary_color || '#f97316' }} />
+                    <TeamLogo team={t} size={6} />
                     <span className="font-semibold text-sm text-slate-900 dark:text-white">{t.name}</span>
                   </div>
                   <span className="bg-blue-600 text-white text-xs font-bold px-2 py-1 rounded-full">{t.total_blue}</span>

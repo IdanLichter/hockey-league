@@ -3,6 +3,7 @@ import { getGames, getTeams, getPlayers, getReferees, getGameStatsByGameId } fro
 import { Calendar, Clock, MapPin, Trophy, Shield, Filter, X, FileText } from "lucide-react"
 import { motion } from "framer-motion"
 import { format } from "date-fns"
+import TeamLogo from "@/components/TeamLogo"
 
 export default function Games() {
   const [games, setGames] = useState([])
@@ -127,12 +128,12 @@ export default function Games() {
 
                 <div className="flex items-center gap-3 sm:gap-4">
                   <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-full shrink-0" style={{ backgroundColor: getTeamColor(game.home_team_id) }} />
+                    <TeamLogo team={teamsMap[game.home_team_id]} size={8} />
                     <span className="font-bold text-sm sm:text-base text-slate-900 dark:text-white">{getTeamName(game.home_team_id)}</span>
                   </div>
                   <span className="font-bold text-slate-400 dark:text-slate-500">vs</span>
                   <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-full shrink-0" style={{ backgroundColor: getTeamColor(game.away_team_id) }} />
+                    <TeamLogo team={teamsMap[game.away_team_id]} size={8} />
                     <span className="font-bold text-sm sm:text-base text-slate-900 dark:text-white">{getTeamName(game.away_team_id)}</span>
                   </div>
                 </div>

@@ -2,6 +2,7 @@ import { useState, useEffect } from "react"
 import { getTeams } from "@/lib/api"
 import { Trophy, Users, Crown, Swords, RefreshCw } from "lucide-react"
 import { motion } from "framer-motion"
+import TeamLogo from "@/components/TeamLogo"
 
 export default function Home() {
   const [teams, setTeams] = useState([])
@@ -143,10 +144,7 @@ export default function Home() {
                       </td>
                       <td className="px-2 sm:px-4 py-3">
                         <div className="flex items-center gap-2">
-                          <div
-                            className="w-6 h-6 rounded-full shrink-0"
-                            style={{ backgroundColor: team.primary_color || "#f97316" }}
-                          />
+                          <TeamLogo team={team} size={6} />
                           <span className="font-semibold text-slate-900 dark:text-white whitespace-nowrap">{team.name}</span>
                         </div>
                       </td>
@@ -195,7 +193,7 @@ export default function Home() {
                   <Crown className="w-6 h-6" /> מעפילה אוטומטית ל-Final Four
                 </h3>
                 <div className="flex items-center gap-4 p-4 bg-white/60 dark:bg-slate-800/60 rounded-lg">
-                  <div className="w-12 h-12 rounded-full" style={{ backgroundColor: firstPlace.primary_color || "#f97316" }} />
+                  <TeamLogo team={firstPlace} size={12} />
                   <div className="flex-1">
                     <h4 className="text-xl font-bold text-slate-900 dark:text-white">{firstPlace.name}</h4>
                     <p className="text-slate-600 dark:text-slate-400">מקום ראשון - {firstPlace.points || 0} נקודות</p>
@@ -225,7 +223,7 @@ export default function Home() {
                     </div>
                     <div className="grid grid-cols-3 gap-4 items-center">
                       <div className="flex items-center gap-3 p-3 bg-white dark:bg-slate-800 rounded-lg">
-                        <div className="w-10 h-10 rounded-full" style={{ backgroundColor: matchup.team1?.primary_color || "#f97316" }} />
+                        <TeamLogo team={matchup.team1} size={10} />
                         <div>
                           <p className="font-semibold text-sm text-slate-900 dark:text-white">{matchup.team1?.name}</p>
                           <span className="text-xs text-slate-500 dark:text-slate-400">מקום {matchup.position1} • {matchup.team1?.points || 0} נק׳</span>
@@ -235,7 +233,7 @@ export default function Home() {
                         <div className="text-2xl font-bold text-orange-600">VS</div>
                       </div>
                       <div className="flex items-center gap-3 p-3 bg-white dark:bg-slate-800 rounded-lg">
-                        <div className="w-10 h-10 rounded-full" style={{ backgroundColor: matchup.team2?.primary_color || "#f97316" }} />
+                        <TeamLogo team={matchup.team2} size={10} />
                         <div>
                           <p className="font-semibold text-sm text-slate-900 dark:text-white">{matchup.team2?.name}</p>
                           <span className="text-xs text-slate-500 dark:text-slate-400">מקום {matchup.position2} • {matchup.team2?.points || 0} נק׳</span>

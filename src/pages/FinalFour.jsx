@@ -3,6 +3,7 @@ import { getTeams, getGames } from "@/lib/api"
 import { Trophy, Crown, Swords, Calendar } from "lucide-react"
 import { motion } from "framer-motion"
 import { format } from "date-fns"
+import TeamLogo from "@/components/TeamLogo"
 
 export default function FinalFour() {
   const [teams, setTeams] = useState([])
@@ -92,13 +93,13 @@ export default function FinalFour() {
                       <span className="text-xs font-semibold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-2 py-0.5 rounded-full">{series.name}</span>
                       <div className="mt-3 space-y-2">
                         <div className="flex items-center gap-2 p-2 bg-slate-50 dark:bg-slate-700/40 rounded-lg">
-                          <div className="w-6 h-6 rounded-full" style={{ backgroundColor: getTeamColor(series.team1?.id) }} />
+                          <TeamLogo team={series.team1} size={6} />
                           <span className="font-semibold text-sm flex-1 text-slate-900 dark:text-white">{series.team1?.name}</span>
                           <span className="text-xs text-slate-500 dark:text-slate-400">#{series.pos1}</span>
                         </div>
                         <div className="text-center text-xs text-slate-400 dark:text-slate-500">vs</div>
                         <div className="flex items-center gap-2 p-2 bg-slate-50 dark:bg-slate-700/40 rounded-lg">
-                          <div className="w-6 h-6 rounded-full" style={{ backgroundColor: getTeamColor(series.team2?.id) }} />
+                          <TeamLogo team={series.team2} size={6} />
                           <span className="font-semibold text-sm flex-1 text-slate-900 dark:text-white">{series.team2?.name}</span>
                           <span className="text-xs text-slate-500 dark:text-slate-400">#{series.pos2}</span>
                         </div>
@@ -136,7 +137,7 @@ export default function FinalFour() {
                       <span className="text-xs font-semibold text-yellow-700 dark:text-yellow-300">מקום ראשון</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-full" style={{ backgroundColor: firstPlace.primary_color || '#f97316' }} />
+                      <TeamLogo team={firstPlace} size={8} />
                       <span className="font-bold text-slate-900 dark:text-white">{firstPlace.name}</span>
                     </div>
                     <p className="text-xs text-yellow-600 dark:text-yellow-400 mt-2">עלתה אוטומטית ל-Final Four</p>
@@ -174,11 +175,11 @@ export default function FinalFour() {
               {playoffGames.sort((a, b) => new Date(a.game_date) - new Date(b.game_date)).map(game => (
                 <div key={game.id} className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-700/40 rounded-lg border border-slate-100 dark:border-slate-600">
                   <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full" style={{ backgroundColor: getTeamColor(game.home_team_id) }} />
+                    <TeamLogo team={teamsMap[game.home_team_id]} size={8} />
                     <span className="font-semibold text-sm text-slate-900 dark:text-white">{getTeamName(game.home_team_id)}</span>
                     <span className="text-slate-400 dark:text-slate-500 text-sm">vs</span>
                     <span className="font-semibold text-sm text-slate-900 dark:text-white">{getTeamName(game.away_team_id)}</span>
-                    <div className="w-8 h-8 rounded-full" style={{ backgroundColor: getTeamColor(game.away_team_id) }} />
+                    <TeamLogo team={teamsMap[game.away_team_id]} size={8} />
                   </div>
                   <div className="text-left text-sm">
                     <p className="font-medium text-slate-900 dark:text-white">{format(new Date(game.game_date), "d/M/yy")}</p>

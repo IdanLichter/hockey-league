@@ -35,9 +35,7 @@ export default function Layout({ children }) {
       <div className="hidden lg:fixed lg:inset-y-0 lg:right-0 lg:z-50 lg:block lg:w-72 lg:overflow-y-auto lg:bg-white/80 lg:dark:bg-slate-900/90 lg:backdrop-blur-xl lg:border-l lg:border-slate-200/60 lg:dark:border-slate-700/60">
         <div className="flex flex-col h-full">
           <div className="flex items-center gap-3 px-6 py-8 border-b border-slate-200/60 dark:border-slate-700/60">
-            <div className="w-12 h-12 bg-gradient-to-br from-orange-600 to-orange-700 rounded-2xl flex items-center justify-center shadow-lg shadow-orange-600/30">
-              <Trophy className="w-7 h-7 text-white" />
-            </div>
+            <img src="/logos/main-logo.png" alt="ליגת הוקי" className="w-12 h-12 rounded-2xl object-cover shadow-lg" />
             <div>
               <h1 className="text-xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 dark:from-white dark:to-slate-300 bg-clip-text text-transparent">
                 ליגת הוקי
@@ -91,9 +89,7 @@ export default function Layout({ children }) {
       <div className="lg:hidden">
         <div className="flex items-center justify-between p-3 bg-white/80 dark:bg-slate-900/90 backdrop-blur-xl border-b border-slate-200/60 dark:border-slate-700/60">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-gradient-to-br from-orange-600 to-orange-700 rounded-lg flex items-center justify-center">
-              <Trophy className="w-5 h-5 text-white" />
-            </div>
+            <img src="/logos/main-logo.png" alt="ליגת הוקי" className="w-8 h-8 rounded-lg object-cover" />
             <h1 className="text-sm font-bold text-slate-900 dark:text-white">ליגת הוקי</h1>
           </div>
 
