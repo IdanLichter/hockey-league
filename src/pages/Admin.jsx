@@ -9,15 +9,17 @@ import {
   createGameStat, deleteGameStatsByGameId,
   addAdminUser, removeAdminUser,
   getGameStatsByGameId,
-  recalculateTeamStats, recalculatePlayerStats
+  recalculateTeamStats, recalculatePlayerStats,
+  getLeagueSetting, setLeagueSetting
 } from "@/lib/api"
 import {
   Shield, Calendar, UserCheck, Users, Settings, LogOut, Trash2, Plus,
-  Pencil, X, Check, Save, ChevronDown, UserPlus, Crown
+  Pencil, X, Check, Save, ChevronDown, UserPlus, Crown, ToggleLeft, ToggleRight, Trophy
 } from "lucide-react"
 import { motion } from "framer-motion"
 import TeamLogo from "@/components/TeamLogo"
 import { format } from "date-fns"
+import { useSeasonMode } from "@/App"
 
 const tabs = [
   { id: "games", label: "משחקים", icon: Calendar },
@@ -83,6 +85,9 @@ export default function Admin() {
           </button>
         </div>
       </motion.div>
+
+      {/* Season Mode Toggle */}
+      <SeasonModeToggle />
 
       {/* Tabs */}
       <div className="tab-bar">
@@ -900,6 +905,64 @@ function UsersAdmin({ adminUsers, currentUserEmail, reload }) {
             </div>
           ))}
         </div>
+      </div>
+    </div>
+  )
+}
+
+// ============ SEASON MODE TOGGLE ============
+function SeasonModeToggle() {
+  const { seasonMode, setSeasonMode } = useSeasonMode()
+  const [saving, setSaving] = useState(false)
+
+  const isFinalFour = seasonMode === 'final_four'
+
+  const handleToggle = async () => {
+    const newMode = isFinalFour ? 'regular' : 'final_four'
+    setSaving(true)
+    try {
+      await setLeagueSetting('season_mode', newMode)
+      setSeasonMode(newMode)
+    } catch (err) { alert('שגיאה: ' + err.message) }
+    finally { setSaving(false) }
+  }
+
+  return (
+    <div className="card p-4">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+            isFinalFour
+              ? 'bg-orange-100 dark:bg-orange-900/30'
+              : 'bg-blue-100 dark:bg-blue-900/30'
+          }`}>
+            <Trophy className={`w-5 h-5 ${isFinalFour ? 'text-orange-600 dark:text-orange-400' : 'text-blue-600 dark:text-blue-400'}`} />
+          </div>
+          <div>
+            <h3 className="font-bold text-sm text-slate-900 dark:text-white">מצב עונה</h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              {isFinalFour ? 'Final Four — העמוד הראשי: שלב הגמר' : 'עונה סדירה — העמוד הראשי: טבלת הליגה'}
+            </p>
+          </div>
+        </div>
+        <button
+          onClick={handleToggle}
+          disabled={saving}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all disabled:opacity-50 ${
+            isFinalFour
+              ? 'bg-orange-500 text-white hover:bg-orange-600'
+              : 'bg-blue-500 text-white hover:bg-blue-600'
+          }`}
+        >
+          {saving ? (
+            <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
+          ) : isFinalFour ? (
+            <ToggleRight className="w-5 h-5" />
+          ) : (
+            <ToggleLeft className="w-5 h-5" />
+          )}
+          {isFinalFour ? 'Final Four' : 'עונה סדירה'}
+        </button>
       </div>
     </div>
   )

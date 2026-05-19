@@ -148,6 +148,24 @@ export async function removeAdminUser(id) {
   if (error) throw error
 }
 
+// --- League Settings ---
+export async function getLeagueSetting(key) {
+  const { data, error } = await supabase
+    .from('league_settings')
+    .select('value')
+    .eq('key', key)
+    .maybeSingle()
+  if (error) throw error
+  return data?.value || null
+}
+
+export async function setLeagueSetting(key, value) {
+  const { error } = await supabase
+    .from('league_settings')
+    .upsert({ key, value, updated_at: new Date().toISOString() }, { onConflict: 'key' })
+  if (error) throw error
+}
+
 // ============ STATS RECALCULATION ============
 
 /**

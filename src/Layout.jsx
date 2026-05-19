@@ -13,23 +13,28 @@ import {
   Shield
 } from "lucide-react"
 import { useTheme } from "./lib/ThemeContext"
-
-const navigationItems = [
-  { title: "טבלה", url: "/", icon: Trophy, description: "דירוג ופלייאוף" },
-  { title: "משחקים", url: "/games", icon: Calendar, description: "לוח ותוצאות" },
-  { title: "סטטיסטיקות", url: "/statistics", icon: BarChart3, description: "נתוני ביצועים" },
-  { title: "קבוצות", url: "/teams", icon: Users, description: "כל הקבוצות" },
-  { title: "שחקנים", url: "/players", icon: UserCheck, description: "פרופיל שחקנים" },
-  { title: "Final Four", url: "/final-four", icon: Trophy, description: "שלב הגמר" },
-]
+import { useSeasonMode } from "./App"
 
 export default function Layout({ children }) {
   const location = useLocation()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const { dark, toggle } = useTheme()
+  const { seasonMode } = useSeasonMode()
+
+  const isFinalFour = seasonMode === 'final_four'
+
   const allNavItems = [
-    ...navigationItems,
-    { title: "ניהול", url: "/admin", icon: Shield, description: "דף מנהלים" }
+    isFinalFour
+      ? { title: "Final Four", url: "/", icon: Trophy, description: "שלב הגמר" }
+      : { title: "טבלה", url: "/", icon: Trophy, description: "דירוג ופלייאוף" },
+    { title: "משחקים", url: "/games", icon: Calendar, description: "לוח ותוצאות" },
+    { title: "סטטיסטיקות", url: "/statistics", icon: BarChart3, description: "נתוני ביצועים" },
+    { title: "קבוצות", url: "/teams", icon: Users, description: "כל הקבוצות" },
+    { title: "שחקנים", url: "/players", icon: UserCheck, description: "פרופיל שחקנים" },
+    isFinalFour
+      ? { title: "טבלה", url: "/standings", icon: BarChart3, description: "עונה סדירה" }
+      : { title: "Final Four", url: "/final-four", icon: Trophy, description: "שלב הגמר" },
+    { title: "ניהול", url: "/admin", icon: Shield, description: "דף מנהלים" },
   ]
 
   const isActivePage = (url) => location.pathname === url
