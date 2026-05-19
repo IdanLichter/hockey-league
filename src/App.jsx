@@ -8,6 +8,7 @@ import Teams from './pages/Teams'
 import Players from './pages/Players'
 import FinalFour from './pages/FinalFour'
 import Admin from './pages/Admin'
+import ArchivePage from './pages/Archive'
 import { getLeagueSetting } from './lib/api'
 
 const SeasonModeContext = createContext()
@@ -47,6 +48,8 @@ function App() {
             <Route path="/players" element={<Players />} />
             <Route path="/final-four" element={<FinalFour />} />
             <Route path="/admin" element={<Admin />} />
+            <Route path="/archive" element={<ArchivePage />} />
+            <Route path="/archive/:seasonId" element={<ArchivePage />} />
           </Routes>
         </Layout>
       </Router>

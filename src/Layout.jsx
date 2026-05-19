@@ -10,7 +10,8 @@ import {
   X,
   Sun,
   Moon,
-  Shield
+  Shield,
+  Archive
 } from "lucide-react"
 import { useTheme } from "./lib/ThemeContext"
 import { useSeasonMode } from "./App"
@@ -34,6 +35,7 @@ export default function Layout({ children }) {
     isFinalFour
       ? { title: "טבלה", url: "/standings", icon: BarChart3, description: "עונה סדירה" }
       : { title: "Final Four", url: "/final-four", icon: Trophy, description: "שלב הגמר" },
+    { title: "ארכיון", url: "/archive", icon: Archive, description: "עונות קודמות" },
     { title: "ניהול", url: "/admin", icon: Shield, description: "דף מנהלים" },
   ]
 

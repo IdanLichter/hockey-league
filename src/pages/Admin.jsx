@@ -10,11 +10,13 @@ import {
   addAdminUser, removeAdminUser,
   getGameStatsByGameId,
   recalculateTeamStats, recalculatePlayerStats,
-  getLeagueSetting, setLeagueSetting
+  getLeagueSetting, setLeagueSetting,
+  archiveAndResetSeason, getArchivedSeasons
 } from "@/lib/api"
 import {
   Shield, Calendar, UserCheck, Users, Settings, LogOut, Trash2, Plus,
-  Pencil, X, Check, Save, ChevronDown, UserPlus, Crown, ToggleLeft, ToggleRight, Trophy
+  Pencil, X, Check, Save, ChevronDown, UserPlus, Crown, ToggleLeft, ToggleRight, Trophy,
+  Archive, AlertTriangle
 } from "lucide-react"
 import { motion } from "framer-motion"
 import TeamLogo from "@/components/TeamLogo"
@@ -25,6 +27,7 @@ const tabs = [
   { id: "games", label: "משחקים", icon: Calendar },
   { id: "players", label: "שחקנים", icon: UserCheck },
   { id: "teams", label: "קבוצות", icon: Users },
+  { id: "season", label: "עונה", icon: Archive },
   { id: "users", label: "מנהלים", icon: Crown },
 ]
 
@@ -109,6 +112,7 @@ export default function Admin() {
           {activeTab === "games" && <GamesAdmin games={games} teams={teams} players={players} teamsMap={teamsMap} gameStats={gameStats} reload={loadData} />}
           {activeTab === "players" && <PlayersAdmin players={players} teams={teams} teamsMap={teamsMap} reload={loadData} />}
           {activeTab === "teams" && <TeamsAdmin teams={teams} reload={loadData} />}
+          {activeTab === "season" && <SeasonAdmin games={games} teams={teams} players={players} reload={loadData} />}
           {activeTab === "users" && <UsersAdmin adminUsers={adminUsers} currentUserEmail={user.email} reload={loadData} />}
         </>
       )}
@@ -906,6 +910,153 @@ function UsersAdmin({ adminUsers, currentUserEmail, reload }) {
           ))}
         </div>
       </div>
+    </div>
+  )
+}
+
+// ============ SEASON ADMIN ============
+function SeasonAdmin({ games, teams, players, reload }) {
+  const [archivedSeasons, setArchivedSeasons] = useState([])
+  const [seasonName, setSeasonName] = useState("")
+  const [archiving, setArchiving] = useState(false)
+  const [confirmText, setConfirmText] = useState("")
+  const [showConfirm, setShowConfirm] = useState(false)
+  const { setSeasonMode } = useSeasonMode()
+
+  useEffect(() => {
+    getArchivedSeasons().then(setArchivedSeasons).catch(() => {})
+  }, [])
+
+  const completedGames = games.filter(g => g.status === 'completed').length
+  const totalGoals = teams.reduce((sum, t) => sum + (t.goals_for || 0), 0)
+
+  const handleArchive = async () => {
+    if (confirmText !== seasonName) return
+    setArchiving(true)
+    try {
+      await archiveAndResetSeason(seasonName)
+      setSeasonMode('regular')
+      setShowConfirm(false)
+      setConfirmText("")
+      setSeasonName("")
+      const seasons = await getArchivedSeasons()
+      setArchivedSeasons(seasons)
+      await reload()
+      alert('העונה אורכבה בהצלחה! כל הנתונים אופסו לעונה חדשה.')
+    } catch (err) { alert('שגיאה: ' + err.message) }
+    finally { setArchiving(false) }
+  }
+
+  return (
+    <div className="space-y-4">
+      {/* Current season summary */}
+      <div className="card p-5">
+        <h3 className="font-bold text-sm text-slate-900 dark:text-white mb-4 flex items-center gap-2">
+          <Archive className="w-4 h-4 text-orange-500" /> סיום עונה וארכוב
+        </h3>
+        <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
+          פעולה זו תשמור את כל נתוני העונה הנוכחית בארכיון ותאפס את כל הסטטיסטיקות לקראת העונה הבאה.
+        </p>
+
+        <div className="grid grid-cols-3 gap-3 mb-5">
+          <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-3 text-center">
+            <p className="text-lg font-extrabold text-slate-900 dark:text-white">{games.length}</p>
+            <p className="text-[10px] text-slate-400 font-medium">משחקים</p>
+          </div>
+          <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-3 text-center">
+            <p className="text-lg font-extrabold text-slate-900 dark:text-white">{completedGames}</p>
+            <p className="text-[10px] text-slate-400 font-medium">הושלמו</p>
+          </div>
+          <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-3 text-center">
+            <p className="text-lg font-extrabold text-slate-900 dark:text-white">{players.length}</p>
+            <p className="text-[10px] text-slate-400 font-medium">שחקנים</p>
+          </div>
+        </div>
+
+        {!showConfirm ? (
+          <div className="flex items-end gap-3">
+            <div className="flex-1">
+              <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1 block">שם העונה לארכוב</label>
+              <input type="text" value={seasonName} onChange={e => setSeasonName(e.target.value)}
+                className="filter-input w-full" placeholder="לדוגמה: 2024-25" dir="ltr" />
+            </div>
+            <button onClick={() => { if (seasonName) setShowConfirm(true) }}
+              disabled={!seasonName}
+              className="flex items-center gap-2 px-5 py-2.5 bg-red-600 text-white text-sm font-semibold rounded-xl hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+              <Archive className="w-4 h-4" /> ארכב וסיים עונה
+            </button>
+          </div>
+        ) : (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+            className="p-4 bg-red-50 dark:bg-red-900/20 border-2 border-red-200 dark:border-red-800 rounded-xl space-y-3">
+            <div className="flex items-start gap-2">
+              <AlertTriangle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
+              <div>
+                <h4 className="font-bold text-sm text-red-700 dark:text-red-400">אישור סיום עונה</h4>
+                <p className="text-xs text-red-600 dark:text-red-400 mt-1">
+                  פעולה זו תארכב את עונת <strong>{seasonName}</strong> ותאפס את כל הסטטיסטיקות.
+                  המשחקים, התוצאות וכל הנתונים יישמרו בארכיון אך יימחקו מהעמודים הפעילים.
+                </p>
+                <p className="text-xs text-red-600 dark:text-red-400 mt-2 font-semibold">
+                  הקלד את שם העונה "{seasonName}" לאישור:
+                </p>
+              </div>
+            </div>
+            <input type="text" value={confirmText} onChange={e => setConfirmText(e.target.value)}
+              className="filter-input w-full border-red-300 dark:border-red-700" placeholder={seasonName} dir="ltr" />
+            <div className="flex gap-2">
+              <button onClick={handleArchive}
+                disabled={archiving || confirmText !== seasonName}
+                className="flex items-center gap-2 px-5 py-2.5 bg-red-600 text-white text-sm font-semibold rounded-xl hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                {archiving ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
+                    מארכב...
+                  </>
+                ) : (
+                  <>
+                    <Archive className="w-4 h-4" /> אשר ארכוב
+                  </>
+                )}
+              </button>
+              <button onClick={() => { setShowConfirm(false); setConfirmText("") }}
+                className="px-4 py-2.5 text-sm font-semibold text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 transition-colors">
+                ביטול
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </div>
+
+      {/* Archived seasons list */}
+      {archivedSeasons.length > 0 && (
+        <div className="card overflow-hidden">
+          <div className="px-5 py-3 border-b border-slate-100 dark:border-slate-700">
+            <h3 className="font-bold text-sm text-slate-900 dark:text-white flex items-center gap-2">
+              <Archive className="w-4 h-4 text-blue-500" /> עונות בארכיון ({archivedSeasons.length})
+            </h3>
+          </div>
+          <div className="divide-y divide-slate-100 dark:divide-slate-700/50">
+            {archivedSeasons.map(s => (
+              <div key={s.id} className="flex items-center justify-between px-5 py-3.5">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+                    <Trophy className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                  </div>
+                  <div>
+                    <p className="font-semibold text-sm text-slate-900 dark:text-white">עונת {s.name}</p>
+                    <p className="text-[11px] text-slate-400">אורכבה {new Date(s.archived_at).toLocaleDateString('he-IL')}</p>
+                  </div>
+                </div>
+                <a href={`/archive/${s.id}`}
+                  className="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-700 transition-colors">
+                  צפייה →
+                </a>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
