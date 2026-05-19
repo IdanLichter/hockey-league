@@ -65,8 +65,8 @@ export default function FinalFour() {
   const winnerC = getSeriesWinner(seriesC, seriesCGames)
 
   // Semi-finals: #1 vs winner of Series C (#4vs#5), winner A (#2vs#7) vs winner B (#3vs#6)
-  const semi1 = { t1: first, t2: winnerC, label: "חצי גמר 1" }
-  const semi2 = { t1: winnerA, t2: winnerB, label: "חצי גמר 2" }
+  const semi1 = { t1: first, t2: winnerC, label: "חצי גמר 1", dateTime: "4/6 • 18:45" }
+  const semi2 = { t1: winnerA, t2: winnerB, label: "חצי גמר 2", dateTime: "4/6 • 20:30" }
 
   // Find semi-final games
   const getSemiGames = (s) => {
@@ -83,6 +83,14 @@ export default function FinalFour() {
   const semi2Games = getSemiGames(semi2)
   const semi1Winner = semi1.t1 && semi1.t2 ? getSeriesWinner(semi1, semi1Games) : null
   const semi2Winner = semi2.t1 && semi2.t2 ? getSeriesWinner(semi2, semi2Games) : null
+
+  // Semi-final losers for 3rd place match
+  const semi1Loser = semi1Winner && semi1.t1 && semi1.t2 ? (semi1Winner.id === semi1.t1.id ? semi1.t2 : semi1.t1) : null
+  const semi2Loser = semi2Winner && semi2.t1 && semi2.t2 ? (semi2Winner.id === semi2.t1.id ? semi2.t2 : semi2.t1) : null
+
+  // 3rd place match
+  const thirdPlaceGames = playoffGames.filter(g => g.playoff_round === 'third_place')
+    .sort((a, b) => new Date(a.game_date) - new Date(b.game_date))
 
   // Final
   const finalGames = playoffGames.filter(g => g.playoff_round === 'final')
@@ -154,6 +162,13 @@ export default function FinalFour() {
               </div>
             </div>
           </div>
+
+          {/* 3rd place match */}
+          <div className="mt-4 flex justify-center">
+            <div className="w-full max-w-md">
+              <ThirdPlaceMatchup t1={semi1Loser} t2={semi2Loser} games={thirdPlaceGames} delay={0.5} />
+            </div>
+          </div>
         </div>
       </div>
 
@@ -183,6 +198,9 @@ export default function FinalFour() {
 
         {/* Final */}
         <FinalMatchup t1={semi1Winner} t2={semi2Winner} games={finalGames} delay={0.3} />
+
+        {/* 3rd place */}
+        <ThirdPlaceMatchup t1={semi1Loser} t2={semi2Loser} games={thirdPlaceGames} delay={0.35} />
       </div>
 
       {/* Playoff Schedule */}
@@ -327,10 +345,15 @@ function SemiMatchup({ semi, games, winner, delay }) {
       transition={{ delay }}
       className="bg-white dark:bg-slate-800 rounded-xl border-2 border-purple-200 dark:border-purple-800 p-3 shadow-sm w-full max-w-[220px] lg:max-w-none z-10"
     >
-      <div className="flex items-center justify-between mb-2">
+      <div className="flex items-center justify-between mb-1">
         <span className="text-[10px] font-bold text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-900/30 px-2 py-0.5 rounded-md">{semi.label}</span>
         {winner && <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400">הוכרע</span>}
       </div>
+      {semi.dateTime && (
+        <p className="text-[10px] text-slate-400 dark:text-slate-500 font-medium mb-2 flex items-center gap-1">
+          <Calendar className="w-3 h-3" /> {semi.dateTime}
+        </p>
+      )}
       <div className="space-y-1.5">
         <TeamSlot team={semi.t1} isWinner={winner?.id === semi.t1?.id} isLoser={loser?.id === semi.t1?.id} />
         <div className="flex items-center gap-2 px-2">
@@ -385,7 +408,10 @@ function FinalMatchup({ t1, t2, games, delay }) {
             <Trophy className="w-7 h-7 text-white" />
           </div>
         </div>
-        <h3 className="text-xs font-bold text-orange-600 dark:text-orange-400 text-center uppercase tracking-wider mb-3">גמר</h3>
+        <h3 className="text-xs font-bold text-orange-600 dark:text-orange-400 text-center uppercase tracking-wider mb-1">גמר</h3>
+        <p className="text-[10px] text-slate-400 dark:text-slate-500 font-medium text-center mb-3 flex items-center justify-center gap-1">
+          <Calendar className="w-3 h-3" /> 6/6 • 19:30
+        </p>
 
         <div className="space-y-1.5">
           <TeamSlot team={t1} isWinner={champion?.id === t1?.id} isLoser={champion && champion?.id !== t1?.id} />
@@ -418,6 +444,51 @@ function FinalMatchup({ t1, t2, games, delay }) {
           <p className="text-xs text-slate-400 dark:text-slate-500 font-medium text-center mt-2">טרם נקבע</p>
         )}
       </div>
+    </motion.div>
+  )
+}
+
+function ThirdPlaceMatchup({ t1, t2, games, delay }) {
+  const completed = games.filter(g => g.status === 'completed')
+  let winner = null
+  if (completed.length > 0 && t1 && t2) {
+    const g = completed[0]
+    const homeWin = g.home_score > g.away_score
+    if ((g.home_team_id === t1.id && homeWin) || (g.away_team_id === t1.id && !homeWin)) winner = t1
+    else winner = t2
+  }
+  const loser = winner && t1 && t2 ? (winner.id === t1.id ? t2 : t1) : null
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ delay }}
+      className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-4 shadow-sm"
+    >
+      <div className="flex items-center justify-between mb-1">
+        <span className="text-[10px] font-bold text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-700 px-2 py-0.5 rounded-md">משחק על מקום 3/4</span>
+        {winner && <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400">הוכרע</span>}
+      </div>
+      <p className="text-[10px] text-slate-400 dark:text-slate-500 font-medium mb-2 flex items-center gap-1">
+        <Calendar className="w-3 h-3" /> 6/6 • 17:00
+      </p>
+
+      <div className="flex items-center gap-3">
+        <div className="flex-1">
+          <TeamSlot team={t1} isWinner={winner?.id === t1?.id} isLoser={loser?.id === t1?.id} />
+        </div>
+        <span className="text-[10px] font-bold text-slate-400">VS</span>
+        <div className="flex-1">
+          <TeamSlot team={t2} isWinner={winner?.id === t2?.id} isLoser={loser?.id === t2?.id} />
+        </div>
+      </div>
+
+      {games.length > 0 && (
+        <div className="mt-2 space-y-1">
+          {games.map(g => <GameResult key={g.id} game={g} />)}
+        </div>
+      )}
     </motion.div>
   )
 }
