@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react"
 import { getTeams, getGames } from "@/lib/api"
-import { Trophy, Crown, Swords, Calendar, ArrowLeft } from "lucide-react"
+import { Trophy, Crown, Calendar } from "lucide-react"
 import { motion } from "framer-motion"
 import { format } from "date-fns"
 import TeamLogo from "@/components/TeamLogo"
@@ -21,17 +21,72 @@ export default function FinalFour() {
   }
 
   const teamsMap = Object.fromEntries(teams.map(t => [t.id, t]))
-  const teamName = (id) => teamsMap[id]?.name || '—'
   const sorted = [...teams].sort((a, b) => (b.points || 0) - (a.points || 0))
   const first = sorted[0]
 
-  const playoffGames = games.filter(g => g.game_type === 'פלייאוף')
+  const playoffGames = games.filter(g => g.game_type === 'פלייאוף' || g.game_type === 'Final Four')
 
-  const series = sorted.length >= 7 ? [
-    { name: "A", t1: sorted[1], t2: sorted[6], p1: 2, p2: 7 },
-    { name: "B", t1: sorted[2], t2: sorted[5], p1: 3, p2: 6 },
-    { name: "C", t1: sorted[3], t2: sorted[4], p1: 4, p2: 5 },
-  ] : []
+  // Playoff series: #2 vs #7, #3 vs #6, #4 vs #5
+  const seriesA = sorted.length >= 7 ? { t1: sorted[1], t2: sorted[6], p1: 2, p2: 7 } : null
+  const seriesB = sorted.length >= 7 ? { t1: sorted[2], t2: sorted[5], p1: 3, p2: 6 } : null
+  const seriesC = sorted.length >= 7 ? { t1: sorted[3], t2: sorted[4], p1: 4, p2: 5 } : null
+
+  // Find games for each series
+  const getSeriesGames = (s) => {
+    if (!s) return []
+    return playoffGames.filter(g =>
+      (g.home_team_id === s.t1?.id && g.away_team_id === s.t2?.id) ||
+      (g.home_team_id === s.t2?.id && g.away_team_id === s.t1?.id)
+    ).sort((a, b) => new Date(a.game_date) - new Date(b.game_date))
+  }
+
+  // Determine series winner
+  const getSeriesWinner = (s, sGames) => {
+    if (!s) return null
+    let t1Wins = 0, t2Wins = 0
+    for (const g of sGames) {
+      if (g.status !== 'completed') continue
+      const homeWin = g.home_score > g.away_score
+      if ((g.home_team_id === s.t1.id && homeWin) || (g.away_team_id === s.t1.id && !homeWin)) t1Wins++
+      else t2Wins++
+    }
+    // Best of 3 → need 2 wins
+    if (t1Wins >= 2) return s.t1
+    if (t2Wins >= 2) return s.t2
+    return null
+  }
+
+  const seriesAGames = getSeriesGames(seriesA)
+  const seriesBGames = getSeriesGames(seriesB)
+  const seriesCGames = getSeriesGames(seriesC)
+
+  const winnerA = getSeriesWinner(seriesA, seriesAGames)
+  const winnerB = getSeriesWinner(seriesB, seriesBGames)
+  const winnerC = getSeriesWinner(seriesC, seriesCGames)
+
+  // Semi-finals: #1 vs winner of Series A, winner B vs winner C
+  const semi1 = { t1: first, t2: winnerA, label: "חצי גמר 1" }
+  const semi2 = { t1: winnerB, t2: winnerC, label: "חצי גמר 2" }
+
+  // Find semi-final games
+  const getSemiGames = (s) => {
+    if (!s.t1 || !s.t2) return []
+    return playoffGames.filter(g =>
+      g.playoff_round === 'semi_final' && (
+        (g.home_team_id === s.t1?.id && g.away_team_id === s.t2?.id) ||
+        (g.home_team_id === s.t2?.id && g.away_team_id === s.t1?.id)
+      )
+    ).sort((a, b) => new Date(a.game_date) - new Date(b.game_date))
+  }
+
+  const semi1Games = getSemiGames(semi1)
+  const semi2Games = getSemiGames(semi2)
+  const semi1Winner = semi1.t1 && semi1.t2 ? getSeriesWinner(semi1, semi1Games) : null
+  const semi2Winner = semi2.t1 && semi2.t2 ? getSeriesWinner(semi2, semi2Games) : null
+
+  // Final
+  const finalGames = playoffGames.filter(g => g.playoff_round === 'final')
+    .sort((a, b) => new Date(a.game_date) - new Date(b.game_date))
 
   if (loading) {
     return (
@@ -42,7 +97,7 @@ export default function FinalFour() {
   }
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 max-w-5xl mx-auto space-y-5">
+    <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-5">
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
         <h1 className="page-title flex items-center gap-2.5">
           <Trophy className="w-7 h-7 text-orange-500" /> Final Four
@@ -50,97 +105,84 @@ export default function FinalFour() {
         <p className="page-subtitle mt-1">שלב הגמר — עונת 2024-25</p>
       </motion.div>
 
-      {/* Bracket */}
-      <div className="card p-5 sm:p-6">
-        <h2 className="font-bold text-sm text-slate-900 dark:text-white mb-5 flex items-center gap-2 uppercase tracking-wide">
-          <Swords className="w-4 h-4 text-orange-500" /> מבנה הטורניר
-        </h2>
+      {/* === BRACKET === */}
+      {/* Desktop bracket */}
+      <div className="hidden lg:block">
+        <div className="card p-6 overflow-hidden">
+          <div className="bracket-container relative" style={{ minHeight: 520 }}>
+            {/* Background gradient */}
+            <div className="absolute inset-0 bg-gradient-to-l from-blue-950/5 via-orange-500/5 to-blue-950/5 dark:from-blue-900/10 dark:via-orange-500/10 dark:to-blue-900/10 rounded-xl" />
 
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto_1fr_auto_1fr] gap-4 lg:gap-2 items-start">
-          {/* Playoff Round */}
-          <div className="space-y-3">
-            <h3 className="text-xs font-bold text-slate-400 dark:text-slate-500 text-center uppercase tracking-wider mb-2">פלייאוף</h3>
-            {series.map((s, i) => {
-              const sGames = playoffGames.filter(g =>
-                (g.home_team_id === s.t1?.id && g.away_team_id === s.t2?.id) ||
-                (g.home_team_id === s.t2?.id && g.away_team_id === s.t1?.id)
-              )
-              return (
-                <motion.div key={i} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.08 }}
-                  className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-3.5 border border-slate-100 dark:border-slate-700">
-                  <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-2 py-0.5 rounded-md">סדרה {s.name}</span>
-                  <div className="mt-2.5 space-y-1.5">
-                    {[{ team: s.t1, pos: s.p1 }, { team: s.t2, pos: s.p2 }].map(({ team, pos }) => (
-                      <div key={pos} className="flex items-center gap-2 p-2 bg-white dark:bg-slate-800 rounded-lg">
-                        <TeamLogo team={team} size={6} />
-                        <span className="font-semibold text-xs text-slate-900 dark:text-white flex-1 truncate">{team?.name}</span>
-                        <span className="text-[10px] text-slate-400 font-mono">#{pos}</span>
-                      </div>
-                    ))}
-                  </div>
-                  {sGames.length > 0 && (
-                    <div className="mt-2 space-y-1">
-                      {sGames.map(g => (
-                        <div key={g.id} className="flex items-center justify-between text-[11px] px-2 py-1.5 bg-blue-50 dark:bg-blue-900/20 rounded-md">
-                          <span className="text-slate-600 dark:text-slate-400">מ׳ {g.series_game}</span>
-                          <span className="text-slate-500 dark:text-slate-400">{format(new Date(g.game_date), "d/M")}</span>
-                          {g.status === 'completed'
-                            ? <span className="font-bold text-slate-900 dark:text-white tabular-nums">{g.home_score} - {g.away_score}</span>
-                            : <span className="text-blue-600 dark:text-blue-400 font-medium">מתוכנן</span>
-                          }
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </motion.div>
-              )
-            })}
-          </div>
+            <div className="relative grid grid-cols-5 gap-0 items-center" style={{ minHeight: 500 }}>
 
-          {/* Arrow */}
-          <div className="hidden lg:flex items-center justify-center pt-16">
-            <ArrowLeft className="w-5 h-5 text-slate-300 dark:text-slate-600" />
-          </div>
-
-          {/* Semi Finals */}
-          <div className="space-y-3">
-            <h3 className="text-xs font-bold text-slate-400 dark:text-slate-500 text-center uppercase tracking-wider mb-2">חצי גמר</h3>
-
-            {first && (
-              <div className="bg-gradient-to-l from-amber-50 to-white dark:from-amber-950/30 dark:to-slate-800 rounded-xl p-3.5 border-2 border-amber-200 dark:border-amber-700">
-                <div className="flex items-center gap-1.5 mb-2">
-                  <Crown className="w-3.5 h-3.5 text-amber-500" />
-                  <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400">מקום 1 — ישיר</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <TeamLogo team={first} size={8} />
-                  <span className="font-bold text-sm text-slate-900 dark:text-white">{first.name}</span>
-                </div>
+              {/* Column 1: Left Playoffs (Series A on top, #1 direct below) */}
+              <div className="flex flex-col justify-center gap-8 px-2">
+                <PlayoffMatchup series={seriesA} games={seriesAGames} label="סדרה A" winner={winnerA} delay={0} />
+                <DirectQualifier team={first} delay={0.1} />
               </div>
-            )}
 
-            <div className="border border-dashed border-slate-200 dark:border-slate-700 rounded-xl p-4 text-center">
-              <p className="text-xs text-slate-400 dark:text-slate-500 font-medium">ממתין למנצח</p>
-            </div>
-            <div className="border border-dashed border-slate-200 dark:border-slate-700 rounded-xl p-4 text-center">
-              <p className="text-xs text-slate-400 dark:text-slate-500 font-medium">ממתין למנצח</p>
-            </div>
-          </div>
+              {/* Column 2: Left Semi-final */}
+              <div className="flex flex-col justify-center items-center px-2 relative">
+                {/* Connector lines left */}
+                <svg className="absolute inset-0 w-full h-full pointer-events-none" preserveAspectRatio="none">
+                  <line x1="0" y1="30%" x2="30%" y2="50%" stroke="currentColor" className="text-slate-200 dark:text-slate-700" strokeWidth="2" strokeDasharray="6 4" />
+                  <line x1="0" y1="70%" x2="30%" y2="50%" stroke="currentColor" className="text-slate-200 dark:text-slate-700" strokeWidth="2" strokeDasharray="6 4" />
+                  <line x1="70%" y1="50%" x2="100%" y2="50%" stroke="currentColor" className="text-slate-200 dark:text-slate-700" strokeWidth="2" strokeDasharray="6 4" />
+                </svg>
+                <SemiMatchup semi={semi1} games={semi1Games} winner={semi1Winner} delay={0.2} />
+              </div>
 
-          {/* Arrow */}
-          <div className="hidden lg:flex items-center justify-center pt-16">
-            <ArrowLeft className="w-5 h-5 text-slate-300 dark:text-slate-600" />
-          </div>
+              {/* Column 3: FINAL */}
+              <div className="flex flex-col items-center justify-center px-2">
+                <FinalMatchup t1={semi1Winner} t2={semi2Winner} games={finalGames} delay={0.4} />
+              </div>
 
-          {/* Final */}
-          <div>
-            <h3 className="text-xs font-bold text-slate-400 dark:text-slate-500 text-center uppercase tracking-wider mb-2">גמר</h3>
-            <div className="border border-dashed border-orange-200 dark:border-orange-800 rounded-xl p-8 text-center bg-gradient-to-br from-orange-50/60 to-white dark:from-orange-950/20 dark:to-slate-800">
-              <Trophy className="w-10 h-10 text-orange-300 dark:text-orange-700 mx-auto mb-2" />
-              <p className="text-xs text-slate-400 dark:text-slate-500 font-medium">טרם נקבע</p>
+              {/* Column 4: Right Semi-final */}
+              <div className="flex flex-col justify-center items-center px-2 relative">
+                <svg className="absolute inset-0 w-full h-full pointer-events-none" preserveAspectRatio="none">
+                  <line x1="100%" y1="30%" x2="70%" y2="50%" stroke="currentColor" className="text-slate-200 dark:text-slate-700" strokeWidth="2" strokeDasharray="6 4" />
+                  <line x1="100%" y1="70%" x2="70%" y2="50%" stroke="currentColor" className="text-slate-200 dark:text-slate-700" strokeWidth="2" strokeDasharray="6 4" />
+                  <line x1="30%" y1="50%" x2="0" y2="50%" stroke="currentColor" className="text-slate-200 dark:text-slate-700" strokeWidth="2" strokeDasharray="6 4" />
+                </svg>
+                <SemiMatchup semi={semi2} games={semi2Games} winner={semi2Winner} delay={0.3} />
+              </div>
+
+              {/* Column 5: Right Playoffs (Series B on top, Series C below) */}
+              <div className="flex flex-col justify-center gap-8 px-2">
+                <PlayoffMatchup series={seriesB} games={seriesBGames} label="סדרה B" winner={winnerB} delay={0.05} />
+                <PlayoffMatchup series={seriesC} games={seriesCGames} label="סדרה C" winner={winnerC} delay={0.1} />
+              </div>
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Mobile bracket (stacked) */}
+      <div className="lg:hidden space-y-4">
+        {/* Playoffs */}
+        <div className="card p-4">
+          <h2 className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-3 text-center">פלייאוף</h2>
+          <div className="space-y-3">
+            <PlayoffMatchup series={seriesA} games={seriesAGames} label="סדרה A" winner={winnerA} delay={0} />
+            <PlayoffMatchup series={seriesB} games={seriesBGames} label="סדרה B" winner={winnerB} delay={0.05} />
+            <PlayoffMatchup series={seriesC} games={seriesCGames} label="סדרה C" winner={winnerC} delay={0.1} />
+          </div>
+        </div>
+
+        {/* Direct qualifier */}
+        <DirectQualifier team={first} delay={0.15} />
+
+        {/* Semi-finals */}
+        <div className="card p-4">
+          <h2 className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-3 text-center">חצי גמר</h2>
+          <div className="space-y-3">
+            <SemiMatchup semi={semi1} games={semi1Games} winner={semi1Winner} delay={0.2} />
+            <SemiMatchup semi={semi2} games={semi2Games} winner={semi2Winner} delay={0.25} />
+          </div>
+        </div>
+
+        {/* Final */}
+        <FinalMatchup t1={semi1Winner} t2={semi2Winner} games={finalGames} delay={0.3} />
       </div>
 
       {/* Playoff Schedule */}
@@ -156,9 +198,9 @@ export default function FinalFour() {
               <div key={game.id} className="flex items-center justify-between px-5 py-3.5 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
                 <div className="flex items-center gap-3">
                   <TeamLogo team={teamsMap[game.home_team_id]} size={8} />
-                  <span className="font-semibold text-sm text-slate-900 dark:text-white">{teamName(game.home_team_id)}</span>
+                  <span className="font-semibold text-sm text-slate-900 dark:text-white">{teamsMap[game.home_team_id]?.name}</span>
                   <span className="text-xs text-slate-400 font-medium">vs</span>
-                  <span className="font-semibold text-sm text-slate-900 dark:text-white">{teamName(game.away_team_id)}</span>
+                  <span className="font-semibold text-sm text-slate-900 dark:text-white">{teamsMap[game.away_team_id]?.name}</span>
                   <TeamLogo team={teamsMap[game.away_team_id]} size={8} />
                 </div>
                 <div className="text-left text-sm">
@@ -173,5 +215,209 @@ export default function FinalFour() {
         </div>
       )}
     </div>
+  )
+}
+
+// ============ BRACKET COMPONENTS ============
+
+function TeamSlot({ team, pos, isWinner, isLoser }) {
+  return (
+    <div className={`flex items-center gap-2 p-2 rounded-lg transition-all ${
+      isWinner
+        ? 'bg-emerald-50 dark:bg-emerald-900/20 ring-1 ring-emerald-300 dark:ring-emerald-700'
+        : isLoser
+          ? 'bg-slate-50 dark:bg-slate-800/50 opacity-50'
+          : 'bg-white dark:bg-slate-800'
+    }`}>
+      {team ? (
+        <>
+          <TeamLogo team={team} size={7} />
+          <span className={`font-semibold text-xs flex-1 truncate ${
+            isWinner ? 'text-emerald-700 dark:text-emerald-300' : 'text-slate-900 dark:text-white'
+          }`}>
+            {team.name}
+          </span>
+          {pos && <span className="text-[10px] text-slate-400 font-mono">#{pos}</span>}
+          {isWinner && <span className="text-[10px]">✓</span>}
+        </>
+      ) : (
+        <>
+          <div className="w-7 h-7 rounded-full bg-slate-100 dark:bg-slate-700 border-2 border-dashed border-slate-300 dark:border-slate-600" />
+          <span className="text-xs text-slate-400 dark:text-slate-500 font-medium">ממתין</span>
+        </>
+      )}
+    </div>
+  )
+}
+
+function GameResult({ game }) {
+  if (!game) return null
+  return (
+    <div className="flex items-center justify-between text-[11px] px-2 py-1 bg-slate-50 dark:bg-slate-800/50 rounded-md">
+      <span className="text-slate-500 dark:text-slate-400">מ׳ {game.series_game || '—'}</span>
+      <span className="text-slate-400 dark:text-slate-500">{format(new Date(game.game_date), "d/M")}</span>
+      {game.status === 'completed'
+        ? <span className="font-bold text-slate-900 dark:text-white tabular-nums">{game.home_score} - {game.away_score}</span>
+        : <span className="text-blue-600 dark:text-blue-400 font-medium">מתוכנן</span>
+      }
+    </div>
+  )
+}
+
+function PlayoffMatchup({ series, games, label, winner, delay }) {
+  if (!series) return null
+  const loser = winner ? (winner.id === series.t1.id ? series.t2 : series.t1) : null
+  return (
+    <motion.div
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ delay }}
+      className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-3 shadow-sm"
+    >
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-2 py-0.5 rounded-md">{label}</span>
+        {winner && <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400">הוכרע</span>}
+      </div>
+      <div className="space-y-1.5">
+        <TeamSlot team={series.t1} pos={series.p1} isWinner={winner?.id === series.t1.id} isLoser={loser?.id === series.t1.id} />
+        <div className="flex items-center gap-2 px-2">
+          <div className="flex-1 h-px bg-slate-200 dark:bg-slate-700" />
+          <span className="text-[10px] font-bold text-slate-400">VS</span>
+          <div className="flex-1 h-px bg-slate-200 dark:bg-slate-700" />
+        </div>
+        <TeamSlot team={series.t2} pos={series.p2} isWinner={winner?.id === series.t2.id} isLoser={loser?.id === series.t2.id} />
+      </div>
+      {games.length > 0 && (
+        <div className="mt-2 space-y-1">
+          {games.map(g => <GameResult key={g.id} game={g} />)}
+        </div>
+      )}
+    </motion.div>
+  )
+}
+
+function DirectQualifier({ team, delay }) {
+  if (!team) return null
+  return (
+    <motion.div
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ delay }}
+      className="bg-gradient-to-l from-amber-50 to-white dark:from-amber-950/30 dark:to-slate-800 rounded-xl border-2 border-amber-200 dark:border-amber-700 p-3 shadow-sm"
+    >
+      <div className="flex items-center gap-1.5 mb-2">
+        <Crown className="w-3.5 h-3.5 text-amber-500" />
+        <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400">מקום 1 — ישיר לחצי הגמר</span>
+      </div>
+      <div className="flex items-center gap-2 p-2 bg-white/60 dark:bg-slate-800/60 rounded-lg">
+        <TeamLogo team={team} size={8} />
+        <span className="font-bold text-sm text-slate-900 dark:text-white">{team.name}</span>
+        <span className="text-[10px] text-amber-600 dark:text-amber-400 font-mono mr-auto">#1</span>
+      </div>
+    </motion.div>
+  )
+}
+
+function SemiMatchup({ semi, games, winner, delay }) {
+  const loser = winner && semi.t1 && semi.t2 ? (winner.id === semi.t1.id ? semi.t2 : semi.t1) : null
+  return (
+    <motion.div
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ delay }}
+      className="bg-white dark:bg-slate-800 rounded-xl border-2 border-purple-200 dark:border-purple-800 p-3 shadow-sm w-full max-w-[220px] lg:max-w-none z-10"
+    >
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-[10px] font-bold text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-900/30 px-2 py-0.5 rounded-md">{semi.label}</span>
+        {winner && <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400">הוכרע</span>}
+      </div>
+      <div className="space-y-1.5">
+        <TeamSlot team={semi.t1} isWinner={winner?.id === semi.t1?.id} isLoser={loser?.id === semi.t1?.id} />
+        <div className="flex items-center gap-2 px-2">
+          <div className="flex-1 h-px bg-slate-200 dark:bg-slate-700" />
+          <span className="text-[10px] font-bold text-slate-400">VS</span>
+          <div className="flex-1 h-px bg-slate-200 dark:bg-slate-700" />
+        </div>
+        <TeamSlot team={semi.t2} isWinner={winner?.id === semi.t2?.id} isLoser={loser?.id === semi.t2?.id} />
+      </div>
+      {games.length > 0 && (
+        <div className="mt-2 space-y-1">
+          {games.map(g => <GameResult key={g.id} game={g} />)}
+        </div>
+      )}
+    </motion.div>
+  )
+}
+
+function FinalMatchup({ t1, t2, games, delay }) {
+  const finalCompleted = games.filter(g => g.status === 'completed')
+  let champion = null
+  if (finalCompleted.length > 0) {
+    // Check who won the final
+    let t1Wins = 0, t2Wins = 0
+    for (const g of finalCompleted) {
+      if (!t1 || !t2) break
+      const homeWin = g.home_score > g.away_score
+      if ((g.home_team_id === t1.id && homeWin) || (g.away_team_id === t1.id && !homeWin)) t1Wins++
+      else t2Wins++
+    }
+    if (t1Wins >= 2) champion = t1
+    if (t2Wins >= 2) champion = t2
+    // Single game final
+    if (finalCompleted.length === 1 && !champion) {
+      const g = finalCompleted[0]
+      if (g.home_score > g.away_score) champion = t1?.id === g.home_team_id ? t1 : t2
+      else champion = t1?.id === g.away_team_id ? t1 : t2
+    }
+  }
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, scale: 0.9 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ delay }}
+      className="w-full max-w-[240px] lg:max-w-none mx-auto"
+    >
+      <div className="relative bg-gradient-to-b from-orange-50 via-white to-orange-50 dark:from-orange-950/30 dark:via-slate-800 dark:to-orange-950/30 rounded-2xl border-2 border-orange-300 dark:border-orange-700 p-4 shadow-lg">
+        {/* Trophy icon */}
+        <div className="flex justify-center mb-3">
+          <div className="w-14 h-14 rounded-full bg-gradient-to-br from-orange-400 to-amber-500 flex items-center justify-center shadow-lg shadow-orange-500/30">
+            <Trophy className="w-7 h-7 text-white" />
+          </div>
+        </div>
+        <h3 className="text-xs font-bold text-orange-600 dark:text-orange-400 text-center uppercase tracking-wider mb-3">גמר</h3>
+
+        <div className="space-y-1.5">
+          <TeamSlot team={t1} isWinner={champion?.id === t1?.id} isLoser={champion && champion?.id !== t1?.id} />
+          <div className="flex items-center gap-2 px-2">
+            <div className="flex-1 h-px bg-orange-200 dark:bg-orange-800" />
+            <span className="text-[10px] font-bold text-orange-400">VS</span>
+            <div className="flex-1 h-px bg-orange-200 dark:bg-orange-800" />
+          </div>
+          <TeamSlot team={t2} isWinner={champion?.id === t2?.id} isLoser={champion && champion?.id !== t2?.id} />
+        </div>
+
+        {games.length > 0 && (
+          <div className="mt-2 space-y-1">
+            {games.map(g => <GameResult key={g.id} game={g} />)}
+          </div>
+        )}
+
+        {champion && (
+          <div className="mt-3 p-2 bg-gradient-to-l from-amber-100 to-orange-100 dark:from-amber-900/40 dark:to-orange-900/40 rounded-lg text-center border border-amber-200 dark:border-amber-700">
+            <p className="text-[10px] text-amber-600 dark:text-amber-400 font-bold mb-1">אלוף הליגה</p>
+            <div className="flex items-center justify-center gap-2">
+              <TeamLogo team={champion} size={8} />
+              <span className="font-extrabold text-sm text-slate-900 dark:text-white">{champion.name}</span>
+              <span className="text-lg">🏆</span>
+            </div>
+          </div>
+        )}
+
+        {!champion && !t1 && !t2 && (
+          <p className="text-xs text-slate-400 dark:text-slate-500 font-medium text-center mt-2">טרם נקבע</p>
+        )}
+      </div>
+    </motion.div>
   )
 }
