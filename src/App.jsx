@@ -6,6 +6,7 @@ import Statistics from './pages/Statistics'
 import Teams from './pages/Teams'
 import Players from './pages/Players'
 import FinalFour from './pages/FinalFour'
+import Admin from './pages/Admin'
 
 function App() {
   return (
@@ -18,6 +19,7 @@ function App() {
           <Route path="/teams" element={<Teams />} />
           <Route path="/players" element={<Players />} />
           <Route path="/final-four" element={<FinalFour />} />
+          <Route path="/admin" element={<Admin />} />
         </Routes>
       </Layout>
     </Router>

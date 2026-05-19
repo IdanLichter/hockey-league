@@ -1,0 +1,899 @@
+import { useState, useEffect } from "react"
+import { useAuth } from "@/lib/AuthContext"
+import { useNavigate } from "react-router-dom"
+import {
+  getTeams, getPlayers, getGames, getGameStats, getAdminUsers,
+  createGame, updateGame, deleteGame,
+  createPlayer, updatePlayer, deletePlayer,
+  updateTeam,
+  createGameStat, deleteGameStatsByGameId,
+  addAdminUser, removeAdminUser,
+  getGameStatsByGameId
+} from "@/lib/api"
+import {
+  Shield, Calendar, UserCheck, Users, Settings, LogOut, Trash2, Plus,
+  Pencil, X, Check, Save, ChevronDown, UserPlus, Crown
+} from "lucide-react"
+import { motion } from "framer-motion"
+import TeamLogo from "@/components/TeamLogo"
+import { format } from "date-fns"
+
+const tabs = [
+  { id: "games", label: "משחקים", icon: Calendar },
+  { id: "players", label: "שחקנים", icon: UserCheck },
+  { id: "teams", label: "קבוצות", icon: Users },
+  { id: "users", label: "מנהלים", icon: Crown },
+]
+
+export default function Admin() {
+  const { user, isAdmin, loading: authLoading, signOut } = useAuth()
+  const navigate = useNavigate()
+  const [activeTab, setActiveTab] = useState("games")
+  const [teams, setTeams] = useState([])
+  const [players, setPlayers] = useState([])
+  const [games, setGames] = useState([])
+  const [gameStats, setGameStats] = useState([])
+  const [adminUsers, setAdminUsers] = useState([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    if (!authLoading && (!user || !isAdmin)) return
+    loadData()
+  }, [authLoading, user, isAdmin])
+
+  const loadData = async () => {
+    try {
+      const [t, p, g, gs, au] = await Promise.all([
+        getTeams(), getPlayers(), getGames(), getGameStats(),
+        getAdminUsers().catch(() => [])
+      ])
+      setTeams(t); setPlayers(p); setGames(g); setGameStats(gs); setAdminUsers(au)
+    } catch (err) { console.error(err) }
+    finally { setLoading(false) }
+  }
+
+  if (authLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="animate-spin rounded-full h-10 w-10 border-2 border-orange-500 border-t-transparent" />
+      </div>
+    )
+  }
+
+  if (!user || !isAdmin) {
+    return <AccessDenied />
+  }
+
+  const teamsMap = Object.fromEntries(teams.map(t => [t.id, t]))
+
+  return (
+    <div className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto space-y-5">
+      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="page-title flex items-center gap-2.5">
+              <Shield className="w-7 h-7 text-orange-500" /> ניהול
+            </h1>
+            <p className="page-subtitle mt-1">מחובר כ-{user.email}</p>
+          </div>
+          <button onClick={() => { signOut(); navigate('/') }}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors">
+            <LogOut className="w-4 h-4" /> התנתק
+          </button>
+        </div>
+      </motion.div>
+
+      {/* Tabs */}
+      <div className="tab-bar">
+        {tabs.map(tab => (
+          <button key={tab.id} onClick={() => setActiveTab(tab.id)}
+            className={activeTab === tab.id ? "tab-active" : "tab-inactive"}>
+            <tab.icon className="w-4 h-4" />
+            <span className="hidden sm:inline">{tab.label}</span>
+          </button>
+        ))}
+      </div>
+
+      {loading ? (
+        <div className="flex items-center justify-center min-h-[200px]">
+          <div className="animate-spin rounded-full h-8 w-8 border-2 border-orange-500 border-t-transparent" />
+        </div>
+      ) : (
+        <>
+          {activeTab === "games" && <GamesAdmin games={games} teams={teams} players={players} teamsMap={teamsMap} gameStats={gameStats} reload={loadData} />}
+          {activeTab === "players" && <PlayersAdmin players={players} teams={teams} teamsMap={teamsMap} reload={loadData} />}
+          {activeTab === "teams" && <TeamsAdmin teams={teams} reload={loadData} />}
+          {activeTab === "users" && <UsersAdmin adminUsers={adminUsers} currentUserEmail={user.email} reload={loadData} />}
+        </>
+      )}
+    </div>
+  )
+}
+
+function AccessDenied() {
+  const { signInWithGoogle, user } = useAuth()
+  return (
+    <div className="flex items-center justify-center min-h-[60vh]">
+      <div className="card p-8 sm:p-12 text-center max-w-md mx-4">
+        <Shield className="w-16 h-16 text-slate-300 dark:text-slate-600 mx-auto mb-4" />
+        <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-2">גישת מנהלים</h2>
+        {user ? (
+          <>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">
+              החשבון {user.email} אינו מורשה לגשת לדף הניהול.
+            </p>
+          </>
+        ) : (
+          <>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">
+              התחבר עם חשבון Google מורשה כדי לגשת לדף הניהול.
+            </p>
+            <button onClick={signInWithGoogle}
+              className="flex items-center justify-center gap-3 w-full px-6 py-3 bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-xl text-sm font-semibold text-slate-700 dark:text-slate-300 hover:border-orange-500 hover:shadow-md transition-all">
+              <svg className="w-5 h-5" viewBox="0 0 24 24">
+                <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/>
+                <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+                <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+                <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+              </svg>
+              התחבר עם Google
+            </button>
+          </>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// ============ GAMES ADMIN ============
+function GamesAdmin({ games, teams, players, teamsMap, gameStats, reload }) {
+  const [showForm, setShowForm] = useState(false)
+  const [editingGame, setEditingGame] = useState(null)
+  const [editingStats, setEditingStats] = useState(null)
+  const [saving, setSaving] = useState(false)
+  const [form, setForm] = useState({
+    home_team_id: '', away_team_id: '', game_date: '', venue: '',
+    home_score: '', away_score: '', status: 'scheduled',
+    game_type: 'ליגה', playoff_round: '', series_game: '', notes: ''
+  })
+
+  const resetForm = () => {
+    setForm({
+      home_team_id: '', away_team_id: '', game_date: '', venue: '',
+      home_score: '', away_score: '', status: 'scheduled',
+      game_type: 'ליגה', playoff_round: '', series_game: '', notes: ''
+    })
+    setEditingGame(null)
+    setShowForm(false)
+  }
+
+  const startEdit = (game) => {
+    setForm({
+      home_team_id: game.home_team_id || '',
+      away_team_id: game.away_team_id || '',
+      game_date: game.game_date ? format(new Date(game.game_date), "yyyy-MM-dd'T'HH:mm") : '',
+      venue: game.venue || '',
+      home_score: game.home_score ?? '',
+      away_score: game.away_score ?? '',
+      status: game.status || 'scheduled',
+      game_type: game.game_type || 'ליגה',
+      playoff_round: game.playoff_round || '',
+      series_game: game.series_game ?? '',
+      notes: game.notes || ''
+    })
+    setEditingGame(game.id)
+    setShowForm(true)
+  }
+
+  const handleSave = async () => {
+    setSaving(true)
+    try {
+      const payload = {
+        ...form,
+        home_score: form.home_score !== '' ? Number(form.home_score) : null,
+        away_score: form.away_score !== '' ? Number(form.away_score) : null,
+        series_game: form.series_game !== '' ? Number(form.series_game) : null,
+        playoff_round: form.playoff_round || null,
+      }
+      if (editingGame) {
+        await updateGame(editingGame, payload)
+      } else {
+        await createGame(payload)
+      }
+      resetForm()
+      await reload()
+    } catch (err) { alert('שגיאה: ' + err.message) }
+    finally { setSaving(false) }
+  }
+
+  const handleDelete = async (id) => {
+    if (!confirm('למחוק את המשחק?')) return
+    try {
+      await deleteGame(id)
+      await reload()
+    } catch (err) { alert('שגיאה: ' + err.message) }
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h2 className="font-bold text-sm text-slate-900 dark:text-white">
+          {games.length} משחקים
+        </h2>
+        <button onClick={() => { resetForm(); setShowForm(true) }}
+          className="flex items-center gap-2 px-4 py-2 bg-orange-500 text-white text-sm font-semibold rounded-xl hover:bg-orange-600 transition-colors">
+          <Plus className="w-4 h-4" /> משחק חדש
+        </button>
+      </div>
+
+      {/* Form */}
+      {showForm && (
+        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="card p-5 space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="font-bold text-sm text-slate-900 dark:text-white">
+              {editingGame ? 'עריכת משחק' : 'משחק חדש'}
+            </h3>
+            <button onClick={resetForm} className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg">
+              <X className="w-4 h-4 text-slate-400" />
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            <div>
+              <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1 block">קבוצת בית</label>
+              <select value={form.home_team_id} onChange={e => setForm({ ...form, home_team_id: e.target.value })} className="filter-select w-full">
+                <option value="">בחר קבוצה</option>
+                {teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1 block">קבוצת חוץ</label>
+              <select value={form.away_team_id} onChange={e => setForm({ ...form, away_team_id: e.target.value })} className="filter-select w-full">
+                <option value="">בחר קבוצה</option>
+                {teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1 block">תאריך ושעה</label>
+              <input type="datetime-local" value={form.game_date} onChange={e => setForm({ ...form, game_date: e.target.value })} className="filter-input w-full" />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1 block">מגרש</label>
+              <input type="text" value={form.venue} onChange={e => setForm({ ...form, venue: e.target.value })} className="filter-input w-full" placeholder="מגרש" />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1 block">תוצאת בית</label>
+              <input type="number" min="0" value={form.home_score} onChange={e => setForm({ ...form, home_score: e.target.value })} className="filter-input w-full" placeholder="—" />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1 block">תוצאת חוץ</label>
+              <input type="number" min="0" value={form.away_score} onChange={e => setForm({ ...form, away_score: e.target.value })} className="filter-input w-full" placeholder="—" />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1 block">סטטוס</label>
+              <select value={form.status} onChange={e => setForm({ ...form, status: e.target.value })} className="filter-select w-full">
+                <option value="scheduled">מתוכנן</option>
+                <option value="waiting_result">ממתין לתוצאה</option>
+                <option value="in_progress">בתהליך</option>
+                <option value="completed">הסתיים</option>
+                <option value="postponed">נדחה</option>
+                <option value="cancelled">בוטל</option>
+              </select>
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1 block">סוג משחק</label>
+              <select value={form.game_type} onChange={e => setForm({ ...form, game_type: e.target.value })} className="filter-select w-full">
+                <option value="ליגה">ליגה</option>
+                <option value="פלייאוף">פלייאוף</option>
+                <option value="Final Four">Final Four</option>
+              </select>
+            </div>
+            {form.game_type !== 'ליגה' && (
+              <>
+                <div>
+                  <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1 block">שלב</label>
+                  <select value={form.playoff_round} onChange={e => setForm({ ...form, playoff_round: e.target.value })} className="filter-select w-full">
+                    <option value="">—</option>
+                    <option value="first_round">סיבוב ראשון</option>
+                    <option value="semi_final">חצי גמר</option>
+                    <option value="final">גמר</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1 block">מספר משחק בסדרה</label>
+                  <input type="number" min="1" value={form.series_game} onChange={e => setForm({ ...form, series_game: e.target.value })} className="filter-input w-full" />
+                </div>
+              </>
+            )}
+          </div>
+          <div>
+            <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1 block">הערות</label>
+            <input type="text" value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} className="filter-input w-full" placeholder="הערות..." />
+          </div>
+          <div className="flex gap-2 pt-1">
+            <button onClick={handleSave} disabled={saving || !form.home_team_id || !form.away_team_id || !form.game_date}
+              className="flex items-center gap-2 px-5 py-2.5 bg-orange-500 text-white text-sm font-semibold rounded-xl hover:bg-orange-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+              <Save className="w-4 h-4" /> {saving ? 'שומר...' : editingGame ? 'עדכן' : 'צור'}
+            </button>
+            <button onClick={resetForm} className="px-4 py-2.5 text-sm font-semibold text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 transition-colors">
+              ביטול
+            </button>
+          </div>
+        </motion.div>
+      )}
+
+      {/* Games List */}
+      <div className="card overflow-hidden">
+        <div className="divide-y divide-slate-100 dark:divide-slate-700/50">
+          {games.sort((a, b) => new Date(b.game_date) - new Date(a.game_date)).map(game => (
+            <div key={game.id}>
+              <div className="flex items-center justify-between px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                <div className="flex items-center gap-3 flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <TeamLogo team={teamsMap[game.home_team_id]} size={7} />
+                    <span className="font-semibold text-xs text-slate-900 dark:text-white truncate max-w-[80px] sm:max-w-none">{teamsMap[game.home_team_id]?.name}</span>
+                  </div>
+                  <div className="text-center px-2">
+                    {game.status === 'completed' ? (
+                      <span className="font-bold text-sm text-slate-900 dark:text-white tabular-nums">{game.home_score} : {game.away_score}</span>
+                    ) : (
+                      <span className="text-[10px] font-semibold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-2 py-0.5 rounded-md">
+                        {game.status === 'scheduled' ? 'מתוכנן' : game.status === 'postponed' ? 'נדחה' : game.status}
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-semibold text-xs text-slate-900 dark:text-white truncate max-w-[80px] sm:max-w-none">{teamsMap[game.away_team_id]?.name}</span>
+                    <TeamLogo team={teamsMap[game.away_team_id]} size={7} />
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 mr-3">
+                  <span className="text-[10px] text-slate-400 hidden sm:inline">{format(new Date(game.game_date), "d/M/yy")}</span>
+                  <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400">{game.game_type}</span>
+                  <button onClick={() => setEditingStats(editingStats === game.id ? null : game.id)}
+                    className="p-1.5 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/30 text-blue-500 transition-colors" title="סטטיסטיקות">
+                    <Settings className="w-3.5 h-3.5" />
+                  </button>
+                  <button onClick={() => startEdit(game)}
+                    className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors">
+                    <Pencil className="w-3.5 h-3.5" />
+                  </button>
+                  <button onClick={() => handleDelete(game.id)}
+                    className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/30 text-slate-400 hover:text-red-500 transition-colors">
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+              {editingStats === game.id && (
+                <GameStatsEditor
+                  game={game}
+                  players={players}
+                  teamsMap={teamsMap}
+                  existingStats={gameStats.filter(s => s.game_id === game.id)}
+                  reload={reload}
+                />
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ============ GAME STATS EDITOR ============
+function GameStatsEditor({ game, players, teamsMap, existingStats, reload }) {
+  const [stats, setStats] = useState([])
+  const [saving, setSaving] = useState(false)
+
+  const homePlayers = players.filter(p => p.team_id === game.home_team_id)
+  const awayPlayers = players.filter(p => p.team_id === game.away_team_id)
+
+  useEffect(() => {
+    if (existingStats.length > 0) {
+      setStats(existingStats.map(s => ({ ...s })))
+    }
+  }, [existingStats])
+
+  const addStat = () => {
+    setStats([...stats, {
+      id: 'new-' + Date.now(),
+      game_id: game.id,
+      player_id: '',
+      goals: 0,
+      blue_cards: 0,
+      red_cards: 0,
+      clean_sheet: false,
+      is_guest_player: false,
+      guest_player_name: '',
+    }])
+  }
+
+  const updateStat = (index, field, value) => {
+    const updated = [...stats]
+    updated[index] = { ...updated[index], [field]: value }
+    setStats(updated)
+  }
+
+  const removeStat = (index) => {
+    setStats(stats.filter((_, i) => i !== index))
+  }
+
+  const handleSaveStats = async () => {
+    setSaving(true)
+    try {
+      // Delete all existing stats for this game
+      await deleteGameStatsByGameId(game.id)
+      // Insert new ones
+      for (const stat of stats) {
+        if (!stat.player_id && !stat.is_guest_player) continue
+        const { id, ...rest } = stat
+        await createGameStat({
+          ...rest,
+          game_id: game.id,
+          goals: Number(rest.goals) || 0,
+          blue_cards: Number(rest.blue_cards) || 0,
+          red_cards: Number(rest.red_cards) || 0,
+        })
+      }
+      await reload()
+    } catch (err) { alert('שגיאה: ' + err.message) }
+    finally { setSaving(false) }
+  }
+
+  const allPlayers = [...homePlayers, ...awayPlayers]
+
+  return (
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+      className="px-4 pb-4 bg-slate-50 dark:bg-slate-800/30 border-t border-slate-100 dark:border-slate-700">
+      <div className="pt-3 pb-2 flex items-center justify-between">
+        <h4 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">סטטיסטיקות שחקנים</h4>
+        <button onClick={addStat} className="flex items-center gap-1 text-xs font-semibold text-orange-600 dark:text-orange-400 hover:text-orange-700">
+          <Plus className="w-3 h-3" /> הוסף שחקן
+        </button>
+      </div>
+
+      <div className="space-y-2">
+        {stats.map((stat, i) => (
+          <div key={stat.id || i} className="flex items-center gap-2 bg-white dark:bg-slate-800 rounded-lg p-2">
+            <select value={stat.player_id} onChange={e => updateStat(i, 'player_id', e.target.value)}
+              className="filter-select text-xs flex-1 min-w-0">
+              <option value="">בחר שחקן</option>
+              <optgroup label={teamsMap[game.home_team_id]?.name}>
+                {homePlayers.map(p => <option key={p.id} value={p.id}>{p.first_name} {p.last_name}</option>)}
+              </optgroup>
+              <optgroup label={teamsMap[game.away_team_id]?.name}>
+                {awayPlayers.map(p => <option key={p.id} value={p.id}>{p.first_name} {p.last_name}</option>)}
+              </optgroup>
+            </select>
+            <div className="flex items-center gap-1">
+              <label className="text-[10px] text-slate-400">שערים</label>
+              <input type="number" min="0" value={stat.goals} onChange={e => updateStat(i, 'goals', e.target.value)}
+                className="filter-input w-14 text-xs text-center" />
+            </div>
+            <div className="flex items-center gap-1">
+              <label className="text-[10px] text-slate-400">כחול</label>
+              <input type="number" min="0" value={stat.blue_cards} onChange={e => updateStat(i, 'blue_cards', e.target.value)}
+                className="filter-input w-14 text-xs text-center" />
+            </div>
+            <div className="flex items-center gap-1">
+              <label className="text-[10px] text-slate-400">אדום</label>
+              <input type="number" min="0" value={stat.red_cards} onChange={e => updateStat(i, 'red_cards', e.target.value)}
+                className="filter-input w-14 text-xs text-center" />
+            </div>
+            <button onClick={() => removeStat(i)} className="p-1 text-slate-400 hover:text-red-500">
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        ))}
+      </div>
+
+      <div className="mt-3">
+        <button onClick={handleSaveStats} disabled={saving}
+          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-xs font-semibold rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50">
+          <Save className="w-3.5 h-3.5" /> {saving ? 'שומר...' : 'שמור סטטיסטיקות'}
+        </button>
+      </div>
+    </motion.div>
+  )
+}
+
+// ============ PLAYERS ADMIN ============
+function PlayersAdmin({ players, teams, teamsMap, reload }) {
+  const [showForm, setShowForm] = useState(false)
+  const [editingPlayer, setEditingPlayer] = useState(null)
+  const [saving, setSaving] = useState(false)
+  const [searchTerm, setSearchTerm] = useState("")
+  const [form, setForm] = useState({
+    first_name: '', last_name: '', jersey_number: '', position: 'Field Player',
+    team_id: '', is_referee: false, is_core: false, goals: 0, games_played: 0,
+    blue_cards: 0, red_cards: 0
+  })
+
+  const resetForm = () => {
+    setForm({
+      first_name: '', last_name: '', jersey_number: '', position: 'Field Player',
+      team_id: '', is_referee: false, is_core: false, goals: 0, games_played: 0,
+      blue_cards: 0, red_cards: 0
+    })
+    setEditingPlayer(null)
+    setShowForm(false)
+  }
+
+  const startEdit = (player) => {
+    setForm({
+      first_name: player.first_name || '',
+      last_name: player.last_name || '',
+      jersey_number: player.jersey_number ?? '',
+      position: player.position || 'Field Player',
+      team_id: player.team_id || '',
+      is_referee: player.is_referee || false,
+      is_core: player.is_core || false,
+      goals: player.goals || 0,
+      games_played: player.games_played || 0,
+      blue_cards: player.blue_cards || 0,
+      red_cards: player.red_cards || 0,
+    })
+    setEditingPlayer(player.id)
+    setShowForm(true)
+  }
+
+  const handleSave = async () => {
+    setSaving(true)
+    try {
+      const payload = {
+        ...form,
+        jersey_number: form.jersey_number !== '' ? Number(form.jersey_number) : null,
+        goals: Number(form.goals) || 0,
+        games_played: Number(form.games_played) || 0,
+        blue_cards: Number(form.blue_cards) || 0,
+        red_cards: Number(form.red_cards) || 0,
+      }
+      if (editingPlayer) {
+        await updatePlayer(editingPlayer, payload)
+      } else {
+        await createPlayer(payload)
+      }
+      resetForm()
+      await reload()
+    } catch (err) { alert('שגיאה: ' + err.message) }
+    finally { setSaving(false) }
+  }
+
+  const handleDelete = async (id) => {
+    if (!confirm('למחוק את השחקן?')) return
+    try {
+      await deletePlayer(id)
+      await reload()
+    } catch (err) { alert('שגיאה: ' + err.message) }
+  }
+
+  const filtered = players.filter(p =>
+    !searchTerm || `${p.first_name} ${p.last_name}`.includes(searchTerm)
+  )
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between gap-3">
+        <input type="text" placeholder="חיפוש שחקן..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
+          className="filter-input flex-1 max-w-xs" />
+        <button onClick={() => { resetForm(); setShowForm(true) }}
+          className="flex items-center gap-2 px-4 py-2 bg-orange-500 text-white text-sm font-semibold rounded-xl hover:bg-orange-600 transition-colors">
+          <Plus className="w-4 h-4" /> שחקן חדש
+        </button>
+      </div>
+
+      {showForm && (
+        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="card p-5 space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="font-bold text-sm text-slate-900 dark:text-white">
+              {editingPlayer ? 'עריכת שחקן' : 'שחקן חדש'}
+            </h3>
+            <button onClick={resetForm} className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg">
+              <X className="w-4 h-4 text-slate-400" />
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            <div>
+              <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1 block">שם פרטי</label>
+              <input type="text" value={form.first_name} onChange={e => setForm({ ...form, first_name: e.target.value })} className="filter-input w-full" />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1 block">שם משפחה</label>
+              <input type="text" value={form.last_name} onChange={e => setForm({ ...form, last_name: e.target.value })} className="filter-input w-full" />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1 block">מספר חולצה</label>
+              <input type="number" min="0" value={form.jersey_number} onChange={e => setForm({ ...form, jersey_number: e.target.value })} className="filter-input w-full" />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1 block">עמדה</label>
+              <select value={form.position} onChange={e => setForm({ ...form, position: e.target.value })} className="filter-select w-full">
+                <option value="Field Player">שחקן שדה</option>
+                <option value="Goalkeeper">שוער</option>
+              </select>
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1 block">קבוצה</label>
+              <select value={form.team_id} onChange={e => setForm({ ...form, team_id: e.target.value })} className="filter-select w-full">
+                <option value="">בחר קבוצה</option>
+                {teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+              </select>
+            </div>
+            <div className="flex items-center gap-4 pt-5">
+              <label className="flex items-center gap-2 text-xs font-semibold text-slate-600 dark:text-slate-400 cursor-pointer">
+                <input type="checkbox" checked={form.is_core} onChange={e => setForm({ ...form, is_core: e.target.checked })}
+                  className="rounded border-slate-300 text-orange-500 focus:ring-orange-500" />
+                שחקן ליבה
+              </label>
+              <label className="flex items-center gap-2 text-xs font-semibold text-slate-600 dark:text-slate-400 cursor-pointer">
+                <input type="checkbox" checked={form.is_referee} onChange={e => setForm({ ...form, is_referee: e.target.checked })}
+                  className="rounded border-slate-300 text-orange-500 focus:ring-orange-500" />
+                שופט
+              </label>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div>
+              <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1 block">שערים</label>
+              <input type="number" min="0" value={form.goals} onChange={e => setForm({ ...form, goals: e.target.value })} className="filter-input w-full" />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1 block">משחקים</label>
+              <input type="number" min="0" value={form.games_played} onChange={e => setForm({ ...form, games_played: e.target.value })} className="filter-input w-full" />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1 block">כרטיסים כחולים</label>
+              <input type="number" min="0" value={form.blue_cards} onChange={e => setForm({ ...form, blue_cards: e.target.value })} className="filter-input w-full" />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1 block">כרטיסים אדומים</label>
+              <input type="number" min="0" value={form.red_cards} onChange={e => setForm({ ...form, red_cards: e.target.value })} className="filter-input w-full" />
+            </div>
+          </div>
+
+          <div className="flex gap-2 pt-1">
+            <button onClick={handleSave} disabled={saving || !form.first_name || !form.last_name || !form.team_id}
+              className="flex items-center gap-2 px-5 py-2.5 bg-orange-500 text-white text-sm font-semibold rounded-xl hover:bg-orange-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+              <Save className="w-4 h-4" /> {saving ? 'שומר...' : editingPlayer ? 'עדכן' : 'צור'}
+            </button>
+            <button onClick={resetForm} className="px-4 py-2.5 text-sm font-semibold text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 transition-colors">
+              ביטול
+            </button>
+          </div>
+        </motion.div>
+      )}
+
+      {/* Players List */}
+      <div className="card overflow-hidden">
+        <div className="divide-y divide-slate-100 dark:divide-slate-700/50">
+          {filtered.sort((a, b) => a.first_name.localeCompare(b.first_name)).map(player => (
+            <div key={player.id} className="flex items-center justify-between px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+              <div className="flex items-center gap-3">
+                <TeamLogo team={teamsMap[player.team_id]} size={7} />
+                <div>
+                  <span className="font-semibold text-sm text-slate-900 dark:text-white">{player.first_name} {player.last_name}</span>
+                  {player.jersey_number && <span className="text-[10px] text-slate-400 font-mono mr-1.5">#{player.jersey_number}</span>}
+                  <div className="flex gap-1 mt-0.5">
+                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${player.position === 'Goalkeeper' ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400' : 'bg-slate-100 text-slate-500 dark:bg-slate-700 dark:text-slate-400'}`}>
+                      {player.position === 'Goalkeeper' ? 'GK' : 'FP'}
+                    </span>
+                    {player.is_core && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400">C</span>}
+                    {player.is_referee && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400">R</span>}
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="hidden sm:flex gap-3 text-xs text-slate-500 dark:text-slate-400">
+                  <span>{player.goals || 0} שערים</span>
+                  <span>{player.games_played || 0} מש׳</span>
+                </div>
+                <button onClick={() => startEdit(player)}
+                  className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors">
+                  <Pencil className="w-3.5 h-3.5" />
+                </button>
+                <button onClick={() => handleDelete(player.id)}
+                  className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/30 text-slate-400 hover:text-red-500 transition-colors">
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ============ TEAMS ADMIN ============
+function TeamsAdmin({ teams, reload }) {
+  const [editingTeam, setEditingTeam] = useState(null)
+  const [saving, setSaving] = useState(false)
+  const [form, setForm] = useState({})
+
+  const startEdit = (team) => {
+    setForm({
+      name: team.name || '',
+      city: team.city || '',
+      wins: team.wins || 0,
+      losses: team.losses || 0,
+      ties: team.ties || 0,
+      points: team.points || 0,
+      goals_for: team.goals_for || 0,
+      goals_against: team.goals_against || 0,
+      own_goals_received: team.own_goals_received || 0,
+      home_venue: team.home_venue || '',
+      primary_color: team.primary_color || '#f97316',
+    })
+    setEditingTeam(team.id)
+  }
+
+  const handleSave = async () => {
+    setSaving(true)
+    try {
+      await updateTeam(editingTeam, {
+        ...form,
+        wins: Number(form.wins) || 0,
+        losses: Number(form.losses) || 0,
+        ties: Number(form.ties) || 0,
+        points: Number(form.points) || 0,
+        goals_for: Number(form.goals_for) || 0,
+        goals_against: Number(form.goals_against) || 0,
+        own_goals_received: Number(form.own_goals_received) || 0,
+      })
+      setEditingTeam(null)
+      await reload()
+    } catch (err) { alert('שגיאה: ' + err.message) }
+    finally { setSaving(false) }
+  }
+
+  return (
+    <div className="space-y-3">
+      {teams.sort((a, b) => (b.points || 0) - (a.points || 0)).map(team => (
+        <div key={team.id} className="card overflow-hidden">
+          <div className="flex items-center justify-between p-4">
+            <div className="flex items-center gap-3">
+              <TeamLogo team={team} size={10} />
+              <div>
+                <h3 className="font-bold text-sm text-slate-900 dark:text-white">{team.name}</h3>
+                <p className="text-xs text-slate-500">{team.city} • {team.points} נקודות • {team.wins}נ {team.ties}ת {team.losses}ה</p>
+              </div>
+            </div>
+            <button onClick={() => editingTeam === team.id ? setEditingTeam(null) : startEdit(team)}
+              className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-600 transition-colors">
+              {editingTeam === team.id ? <X className="w-4 h-4" /> : <Pencil className="w-4 h-4" />}
+            </button>
+          </div>
+
+          {editingTeam === team.id && (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+              className="px-4 pb-4 border-t border-slate-100 dark:border-slate-700 pt-4 space-y-3">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                <div>
+                  <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1 block">שם</label>
+                  <input type="text" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} className="filter-input w-full" />
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1 block">עיר</label>
+                  <input type="text" value={form.city} onChange={e => setForm({ ...form, city: e.target.value })} className="filter-input w-full" />
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1 block">מגרש בית</label>
+                  <input type="text" value={form.home_venue} onChange={e => setForm({ ...form, home_venue: e.target.value })} className="filter-input w-full" />
+                </div>
+              </div>
+              <div className="grid grid-cols-3 sm:grid-cols-7 gap-3">
+                {[
+                  { key: 'points', label: 'נקודות' },
+                  { key: 'wins', label: 'נצחונות' },
+                  { key: 'ties', label: 'תיקו' },
+                  { key: 'losses', label: 'הפסדים' },
+                  { key: 'goals_for', label: 'שערי זכות' },
+                  { key: 'goals_against', label: 'שערי חובה' },
+                  { key: 'own_goals_received', label: 'עצמיים' },
+                ].map(({ key, label }) => (
+                  <div key={key}>
+                    <label className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 mb-1 block">{label}</label>
+                    <input type="number" min="0" value={form[key]} onChange={e => setForm({ ...form, [key]: e.target.value })} className="filter-input w-full text-center" />
+                  </div>
+                ))}
+              </div>
+              <div className="flex gap-2">
+                <button onClick={handleSave} disabled={saving}
+                  className="flex items-center gap-2 px-4 py-2 bg-orange-500 text-white text-xs font-semibold rounded-xl hover:bg-orange-600 transition-colors disabled:opacity-50">
+                  <Save className="w-3.5 h-3.5" /> {saving ? 'שומר...' : 'שמור'}
+                </button>
+                <button onClick={() => setEditingTeam(null)} className="px-3 py-2 text-xs font-semibold text-slate-500 hover:text-slate-700 transition-colors">
+                  ביטול
+                </button>
+              </div>
+            </motion.div>
+          )}
+        </div>
+      ))}
+    </div>
+  )
+}
+
+// ============ ADMIN USERS ============
+function UsersAdmin({ adminUsers, currentUserEmail, reload }) {
+  const [newEmail, setNewEmail] = useState("")
+  const [newName, setNewName] = useState("")
+  const [saving, setSaving] = useState(false)
+
+  const handleAdd = async () => {
+    if (!newEmail) return
+    setSaving(true)
+    try {
+      await addAdminUser(newEmail.trim(), newName.trim() || null)
+      setNewEmail(""); setNewName("")
+      await reload()
+    } catch (err) { alert('שגיאה: ' + err.message) }
+    finally { setSaving(false) }
+  }
+
+  const handleRemove = async (id, email) => {
+    if (email === currentUserEmail) {
+      alert('לא ניתן להסיר את עצמך!')
+      return
+    }
+    if (!confirm(`להסיר את ${email} מרשימת המנהלים?`)) return
+    try {
+      await removeAdminUser(id)
+      await reload()
+    } catch (err) { alert('שגיאה: ' + err.message) }
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="card p-5">
+        <h3 className="font-bold text-sm text-slate-900 dark:text-white mb-4 flex items-center gap-2">
+          <UserPlus className="w-4 h-4 text-orange-500" /> הוסף מנהל חדש
+        </h3>
+        <div className="flex flex-col sm:flex-row gap-2">
+          <input type="email" placeholder="אימייל..." value={newEmail} onChange={e => setNewEmail(e.target.value)}
+            className="filter-input flex-1" dir="ltr" />
+          <input type="text" placeholder="שם (אופציונלי)" value={newName} onChange={e => setNewName(e.target.value)}
+            className="filter-input w-full sm:w-48" />
+          <button onClick={handleAdd} disabled={saving || !newEmail}
+            className="flex items-center justify-center gap-2 px-5 py-2.5 bg-orange-500 text-white text-sm font-semibold rounded-xl hover:bg-orange-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+            <Plus className="w-4 h-4" /> {saving ? 'מוסיף...' : 'הוסף'}
+          </button>
+        </div>
+      </div>
+
+      <div className="card overflow-hidden">
+        <div className="px-5 py-3 border-b border-slate-100 dark:border-slate-700">
+          <h3 className="font-bold text-sm text-slate-900 dark:text-white">
+            מנהלים ({adminUsers.length})
+          </h3>
+        </div>
+        <div className="divide-y divide-slate-100 dark:divide-slate-700/50">
+          {adminUsers.map(u => (
+            <div key={u.id} className="flex items-center justify-between px-5 py-3.5">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-full bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center">
+                  <Crown className="w-4 h-4 text-orange-600 dark:text-orange-400" />
+                </div>
+                <div>
+                  <p className="font-semibold text-sm text-slate-900 dark:text-white">{u.name || u.email}</p>
+                  <p className="text-xs text-slate-400" dir="ltr">{u.email}</p>
+                </div>
+                {u.email === currentUserEmail && (
+                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400">אתה</span>
+                )}
+              </div>
+              <button onClick={() => handleRemove(u.id, u.email)}
+                disabled={u.email === currentUserEmail}
+                className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/30 text-slate-400 hover:text-red-500 transition-colors disabled:opacity-30 disabled:cursor-not-allowed">
+                <Trash2 className="w-4 h-4" />
+              </button>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}

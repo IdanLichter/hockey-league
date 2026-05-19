@@ -9,9 +9,11 @@ import {
   Menu,
   X,
   Sun,
-  Moon
+  Moon,
+  Shield
 } from "lucide-react"
 import { useTheme } from "./lib/ThemeContext"
+import { useAuth } from "./lib/AuthContext"
 
 const navigationItems = [
   { title: "טבלה", url: "/", icon: Trophy, description: "דירוג ופלייאוף" },
@@ -26,6 +28,11 @@ export default function Layout({ children }) {
   const location = useLocation()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const { dark, toggle } = useTheme()
+  const { isAdmin } = useAuth()
+
+  const allNavItems = isAdmin
+    ? [...navigationItems, { title: "ניהול", url: "/admin", icon: Shield, description: "דף מנהלים" }]
+    : navigationItems
 
   const isActivePage = (url) => location.pathname === url
 
@@ -49,7 +56,7 @@ export default function Layout({ children }) {
 
           {/* Nav */}
           <nav className="flex-1 px-3 py-4 space-y-0.5">
-            {navigationItems.map((item) => (
+            {allNavItems.map((item) => (
               <Link
                 key={item.title}
                 to={item.url}
@@ -120,7 +127,7 @@ export default function Layout({ children }) {
         {mobileMenuOpen && (
           <div className="fixed inset-0 z-50 bg-white dark:bg-slate-900 pt-14">
             <nav className="p-4 space-y-1">
-              {navigationItems.map((item) => (
+              {allNavItems.map((item) => (
                 <Link
                   key={item.title}
                   to={item.url}
