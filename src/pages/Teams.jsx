@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react"
 import { getTeams, getPlayers } from "@/lib/api"
-import { Users, Trophy, Target, Shield, ChevronDown, ChevronUp } from "lucide-react"
+import { Users, Trophy, Target, Shield, ChevronDown, ChevronUp, Star } from "lucide-react"
 import { motion } from "framer-motion"
 import TeamLogo from "@/components/TeamLogo"
 
@@ -10,136 +10,125 @@ export default function Teams() {
   const [loading, setLoading] = useState(true)
   const [expandedTeam, setExpandedTeam] = useState(null)
 
-  useEffect(() => {
-    loadData()
-  }, [])
+  useEffect(() => { loadData() }, [])
 
   const loadData = async () => {
     try {
       const [t, p] = await Promise.all([getTeams(), getPlayers()])
-      setTeams(t)
-      setPlayers(p)
-    } catch (err) {
-      console.error(err)
-    } finally {
-      setLoading(false)
-    }
+      setTeams(t); setPlayers(p)
+    } catch (err) { console.error(err) }
+    finally { setLoading(false) }
   }
 
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-orange-600 mx-auto" />
+        <div className="animate-spin rounded-full h-10 w-10 border-2 border-orange-500 border-t-transparent" />
       </div>
     )
   }
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8">
-      <div className="max-w-7xl mx-auto space-y-6">
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-2">
-          <div className="flex items-center gap-3">
-            <Users className="w-8 h-8 text-orange-600" />
-            <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-slate-900 via-orange-800 to-slate-900 dark:from-white dark:via-orange-400 dark:to-white bg-clip-text text-transparent">
-              קבוצות
-            </h1>
-          </div>
-          <p className="text-slate-600 dark:text-slate-400 text-lg">כל הקבוצות בליגה עונת 2024-25</p>
-        </motion.div>
+    <div className="p-4 sm:p-6 lg:p-8 max-w-5xl mx-auto space-y-5">
+      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
+        <h1 className="page-title flex items-center gap-2.5">
+          <Users className="w-7 h-7 text-orange-500" /> קבוצות
+        </h1>
+        <p className="page-subtitle mt-1">{teams.length} קבוצות בליגה • עונת 2024-25</p>
+      </motion.div>
 
-        <div className="grid gap-4">
-          {teams.sort((a, b) => (b.points || 0) - (a.points || 0)).map((team, index) => {
-            const teamPlayers = players.filter(p => p.team_id === team.id)
-            const isExpanded = expandedTeam === team.id
-            const topScorer = teamPlayers.filter(p => p.position === 'Field Player').sort((a, b) => (b.goals || 0) - (a.goals || 0))[0]
+      <div className="space-y-3">
+        {teams.sort((a, b) => (b.points || 0) - (a.points || 0)).map((team, index) => {
+          const tp = players.filter(p => p.team_id === team.id)
+          const open = expandedTeam === team.id
+          const topScorer = tp.filter(p => p.position === 'Field Player').sort((a, b) => (b.goals || 0) - (a.goals || 0))[0]
 
-            return (
-              <motion.div
-                key={team.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.05 }}
-              >
-                <div className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm border border-slate-200/60 dark:border-slate-700/60 rounded-xl overflow-hidden">
-                  <button onClick={() => setExpandedTeam(isExpanded ? null : team.id)} className="w-full p-4 sm:p-6 text-right">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-4">
-                        <TeamLogo team={team} size={14} />
-                        <div className="text-right">
-                          <h3 className="font-bold text-lg text-slate-900 dark:text-white">{team.name}</h3>
-                          <p className="text-sm text-slate-500 dark:text-slate-400">{team.city} • נוסדה {team.founded_year}</p>
-                        </div>
+          return (
+            <motion.div key={team.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.04 }}>
+              <div className="card-hover overflow-hidden">
+                <button onClick={() => setExpandedTeam(open ? null : team.id)} className="w-full p-4 sm:p-5 text-right">
+                  <div className="flex items-center gap-4">
+                    <TeamLogo team={team} size={12} />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-bold text-base text-slate-900 dark:text-white">{team.name}</h3>
+                        <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-slate-700 px-1.5 py-0.5 rounded">#{index + 1}</span>
                       </div>
-                      <div className="flex items-center gap-4">
-                        <div className="hidden sm:flex gap-6 text-center">
-                          <div><p className="text-2xl font-bold text-slate-900 dark:text-white">{team.points || 0}</p><p className="text-xs text-slate-500 dark:text-slate-400">נקודות</p></div>
-                          <div><p className="text-lg font-semibold text-green-600 dark:text-green-400">{team.wins || 0}</p><p className="text-xs text-slate-500 dark:text-slate-400">נ</p></div>
-                          <div><p className="text-lg font-semibold text-red-600 dark:text-red-400">{team.losses || 0}</p><p className="text-xs text-slate-500 dark:text-slate-400">ה</p></div>
-                        </div>
-                        {isExpanded ? <ChevronUp className="w-5 h-5 text-slate-400" /> : <ChevronDown className="w-5 h-5 text-slate-400" />}
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{team.city} • {team.founded_year}</p>
+                    </div>
+                    <div className="hidden sm:flex items-center gap-5 text-center">
+                      <div>
+                        <p className="text-xl font-extrabold text-slate-900 dark:text-white">{team.points || 0}</p>
+                        <p className="text-[10px] text-slate-400 font-medium">נקודות</p>
+                      </div>
+                      <div className="h-8 w-px bg-slate-200 dark:bg-slate-700" />
+                      <div className="flex gap-3">
+                        <div><p className="text-sm font-bold text-emerald-600 dark:text-emerald-400">{team.wins || 0}</p><p className="text-[10px] text-slate-400">נ</p></div>
+                        <div><p className="text-sm font-bold text-slate-500">{team.ties || 0}</p><p className="text-[10px] text-slate-400">ת</p></div>
+                        <div><p className="text-sm font-bold text-red-500">{team.losses || 0}</p><p className="text-[10px] text-slate-400">ה</p></div>
                       </div>
                     </div>
-                    <div className="sm:hidden flex gap-3 mt-3">
-                      <span className="bg-orange-100 text-orange-800 dark:bg-orange-900/40 dark:text-orange-300 text-xs px-2 py-1 rounded-full font-bold">{team.points} נק׳</span>
-                      <span className="text-xs text-slate-500 dark:text-slate-400">{team.wins}נ {team.ties}ת {team.losses}ה</span>
-                    </div>
-                  </button>
+                    <ChevronDown className={`w-5 h-5 text-slate-400 transition-transform ${open ? 'rotate-180' : ''}`} />
+                  </div>
+                  <div className="sm:hidden flex gap-3 mt-2">
+                    <span className="stat-pill bg-slate-900 dark:bg-orange-500 text-white">{team.points} נק׳</span>
+                    <span className="text-xs text-slate-400">{team.wins}נ {team.ties}ת {team.losses}ה</span>
+                  </div>
+                </button>
 
-                  {isExpanded && (
-                    <div className="px-4 sm:px-6 pb-6 border-t border-slate-100 dark:border-slate-700/50">
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4 mb-6">
-                        <div className="bg-slate-50 dark:bg-slate-700/40 rounded-lg p-3 text-center">
-                          <Trophy className="w-5 h-5 text-orange-500 mx-auto mb-1" />
-                          <p className="text-xl font-bold text-slate-900 dark:text-white">{team.points || 0}</p><p className="text-xs text-slate-500 dark:text-slate-400">נקודות</p>
+                {open && (
+                  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="px-4 sm:px-5 pb-5 border-t border-slate-100 dark:border-slate-700">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mt-4 mb-5">
+                      {[
+                        { icon: Trophy, val: team.points || 0, label: "נקודות", color: "text-orange-500" },
+                        { icon: Target, val: team.goals_for || 0, label: "שערי זכות", color: "text-emerald-500" },
+                        { icon: Shield, val: team.goals_against || 0, label: "שערי חובה", color: "text-red-500" },
+                        { icon: Users, val: tp.length, label: "שחקנים", color: "text-blue-500" },
+                      ].map(({ icon: Icon, val, label, color }) => (
+                        <div key={label} className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-3 text-center">
+                          <Icon className={`w-4 h-4 ${color} mx-auto mb-1`} />
+                          <p className="text-lg font-extrabold text-slate-900 dark:text-white">{val}</p>
+                          <p className="text-[10px] text-slate-400 font-medium">{label}</p>
                         </div>
-                        <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-3 text-center">
-                          <Target className="w-5 h-5 text-green-500 mx-auto mb-1" />
-                          <p className="text-xl font-bold text-green-700 dark:text-green-400">{team.goals_for || 0}</p><p className="text-xs text-slate-500 dark:text-slate-400">זכות</p>
-                        </div>
-                        <div className="bg-red-50 dark:bg-red-900/20 rounded-lg p-3 text-center">
-                          <Shield className="w-5 h-5 text-red-500 mx-auto mb-1" />
-                          <p className="text-xl font-bold text-red-700 dark:text-red-400">{team.goals_against || 0}</p><p className="text-xs text-slate-500 dark:text-slate-400">חובה</p>
-                        </div>
-                        <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3 text-center">
-                          <Users className="w-5 h-5 text-blue-500 mx-auto mb-1" />
-                          <p className="text-xl font-bold text-blue-700 dark:text-blue-400">{teamPlayers.length}</p><p className="text-xs text-slate-500 dark:text-slate-400">שחקנים</p>
+                      ))}
+                    </div>
+
+                    {topScorer && (
+                      <div className="mb-4 flex items-center gap-3 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-800/40 rounded-xl">
+                        <Star className="w-4 h-4 text-amber-500 shrink-0" />
+                        <div>
+                          <p className="text-[11px] text-amber-600 dark:text-amber-400 font-semibold">מלך שערים</p>
+                          <p className="font-bold text-sm text-slate-900 dark:text-white">{topScorer.first_name} {topScorer.last_name} — {topScorer.goals} שערים</p>
                         </div>
                       </div>
+                    )}
 
-                      {topScorer && (
-                        <div className="mb-4 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-800 rounded-lg">
-                          <p className="text-xs text-amber-700 dark:text-amber-400 font-medium">מלך השערים</p>
-                          <p className="font-bold text-amber-900 dark:text-amber-200">{topScorer.first_name} {topScorer.last_name} - {topScorer.goals} שערים</p>
-                        </div>
-                      )}
-
-                      <h4 className="font-semibold text-slate-900 dark:text-white mb-3">סגל ({teamPlayers.length})</h4>
-                      <div className="grid gap-2">
-                        {teamPlayers.sort((a, b) => (b.goals || 0) - (a.goals || 0)).map(player => (
-                          <div key={player.id} className="flex items-center justify-between p-2 bg-slate-50/60 dark:bg-slate-700/40 rounded-lg text-sm">
-                            <div className="flex items-center gap-2">
-                              {player.is_core && <span className="w-2 h-2 rounded-full bg-orange-500" />}
-                              <span className="font-medium text-slate-900 dark:text-white">{player.first_name} {player.last_name}</span>
-                              {player.jersey_number && <span className="text-xs text-slate-400 dark:text-slate-500">#{player.jersey_number}</span>}
-                              <span className={`text-xs px-1.5 py-0.5 rounded ${player.position === 'Goalkeeper' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' : 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-400'}`}>
-                                {player.position === 'Goalkeeper' ? 'שוער' : 'שדה'}
-                              </span>
-                              {player.is_referee && <span className="text-xs px-1.5 py-0.5 rounded bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300">שופט</span>}
-                            </div>
-                            <div className="flex gap-2 text-xs">
-                              {(player.goals || 0) > 0 && <span className="text-green-700 dark:text-green-400 font-medium">{player.goals} שערים</span>}
-                              <span className="text-slate-400 dark:text-slate-500">{player.games_played || 0} מש׳</span>
-                            </div>
+                    <h4 className="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">סגל ({tp.length})</h4>
+                    <div className="space-y-1">
+                      {tp.sort((a, b) => (b.goals || 0) - (a.goals || 0)).map(player => (
+                        <div key={player.id} className="flex items-center justify-between py-2 px-3 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors text-sm">
+                          <div className="flex items-center gap-2">
+                            {player.is_core && <span className="w-1.5 h-1.5 rounded-full bg-orange-500" />}
+                            <span className="font-medium text-slate-900 dark:text-white">{player.first_name} {player.last_name}</span>
+                            {player.jersey_number && <span className="text-[10px] text-slate-400 font-mono">#{player.jersey_number}</span>}
+                            <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${player.position === 'Goalkeeper' ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400' : 'bg-slate-100 text-slate-500 dark:bg-slate-700 dark:text-slate-400'}`}>
+                              {player.position === 'Goalkeeper' ? 'GK' : 'FP'}
+                            </span>
+                            {player.is_referee && <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400">REF</span>}
                           </div>
-                        ))}
-                      </div>
+                          <div className="flex items-center gap-3 text-xs">
+                            {(player.goals || 0) > 0 && <span className="font-bold text-emerald-600 dark:text-emerald-400">{player.goals}⚽</span>}
+                            <span className="text-slate-400">{player.games_played || 0} מש׳</span>
+                          </div>
+                        </div>
+                      ))}
                     </div>
-                  )}
-                </div>
-              </motion.div>
-            )
-          })}
-        </div>
+                  </motion.div>
+                )}
+              </div>
+            </motion.div>
+          )
+        })}
       </div>
     </div>
   )

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react"
 import { getTeams, getGames } from "@/lib/api"
-import { Trophy, Crown, Swords, Calendar } from "lucide-react"
+import { Trophy, Crown, Swords, Calendar, ArrowLeft } from "lucide-react"
 import { motion } from "framer-motion"
 import { format } from "date-fns"
 import TeamLogo from "@/components/TeamLogo"
@@ -10,189 +10,168 @@ export default function FinalFour() {
   const [games, setGames] = useState([])
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    loadData()
-  }, [])
+  useEffect(() => { loadData() }, [])
 
   const loadData = async () => {
     try {
       const [t, g] = await Promise.all([getTeams(), getGames()])
-      setTeams(t)
-      setGames(g)
-    } catch (err) {
-      console.error(err)
-    } finally {
-      setLoading(false)
-    }
+      setTeams(t); setGames(g)
+    } catch (err) { console.error(err) }
+    finally { setLoading(false) }
   }
 
   const teamsMap = Object.fromEntries(teams.map(t => [t.id, t]))
-  const getTeamName = (id) => teamsMap[id]?.name || 'לא ידוע'
-  const getTeamColor = (id) => teamsMap[id]?.primary_color || '#f97316'
-
-  const sortedTeams = [...teams].sort((a, b) => (b.points || 0) - (a.points || 0))
-  const firstPlace = sortedTeams[0]
+  const teamName = (id) => teamsMap[id]?.name || '—'
+  const sorted = [...teams].sort((a, b) => (b.points || 0) - (a.points || 0))
+  const first = sorted[0]
 
   const playoffGames = games.filter(g => g.game_type === 'פלייאוף')
-  const finalFourGames = games.filter(g => g.game_type === 'Final Four')
 
-  const playoffSeries = (() => {
-    if (sortedTeams.length < 7) return []
-    return [
-      { name: "סדרה A", team1: sortedTeams[1], team2: sortedTeams[6], pos1: 2, pos2: 7 },
-      { name: "סדרה B", team1: sortedTeams[2], team2: sortedTeams[5], pos1: 3, pos2: 6 },
-      { name: "סדרה C", team1: sortedTeams[3], team2: sortedTeams[4], pos1: 4, pos2: 5 },
-    ]
-  })()
+  const series = sorted.length >= 7 ? [
+    { name: "A", t1: sorted[1], t2: sorted[6], p1: 2, p2: 7 },
+    { name: "B", t1: sorted[2], t2: sorted[5], p1: 3, p2: 6 },
+    { name: "C", t1: sorted[3], t2: sorted[4], p1: 4, p2: 5 },
+  ] : []
 
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-orange-600 mx-auto" />
+        <div className="animate-spin rounded-full h-10 w-10 border-2 border-orange-500 border-t-transparent" />
       </div>
     )
   }
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8">
-      <div className="max-w-7xl mx-auto space-y-6">
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-2">
-          <div className="flex items-center gap-3">
-            <Trophy className="w-8 h-8 text-orange-600" />
-            <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-slate-900 via-orange-800 to-slate-900 dark:from-white dark:via-orange-400 dark:to-white bg-clip-text text-transparent">
-              Final Four
-            </h1>
-          </div>
-          <p className="text-slate-600 dark:text-slate-400 text-lg">שלב הגמר - עונת 2024-25</p>
-        </motion.div>
+    <div className="p-4 sm:p-6 lg:p-8 max-w-5xl mx-auto space-y-5">
+      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
+        <h1 className="page-title flex items-center gap-2.5">
+          <Trophy className="w-7 h-7 text-orange-500" /> Final Four
+        </h1>
+        <p className="page-subtitle mt-1">שלב הגמר — עונת 2024-25</p>
+      </motion.div>
 
-        {/* Bracket Visual */}
-        <div className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm border border-slate-200/60 dark:border-slate-700/60 rounded-xl p-6">
-          <h2 className="font-bold text-lg mb-6 flex items-center gap-2 text-slate-900 dark:text-white">
-            <Swords className="w-5 h-5 text-orange-600" /> מבנה הטורניר
-          </h2>
+      {/* Bracket */}
+      <div className="card p-5 sm:p-6">
+        <h2 className="font-bold text-sm text-slate-900 dark:text-white mb-5 flex items-center gap-2 uppercase tracking-wide">
+          <Swords className="w-4 h-4 text-orange-500" /> מבנה הטורניר
+        </h2>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Playoff Round */}
-            <div>
-              <h3 className="text-sm font-semibold text-slate-500 dark:text-slate-400 mb-4 text-center">סיבוב ראשון (פלייאוף)</h3>
-              <div className="space-y-4">
-                {playoffSeries.map((series, i) => {
-                  const seriesGames = playoffGames.filter(g =>
-                    (g.home_team_id === series.team1?.id && g.away_team_id === series.team2?.id) ||
-                    (g.home_team_id === series.team2?.id && g.away_team_id === series.team1?.id)
-                  )
-                  return (
-                    <motion.div
-                      key={i}
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: i * 0.1 }}
-                      className="border border-slate-200 dark:border-slate-600 rounded-xl p-4 bg-white dark:bg-slate-800"
-                    >
-                      <span className="text-xs font-semibold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-2 py-0.5 rounded-full">{series.name}</span>
-                      <div className="mt-3 space-y-2">
-                        <div className="flex items-center gap-2 p-2 bg-slate-50 dark:bg-slate-700/40 rounded-lg">
-                          <TeamLogo team={series.team1} size={6} />
-                          <span className="font-semibold text-sm flex-1 text-slate-900 dark:text-white">{series.team1?.name}</span>
-                          <span className="text-xs text-slate-500 dark:text-slate-400">#{series.pos1}</span>
-                        </div>
-                        <div className="text-center text-xs text-slate-400 dark:text-slate-500">vs</div>
-                        <div className="flex items-center gap-2 p-2 bg-slate-50 dark:bg-slate-700/40 rounded-lg">
-                          <TeamLogo team={series.team2} size={6} />
-                          <span className="font-semibold text-sm flex-1 text-slate-900 dark:text-white">{series.team2?.name}</span>
-                          <span className="text-xs text-slate-500 dark:text-slate-400">#{series.pos2}</span>
-                        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto_1fr_auto_1fr] gap-4 lg:gap-2 items-start">
+          {/* Playoff Round */}
+          <div className="space-y-3">
+            <h3 className="text-xs font-bold text-slate-400 dark:text-slate-500 text-center uppercase tracking-wider mb-2">פלייאוף</h3>
+            {series.map((s, i) => {
+              const sGames = playoffGames.filter(g =>
+                (g.home_team_id === s.t1?.id && g.away_team_id === s.t2?.id) ||
+                (g.home_team_id === s.t2?.id && g.away_team_id === s.t1?.id)
+              )
+              return (
+                <motion.div key={i} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.08 }}
+                  className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-3.5 border border-slate-100 dark:border-slate-700">
+                  <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-2 py-0.5 rounded-md">סדרה {s.name}</span>
+                  <div className="mt-2.5 space-y-1.5">
+                    {[{ team: s.t1, pos: s.p1 }, { team: s.t2, pos: s.p2 }].map(({ team, pos }) => (
+                      <div key={pos} className="flex items-center gap-2 p-2 bg-white dark:bg-slate-800 rounded-lg">
+                        <TeamLogo team={team} size={6} />
+                        <span className="font-semibold text-xs text-slate-900 dark:text-white flex-1 truncate">{team?.name}</span>
+                        <span className="text-[10px] text-slate-400 font-mono">#{pos}</span>
                       </div>
-
-                      {seriesGames.length > 0 && (
-                        <div className="mt-3 space-y-1">
-                          {seriesGames.map(g => (
-                            <div key={g.id} className="flex items-center justify-between text-xs p-2 bg-blue-50 dark:bg-blue-900/20 rounded">
-                              <span className="text-slate-700 dark:text-slate-300">משחק {g.series_game}</span>
-                              <span className="text-slate-600 dark:text-slate-400">{format(new Date(g.game_date), "d/M/yy")}</span>
-                              {g.status === 'completed' ? (
-                                <span className="font-bold text-slate-900 dark:text-white">{g.home_score} - {g.away_score}</span>
-                              ) : (
-                                <span className="text-blue-600 dark:text-blue-400">{g.status === 'scheduled' ? 'מתוכנן' : g.status}</span>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </motion.div>
-                  )
-                })}
-              </div>
-            </div>
-
-            {/* Semi Finals / Final Four */}
-            <div>
-              <h3 className="text-sm font-semibold text-slate-500 dark:text-slate-400 mb-4 text-center">חצי גמר</h3>
-              <div className="space-y-4">
-                {firstPlace && (
-                  <div className="border-2 border-yellow-300 dark:border-yellow-600 rounded-xl p-4 bg-gradient-to-br from-yellow-50 to-white dark:from-yellow-900/30 dark:to-slate-800">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Crown className="w-4 h-4 text-yellow-600 dark:text-yellow-400" />
-                      <span className="text-xs font-semibold text-yellow-700 dark:text-yellow-300">מקום ראשון</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <TeamLogo team={firstPlace} size={8} />
-                      <span className="font-bold text-slate-900 dark:text-white">{firstPlace.name}</span>
-                    </div>
-                    <p className="text-xs text-yellow-600 dark:text-yellow-400 mt-2">עלתה אוטומטית ל-Final Four</p>
+                    ))}
                   </div>
-                )}
+                  {sGames.length > 0 && (
+                    <div className="mt-2 space-y-1">
+                      {sGames.map(g => (
+                        <div key={g.id} className="flex items-center justify-between text-[11px] px-2 py-1.5 bg-blue-50 dark:bg-blue-900/20 rounded-md">
+                          <span className="text-slate-600 dark:text-slate-400">מ׳ {g.series_game}</span>
+                          <span className="text-slate-500 dark:text-slate-400">{format(new Date(g.game_date), "d/M")}</span>
+                          {g.status === 'completed'
+                            ? <span className="font-bold text-slate-900 dark:text-white tabular-nums">{g.home_score} - {g.away_score}</span>
+                            : <span className="text-blue-600 dark:text-blue-400 font-medium">מתוכנן</span>
+                          }
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </motion.div>
+              )
+            })}
+          </div>
 
-                <div className="border border-dashed border-slate-300 dark:border-slate-600 rounded-xl p-4 text-center text-sm text-slate-400 dark:text-slate-500">
-                  ממתין למנצחי הפלייאוף
+          {/* Arrow */}
+          <div className="hidden lg:flex items-center justify-center pt-16">
+            <ArrowLeft className="w-5 h-5 text-slate-300 dark:text-slate-600" />
+          </div>
+
+          {/* Semi Finals */}
+          <div className="space-y-3">
+            <h3 className="text-xs font-bold text-slate-400 dark:text-slate-500 text-center uppercase tracking-wider mb-2">חצי גמר</h3>
+
+            {first && (
+              <div className="bg-gradient-to-l from-amber-50 to-white dark:from-amber-950/30 dark:to-slate-800 rounded-xl p-3.5 border-2 border-amber-200 dark:border-amber-700">
+                <div className="flex items-center gap-1.5 mb-2">
+                  <Crown className="w-3.5 h-3.5 text-amber-500" />
+                  <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400">מקום 1 — ישיר</span>
                 </div>
-                <div className="border border-dashed border-slate-300 dark:border-slate-600 rounded-xl p-4 text-center text-sm text-slate-400 dark:text-slate-500">
-                  ממתין למנצחי הפלייאוף
+                <div className="flex items-center gap-2">
+                  <TeamLogo team={first} size={8} />
+                  <span className="font-bold text-sm text-slate-900 dark:text-white">{first.name}</span>
                 </div>
               </div>
+            )}
+
+            <div className="border border-dashed border-slate-200 dark:border-slate-700 rounded-xl p-4 text-center">
+              <p className="text-xs text-slate-400 dark:text-slate-500 font-medium">ממתין למנצח</p>
             </div>
+            <div className="border border-dashed border-slate-200 dark:border-slate-700 rounded-xl p-4 text-center">
+              <p className="text-xs text-slate-400 dark:text-slate-500 font-medium">ממתין למנצח</p>
+            </div>
+          </div>
 
-            {/* Final */}
-            <div>
-              <h3 className="text-sm font-semibold text-slate-500 dark:text-slate-400 mb-4 text-center">גמר</h3>
-              <div className="border border-dashed border-orange-300 dark:border-orange-700 rounded-xl p-8 text-center bg-gradient-to-br from-orange-50/50 to-white dark:from-orange-900/20 dark:to-slate-800">
-                <Trophy className="w-12 h-12 text-orange-400 dark:text-orange-500 mx-auto mb-3" />
-                <p className="text-slate-400 dark:text-slate-500 text-sm">הגמר טרם נקבע</p>
-                <p className="text-xs text-slate-300 dark:text-slate-600 mt-1">ייקבע לאחר סיום הפלייאוף</p>
-              </div>
+          {/* Arrow */}
+          <div className="hidden lg:flex items-center justify-center pt-16">
+            <ArrowLeft className="w-5 h-5 text-slate-300 dark:text-slate-600" />
+          </div>
+
+          {/* Final */}
+          <div>
+            <h3 className="text-xs font-bold text-slate-400 dark:text-slate-500 text-center uppercase tracking-wider mb-2">גמר</h3>
+            <div className="border border-dashed border-orange-200 dark:border-orange-800 rounded-xl p-8 text-center bg-gradient-to-br from-orange-50/60 to-white dark:from-orange-950/20 dark:to-slate-800">
+              <Trophy className="w-10 h-10 text-orange-300 dark:text-orange-700 mx-auto mb-2" />
+              <p className="text-xs text-slate-400 dark:text-slate-500 font-medium">טרם נקבע</p>
             </div>
           </div>
         </div>
-
-        {/* Playoff Games Schedule */}
-        {playoffGames.length > 0 && (
-          <div className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm border border-slate-200/60 dark:border-slate-700/60 rounded-xl p-6">
-            <h2 className="font-bold text-lg mb-4 flex items-center gap-2 text-slate-900 dark:text-white">
-              <Calendar className="w-5 h-5 text-blue-600" /> לוח משחקי פלייאוף
-            </h2>
-            <div className="grid gap-3">
-              {playoffGames.sort((a, b) => new Date(a.game_date) - new Date(b.game_date)).map(game => (
-                <div key={game.id} className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-700/40 rounded-lg border border-slate-100 dark:border-slate-600">
-                  <div className="flex items-center gap-3">
-                    <TeamLogo team={teamsMap[game.home_team_id]} size={8} />
-                    <span className="font-semibold text-sm text-slate-900 dark:text-white">{getTeamName(game.home_team_id)}</span>
-                    <span className="text-slate-400 dark:text-slate-500 text-sm">vs</span>
-                    <span className="font-semibold text-sm text-slate-900 dark:text-white">{getTeamName(game.away_team_id)}</span>
-                    <TeamLogo team={teamsMap[game.away_team_id]} size={8} />
-                  </div>
-                  <div className="text-left text-sm">
-                    <p className="font-medium text-slate-900 dark:text-white">{format(new Date(game.game_date), "d/M/yy")}</p>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">
-                      {game.status === 'completed' ? `${game.home_score} - ${game.away_score}` : 'מתוכנן'}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
       </div>
+
+      {/* Playoff Schedule */}
+      {playoffGames.length > 0 && (
+        <div className="card overflow-hidden">
+          <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-700">
+            <h2 className="font-bold text-sm text-slate-900 dark:text-white flex items-center gap-2">
+              <Calendar className="w-4 h-4 text-blue-500" /> לוח משחקי פלייאוף
+            </h2>
+          </div>
+          <div className="divide-y divide-slate-100 dark:divide-slate-700/50">
+            {playoffGames.sort((a, b) => new Date(a.game_date) - new Date(b.game_date)).map(game => (
+              <div key={game.id} className="flex items-center justify-between px-5 py-3.5 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                <div className="flex items-center gap-3">
+                  <TeamLogo team={teamsMap[game.home_team_id]} size={8} />
+                  <span className="font-semibold text-sm text-slate-900 dark:text-white">{teamName(game.home_team_id)}</span>
+                  <span className="text-xs text-slate-400 font-medium">vs</span>
+                  <span className="font-semibold text-sm text-slate-900 dark:text-white">{teamName(game.away_team_id)}</span>
+                  <TeamLogo team={teamsMap[game.away_team_id]} size={8} />
+                </div>
+                <div className="text-left text-sm">
+                  <p className="font-semibold text-slate-900 dark:text-white tabular-nums">{format(new Date(game.game_date), "d/M/yy")}</p>
+                  <p className="text-xs text-slate-400">
+                    {game.status === 'completed' ? <span className="font-bold">{game.home_score} - {game.away_score}</span> : 'מתוכנן'}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

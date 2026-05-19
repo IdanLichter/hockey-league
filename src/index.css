@@ -1,23 +1,93 @@
+@import url('https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800;900&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-body {
-  margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+@layer base {
+  html {
+    font-family: 'Heebo', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    margin: 0;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  /* Better dark mode transition */
+  html.dark {
+    color-scheme: dark;
+  }
+
+  /* Scrollbar styling */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 3px;
+  }
+  .dark ::-webkit-scrollbar-thumb {
+    background: #334155;
+  }
 }
 
-* {
-  box-sizing: border-box;
-}
+@layer components {
+  /* Card system */
+  .card {
+    @apply bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-sm;
+  }
 
-/* Dark mode transitions */
-html {
-  transition: background-color 0.3s ease, color 0.3s ease;
-}
+  .card-hover {
+    @apply card transition-all duration-200 hover:shadow-md hover:border-slate-300 dark:hover:border-slate-600;
+  }
 
-html.dark {
-  color-scheme: dark;
+  /* Stat badge */
+  .stat-pill {
+    @apply inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold;
+  }
+
+  /* Page header */
+  .page-title {
+    @apply text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white;
+  }
+
+  .page-subtitle {
+    @apply text-sm text-slate-500 dark:text-slate-400 font-medium;
+  }
+
+  /* Tab system */
+  .tab-bar {
+    @apply flex bg-slate-100 dark:bg-slate-800 rounded-xl p-1 gap-1;
+  }
+
+  .tab-item {
+    @apply flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg text-sm font-semibold transition-all cursor-pointer;
+  }
+
+  .tab-active {
+    @apply tab-item bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm;
+  }
+
+  .tab-inactive {
+    @apply tab-item text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300;
+  }
+
+  /* Filter select */
+  .filter-select {
+    @apply bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500 transition-all appearance-none;
+  }
+
+  .filter-input {
+    @apply bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2.5 text-sm text-slate-700 dark:text-slate-300 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500 transition-all;
+  }
 }
