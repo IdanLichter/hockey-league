@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react'
-import { X, Download, Image, Calendar, Swords, Loader2 } from 'lucide-react'
+import { X, Download, Image, Calendar, Swords, Loader2, Sparkles } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { format } from 'date-fns'
 import { generateMatchDayPoster, generateSingleMatchPoster, downloadCanvas } from '@/lib/posterGenerator'
@@ -10,6 +10,8 @@ export default function PosterGenerator({ games, teams, teamsMap, onClose }) {
   const [selectedGameId, setSelectedGameId] = useState('')
   const [generating, setGenerating] = useState(false)
   const [canvasEl, setCanvasEl] = useState(null)
+  const [useAi, setUseAi] = useState(false)
+  const [aiError, setAiError] = useState(false)
   const previewRef = useRef(null)
 
   const scheduledGames = games.filter(g => g.status === 'scheduled')
@@ -24,14 +26,16 @@ export default function PosterGenerator({ games, teams, teamsMap, onClose }) {
   const handleGenerate = async () => {
     setGenerating(true)
     setCanvasEl(null)
+    setAiError(false)
     try {
       let canvas
+      const opts = { useAi }
       if (tab === 'matchday') {
-        canvas = await generateMatchDayPoster(gamesOnDate, teamsMap)
+        canvas = await generateMatchDayPoster(gamesOnDate, teamsMap, opts)
       } else {
         const game = games.find(g => g.id === selectedGameId)
         if (!game) return
-        canvas = await generateSingleMatchPoster(game, teamsMap)
+        canvas = await generateSingleMatchPoster(game, teamsMap, opts)
       }
       setCanvasEl(canvas)
       if (previewRef.current) {
@@ -43,6 +47,9 @@ export default function PosterGenerator({ games, teams, teamsMap, onClose }) {
       }
     } catch (err) {
       console.error('Poster generation failed:', err)
+      if (useAi) {
+        setAiError(true)
+      }
       alert('שגיאה ביצירת הפוסטר')
     } finally {
       setGenerating(false)
@@ -102,6 +109,31 @@ export default function PosterGenerator({ games, teams, teamsMap, onClose }) {
             </button>
           </div>
 
+          {/* AI Toggle */}
+          <div className="flex items-center justify-between p-3 rounded-xl bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 border border-purple-200 dark:border-purple-800/50">
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-purple-500" />
+              <span className="text-sm font-semibold text-purple-800 dark:text-purple-300">רקע AI מקצועי</span>
+              <span className="text-xs text-purple-500 dark:text-purple-400">(DALL·E 3)</span>
+            </div>
+            <button
+              onClick={() => { setUseAi(!useAi); setCanvasEl(null); setAiError(false) }}
+              className={`relative w-11 h-6 rounded-full transition-colors ${
+                useAi ? 'bg-purple-500' : 'bg-slate-300 dark:bg-slate-600'
+              }`}
+            >
+              <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${
+                useAi ? 'translate-x-5' : 'translate-x-0.5'
+              }`} />
+            </button>
+          </div>
+
+          {aiError && (
+            <div className="text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 p-2 rounded-lg">
+              רקע AI לא זמין — השתמשנו ברקע רגיל. ודא שמפתח OpenAI מוגדר ב-Vercel.
+            </div>
+          )}
+
           {/* Match Day controls */}
           {tab === 'matchday' && (
             <div className="space-y-3">
@@ -160,9 +192,9 @@ export default function PosterGenerator({ games, teams, teamsMap, onClose }) {
             className="w-full flex items-center justify-center gap-2 px-5 py-3 bg-purple-500 text-white text-sm font-bold rounded-xl hover:bg-purple-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {generating ? (
-              <><Loader2 className="w-4 h-4 animate-spin" /> יוצר פוסטר...</>
+              <><Loader2 className="w-4 h-4 animate-spin" /> {useAi ? 'יוצר רקע AI...' : 'יוצר פוסטר...'}</>
             ) : (
-              <><Image className="w-4 h-4" /> צור פוסטר</>
+              <>{useAi ? <Sparkles className="w-4 h-4" /> : <Image className="w-4 h-4" />} צור פוסטר</>
             )}
           </button>
 
