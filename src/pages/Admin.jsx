@@ -164,14 +164,19 @@ function GamesAdmin({ games, teams, players, teamsMap, gameStats, reload }) {
   const [form, setForm] = useState({
     home_team_id: '', away_team_id: '', game_date: '', venue: '',
     home_score: '', away_score: '', status: 'scheduled',
-    game_type: 'ליגה', playoff_round: '', series_game: '', notes: ''
+    game_type: 'ליגה', playoff_round: '', series_game: '', notes: '',
+    referee_id: '', referee_type: 'player'
   })
+  const [refFilter, setRefFilter] = useState('all')
+
+  const refereeOptions = players.filter(p => p.is_referee)
 
   const resetForm = () => {
     setForm({
       home_team_id: '', away_team_id: '', game_date: '', venue: '',
       home_score: '', away_score: '', status: 'scheduled',
-      game_type: 'ליגה', playoff_round: '', series_game: '', notes: ''
+      game_type: 'ליגה', playoff_round: '', series_game: '', notes: '',
+      referee_id: '', referee_type: 'player'
     })
     setEditingGame(null)
     setShowForm(false)
@@ -189,7 +194,9 @@ function GamesAdmin({ games, teams, players, teamsMap, gameStats, reload }) {
       game_type: game.game_type || 'ליגה',
       playoff_round: game.playoff_round || '',
       series_game: game.series_game ?? '',
-      notes: game.notes || ''
+      notes: game.notes || '',
+      referee_id: game.referee_id || '',
+      referee_type: game.referee_type || 'player'
     })
     setEditingGame(game.id)
     setShowForm(true)
@@ -204,6 +211,8 @@ function GamesAdmin({ games, teams, players, teamsMap, gameStats, reload }) {
         away_score: form.away_score !== '' ? Number(form.away_score) : null,
         series_game: form.series_game !== '' ? Number(form.series_game) : null,
         playoff_round: form.playoff_round || null,
+        referee_id: form.referee_id || null,
+        referee_type: form.referee_id ? form.referee_type : null,
       }
       if (editingGame) {
         await updateGame(editingGame, payload)
@@ -320,9 +329,18 @@ function GamesAdmin({ games, teams, players, teamsMap, gameStats, reload }) {
               </>
             )}
           </div>
-          <div>
-            <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1 block">הערות</label>
-            <input type="text" value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} className="filter-input w-full" placeholder="הערות..." />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1 block">שופט</label>
+              <select value={form.referee_id} onChange={e => setForm({ ...form, referee_id: e.target.value })} className="filter-select w-full">
+                <option value="">ללא שופט</option>
+                {refereeOptions.map(p => <option key={p.id} value={p.id}>{p.first_name} {p.last_name}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1 block">הערות</label>
+              <input type="text" value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} className="filter-input w-full" placeholder="הערות..." />
+            </div>
           </div>
           <div className="flex gap-2 pt-1">
             <button onClick={handleSave} disabled={saving || !form.home_team_id || !form.away_team_id || !form.game_date}
@@ -336,10 +354,22 @@ function GamesAdmin({ games, teams, players, teamsMap, gameStats, reload }) {
         </motion.div>
       )}
 
+      {/* Filter */}
+      <div className="flex items-center gap-2 flex-wrap">
+        <button onClick={() => setRefFilter('all')}
+          className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors ${refFilter === 'all' ? 'bg-orange-500 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'}`}>
+          הכל ({games.length})
+        </button>
+        <button onClick={() => setRefFilter('missing')}
+          className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors flex items-center gap-1 ${refFilter === 'missing' ? 'bg-amber-500 text-white' : 'bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/30'}`}>
+          <AlertTriangle className="w-3 h-3" /> ללא שופט ({games.filter(g => !g.referee_id && g.status === 'completed').length})
+        </button>
+      </div>
+
       {/* Games List */}
       <div className="card overflow-hidden">
         <div className="divide-y divide-slate-100 dark:divide-slate-700/50">
-          {games.sort((a, b) => new Date(b.game_date) - new Date(a.game_date)).map(game => (
+          {games.filter(g => refFilter === 'all' || (!g.referee_id && g.status === 'completed')).sort((a, b) => new Date(b.game_date) - new Date(a.game_date)).map(game => (
             <div key={game.id}>
               <div className="flex items-center justify-between px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
                 <div className="flex items-center gap-3 flex-1 min-w-0">
@@ -362,6 +392,9 @@ function GamesAdmin({ games, teams, players, teamsMap, gameStats, reload }) {
                   </div>
                 </div>
                 <div className="flex items-center gap-2 mr-3">
+                  {!game.referee_id && game.status === 'completed' && (
+                    <span title="חסר שופט" className="text-amber-500"><AlertTriangle className="w-3.5 h-3.5" /></span>
+                  )}
                   <span className="text-[10px] text-slate-400 hidden sm:inline">{format(new Date(game.game_date), "d/M/yy")}</span>
                   <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400">{game.game_type}</span>
                   <button onClick={() => setEditingStats(editingStats === game.id ? null : game.id)}
