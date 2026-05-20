@@ -16,12 +16,13 @@ import {
 import {
   Shield, Calendar, UserCheck, Users, Settings, LogOut, Trash2, Plus,
   Pencil, X, Check, Save, ChevronDown, UserPlus, Crown, ToggleLeft, ToggleRight, Trophy,
-  Archive, AlertTriangle
+  Archive, AlertTriangle, Image
 } from "lucide-react"
 import { motion } from "framer-motion"
 import TeamLogo from "@/components/TeamLogo"
 import { format } from "date-fns"
 import { useSeasonMode } from "@/App"
+import PosterGenerator from "@/components/PosterGenerator"
 
 const tabs = [
   { id: "games", label: "משחקים", icon: Calendar },
@@ -161,6 +162,7 @@ function GamesAdmin({ games, teams, players, teamsMap, gameStats, reload }) {
   const [editingGame, setEditingGame] = useState(null)
   const [editingStats, setEditingStats] = useState(null)
   const [saving, setSaving] = useState(false)
+  const [showPosterModal, setShowPosterModal] = useState(false)
   const [form, setForm] = useState({
     home_team_id: '', away_team_id: '', game_date: '', venue: '',
     home_score: '', away_score: '', status: 'scheduled',
@@ -243,10 +245,16 @@ function GamesAdmin({ games, teams, players, teamsMap, gameStats, reload }) {
         <h2 className="font-bold text-sm text-slate-900 dark:text-white">
           {games.length} משחקים
         </h2>
-        <button onClick={() => { resetForm(); setShowForm(true) }}
-          className="flex items-center gap-2 px-4 py-2 bg-orange-500 text-white text-sm font-semibold rounded-xl hover:bg-orange-600 transition-colors">
-          <Plus className="w-4 h-4" /> משחק חדש
-        </button>
+        <div className="flex items-center gap-2">
+          <button onClick={() => setShowPosterModal(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-purple-500 text-white text-sm font-semibold rounded-xl hover:bg-purple-600 transition-colors">
+            <Image className="w-4 h-4" /> פוסטר
+          </button>
+          <button onClick={() => { resetForm(); setShowForm(true) }}
+            className="flex items-center gap-2 px-4 py-2 bg-orange-500 text-white text-sm font-semibold rounded-xl hover:bg-orange-600 transition-colors">
+            <Plus className="w-4 h-4" /> משחק חדש
+          </button>
+        </div>
       </div>
 
       {/* Form */}
@@ -424,6 +432,15 @@ function GamesAdmin({ games, teams, players, teamsMap, gameStats, reload }) {
           ))}
         </div>
       </div>
+
+      {showPosterModal && (
+        <PosterGenerator
+          games={games}
+          teams={teams}
+          teamsMap={teamsMap}
+          onClose={() => setShowPosterModal(false)}
+        />
+      )}
     </div>
   )
 }
