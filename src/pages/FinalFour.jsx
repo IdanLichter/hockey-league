@@ -224,7 +224,8 @@ export default function FinalFour() {
                 <div className="text-left text-sm">
                   <p className="font-semibold text-slate-900 dark:text-white tabular-nums">{format(new Date(game.game_date), "d/M/yy")}</p>
                   <p className="text-xs text-slate-400">
-                    {game.status === 'completed' ? <span className="font-bold">{game.home_score} - {game.away_score}</span> : 'מתוכנן'}
+                    {/* RTL: away first, home last (digits render LTR; home team is on the right). */}
+                    {game.status === 'completed' ? <span className="font-bold">{game.away_score} - {game.home_score}</span> : 'מתוכנן'}
                   </p>
                 </div>
               </div>
@@ -275,7 +276,7 @@ function GameResult({ game }) {
       <span className="text-slate-500 dark:text-slate-400">מ׳ {game.series_game || '—'}</span>
       <span className="text-slate-400 dark:text-slate-500">{format(new Date(game.game_date), "d/M")}</span>
       {game.status === 'completed'
-        ? <span className="font-bold text-slate-900 dark:text-white tabular-nums">{game.home_score} - {game.away_score}</span>
+        ? <span className="font-bold text-slate-900 dark:text-white tabular-nums">{game.away_score} - {game.home_score}</span>
         : <span className="text-blue-600 dark:text-blue-400 font-medium">מתוכנן</span>
       }
     </div>

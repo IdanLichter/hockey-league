@@ -385,9 +385,10 @@ function GamesAdmin({ games, teams, players, teamsMap, gameStats, reload }) {
                     <TeamLogo team={teamsMap[game.home_team_id]} size={7} />
                     <span className="font-semibold text-xs text-slate-900 dark:text-white truncate max-w-[80px] sm:max-w-none">{teamsMap[game.home_team_id]?.name}</span>
                   </div>
+                  {/* RTL: away first, home last so each score renders beside its team (home is on the right). */}
                   <div className="text-center px-2">
                     {game.status === 'completed' ? (
-                      <span className="font-bold text-sm text-slate-900 dark:text-white tabular-nums">{game.home_score} : {game.away_score}</span>
+                      <span className="font-bold text-sm text-slate-900 dark:text-white tabular-nums">{game.away_score} : {game.home_score}</span>
                     ) : (
                       <span className="text-[10px] font-semibold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-2 py-0.5 rounded-md">
                         {game.status === 'scheduled' ? 'מתוכנן' : game.status === 'postponed' ? 'נדחה' : game.status}

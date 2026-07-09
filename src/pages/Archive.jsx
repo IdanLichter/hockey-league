@@ -241,9 +241,10 @@ function SeasonDetail({ seasonId }) {
               <div key={game.id} className="flex items-center justify-between px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
                 <div className="flex items-center gap-3 flex-1 min-w-0">
                   <span className="font-semibold text-sm text-slate-900 dark:text-white truncate">{game.home_team_name}</span>
+                  {/* RTL: away first, home last so each score renders beside its team (home is on the right). */}
                   <div className="text-center px-2">
                     {game.status === 'completed' ? (
-                      <span className="font-bold text-sm text-slate-900 dark:text-white tabular-nums">{game.home_score} : {game.away_score}</span>
+                      <span className="font-bold text-sm text-slate-900 dark:text-white tabular-nums">{game.away_score} : {game.home_score}</span>
                     ) : (
                       <span className="text-[10px] text-slate-400">—</span>
                     )}

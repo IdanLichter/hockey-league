@@ -103,12 +103,17 @@ export default function Games() {
               </div>
             </div>
 
+            {/* RTL: the flex row visually places the home team on the RIGHT and the
+                away team on the LEFT, but numeric digits always render left-to-right.
+                So the score outputs away_score first (renders on the left, beside the
+                away team) and home_score last (renders on the right, beside the home
+                team). Do NOT reorder to home:away — it looks flipped. */}
             <div className="px-4 text-center shrink-0">
               {done ? (
                 <div className="text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white tabular-nums">
-                  <span>{game.home_score}</span>
-                  <span className="text-slate-300 dark:text-slate-600 mx-1">:</span>
                   <span>{game.away_score}</span>
+                  <span className="text-slate-300 dark:text-slate-600 mx-1">:</span>
+                  <span>{game.home_score}</span>
                 </div>
               ) : (
                 <div className="text-lg font-bold text-slate-300 dark:text-slate-600">
