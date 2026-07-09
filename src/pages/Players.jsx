@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react"
+import { Link } from "react-router-dom"
 import { getPlayers, getTeams } from "@/lib/api"
 import { UserCheck, Search, RefreshCw } from "lucide-react"
 import { motion } from "framer-motion"
@@ -98,12 +99,12 @@ export default function Players() {
       {/* Players Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
         {filtered.map((player, index) => (
+          <Link key={player.id} to={`/players/${player.id}`} className="block">
           <motion.div
-            key={player.id}
             initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: Math.min(index * 0.02, 0.4) }}
-            className="card-hover p-4"
+            className="card-hover p-4 h-full"
           >
             <div className="flex items-start justify-between mb-3">
               <div className="flex items-center gap-3">
@@ -136,6 +137,7 @@ export default function Players() {
               ))}
             </div>
           </motion.div>
+          </Link>
         ))}
       </div>
 

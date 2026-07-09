@@ -7,6 +7,7 @@ import Games from './pages/Games'
 import Statistics from './pages/Statistics'
 import Teams from './pages/Teams'
 import Players from './pages/Players'
+import PlayerDetail from './pages/PlayerDetail'
 import FinalFour from './pages/FinalFour'
 import Admin from './pages/Admin'
 import ArchivePage from './pages/Archive'
@@ -45,6 +46,7 @@ function App() {
             <Route path="/statistics" element={<Statistics />} />
             <Route path="/teams" element={<Teams />} />
             <Route path="/players" element={<Players />} />
+            <Route path="/players/:id" element={<PlayerDetail />} />
             <Route path="/final-four" element={<FinalFour />} />
             <Route path="/admin" element={<Admin />} />
             <Route path="/archive" element={<ArchivePage />} />
