@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react"
 import { getTeams, getPlayers, getGames, getReferees } from "@/lib/api"
-import { BarChart3, Target, Flame, Shield, Award, Crown, ChevronDown, ChevronUp, Gavel } from "lucide-react"
+import { BarChart3, Target, Flame, Shield, Award, Crown, ChevronDown, ChevronUp, Gavel, RefreshCw } from "lucide-react"
 import { motion } from "framer-motion"
 import TeamLogo from "@/components/TeamLogo"
 
@@ -10,6 +10,7 @@ export default function Statistics() {
   const [games, setGames] = useState([])
   const [referees, setReferees] = useState([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
   const [activeTab, setActiveTab] = useState("scorers")
   const [expanded, setExpanded] = useState({})
 
@@ -17,9 +18,10 @@ export default function Statistics() {
 
   const loadData = async () => {
     try {
+      setLoading(true); setError(null)
       const [t, p, g, r] = await Promise.all([getTeams(), getPlayers(), getGames(), getReferees()])
       setTeams(t); setPlayers(p); setGames(g); setReferees(r)
-    } catch (err) { console.error(err) }
+    } catch (err) { console.error(err); setError("שגיאה בטעינת הנתונים") }
     finally { setLoading(false) }
   }
 
@@ -114,6 +116,19 @@ export default function Statistics() {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="animate-spin rounded-full h-10 w-10 border-2 border-orange-500 border-t-transparent" />
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="p-4 sm:p-6 lg:p-8 max-w-5xl mx-auto">
+        <div className="card p-6 border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/30 flex flex-col items-center justify-center text-center gap-3 min-h-[300px]">
+          <span className="text-red-700 dark:text-red-400 text-sm font-medium">{error}</span>
+          <button onClick={loadData} className="flex items-center gap-1.5 px-3 py-1.5 bg-red-600 text-white rounded-lg text-xs font-semibold hover:bg-red-700 transition-colors">
+            <RefreshCw className="w-3.5 h-3.5" /> נסה שוב
+          </button>
+        </div>
       </div>
     )
   }

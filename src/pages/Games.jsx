@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react"
 import { getGames, getTeams, getPlayers, getReferees, getGameStatsByGameId } from "@/lib/api"
-import { Calendar, Clock, MapPin, Trophy, Shield, X, FileText, ChevronDown } from "lucide-react"
+import { Calendar, Clock, MapPin, Trophy, Shield, X, FileText, ChevronDown, RefreshCw } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import { format } from "date-fns"
 import TeamLogo from "@/components/TeamLogo"
@@ -11,6 +11,7 @@ export default function Games() {
   const [players, setPlayers] = useState([])
   const [referees, setReferees] = useState([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
   const [activeCompetition, setActiveCompetition] = useState("ליגה")
   const [statusFilter, setStatusFilter] = useState("all")
   const [teamFilter, setTeamFilter] = useState("all")
@@ -22,9 +23,10 @@ export default function Games() {
 
   const loadData = async () => {
     try {
+      setLoading(true); setError(null)
       const [g, t, p, r] = await Promise.all([getGames(), getTeams(), getPlayers(), getReferees()])
       setGames(g); setTeams(t); setPlayers(p); setReferees(r)
-    } catch (err) { console.error(err) }
+    } catch (err) { console.error(err); setError("שגיאה בטעינת הנתונים") }
     finally { setLoading(false) }
   }
 
@@ -71,6 +73,19 @@ export default function Games() {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="animate-spin rounded-full h-10 w-10 border-2 border-orange-500 border-t-transparent" />
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="p-4 sm:p-6 lg:p-8 max-w-5xl mx-auto">
+        <div className="card p-6 border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/30 flex flex-col items-center justify-center text-center gap-3 min-h-[300px]">
+          <span className="text-red-700 dark:text-red-400 text-sm font-medium">{error}</span>
+          <button onClick={loadData} className="flex items-center gap-1.5 px-3 py-1.5 bg-red-600 text-white rounded-lg text-xs font-semibold hover:bg-red-700 transition-colors">
+            <RefreshCw className="w-3.5 h-3.5" /> נסה שוב
+          </button>
+        </div>
       </div>
     )
   }

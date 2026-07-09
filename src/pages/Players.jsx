@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react"
 import { getPlayers, getTeams } from "@/lib/api"
-import { UserCheck, Search } from "lucide-react"
+import { UserCheck, Search, RefreshCw } from "lucide-react"
 import { motion } from "framer-motion"
 import TeamLogo from "@/components/TeamLogo"
 
@@ -8,6 +8,7 @@ export default function Players() {
   const [players, setPlayers] = useState([])
   const [teams, setTeams] = useState([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
   const [search, setSearch] = useState("")
   const [teamFilter, setTeamFilter] = useState("all")
   const [positionFilter, setPositionFilter] = useState("all")
@@ -17,9 +18,10 @@ export default function Players() {
 
   const loadData = async () => {
     try {
+      setLoading(true); setError(null)
       const [p, t] = await Promise.all([getPlayers(), getTeams()])
       setPlayers(p); setTeams(t)
-    } catch (err) { console.error(err) }
+    } catch (err) { console.error(err); setError("שגיאה בטעינת הנתונים") }
     finally { setLoading(false) }
   }
 
@@ -44,6 +46,19 @@ export default function Players() {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="animate-spin rounded-full h-10 w-10 border-2 border-orange-500 border-t-transparent" />
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="p-4 sm:p-6 lg:p-8 max-w-5xl mx-auto">
+        <div className="card p-6 border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/30 flex flex-col items-center justify-center text-center gap-3 min-h-[300px]">
+          <span className="text-red-700 dark:text-red-400 text-sm font-medium">{error}</span>
+          <button onClick={loadData} className="flex items-center gap-1.5 px-3 py-1.5 bg-red-600 text-white rounded-lg text-xs font-semibold hover:bg-red-700 transition-colors">
+            <RefreshCw className="w-3.5 h-3.5" /> נסה שוב
+          </button>
+        </div>
       </div>
     )
   }

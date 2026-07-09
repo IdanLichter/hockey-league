@@ -15,12 +15,14 @@ import {
 } from "lucide-react"
 import { useTheme } from "./lib/ThemeContext"
 import { useSeasonMode } from "./App"
+import { useAuth } from "./lib/AuthContext"
 
 export default function Layout({ children }) {
   const location = useLocation()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const { dark, toggle } = useTheme()
   const { seasonMode } = useSeasonMode()
+  const { isAdmin } = useAuth()
 
   const isFinalFour = seasonMode === 'final_four'
 
@@ -36,10 +38,13 @@ export default function Layout({ children }) {
       ? { title: "טבלה", url: "/standings", icon: BarChart3, description: "עונה סדירה" }
       : { title: "Final Four", url: "/final-four", icon: Trophy, description: "שלב הגמר" },
     { title: "ארכיון", url: "/archive", icon: Archive, description: "עונות קודמות" },
-    { title: "ניהול", url: "/admin", icon: Shield, description: "דף מנהלים" },
+    ...(isAdmin ? [{ title: "ניהול", url: "/admin", icon: Shield, description: "דף מנהלים" }] : []),
   ]
 
-  const isActivePage = (url) => location.pathname === url
+  const isActivePage = (url) =>
+    url === "/"
+      ? location.pathname === "/"
+      : location.pathname === url || location.pathname.startsWith(url + "/")
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950" dir="rtl">

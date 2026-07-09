@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react"
 import { getTeams } from "@/lib/api"
+import { standingsComparator } from "@/lib/utils"
 import { Trophy, Users, Crown, Swords, RefreshCw } from "lucide-react"
 import { motion } from "framer-motion"
 import TeamLogo from "@/components/TeamLogo"
@@ -23,7 +24,7 @@ export default function Home() {
 
   const diff = (t) => (t.goals_for || 0) - (t.goals_against || 0)
   const played = (t) => (t.wins || 0) + (t.losses || 0) + (t.ties || 0)
-  const sorted = [...teams].sort((a, b) => (b.points || 0) - (a.points || 0))
+  const sorted = [...teams].sort(standingsComparator)
   const first = sorted[0] || null
 
   const matchups = sorted.length >= 7 ? [
@@ -77,16 +78,16 @@ export default function Home() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-slate-900 dark:bg-slate-800 text-white text-xs uppercase tracking-wider">
-                  <th className="px-3 py-3 text-right font-semibold w-10">#</th>
-                  <th className="px-3 py-3 text-right font-semibold">קבוצה</th>
-                  <th className="px-3 py-3 text-center font-semibold">מש׳</th>
-                  <th className="hidden sm:table-cell px-3 py-3 text-center font-semibold">נ</th>
-                  <th className="hidden sm:table-cell px-3 py-3 text-center font-semibold">ת</th>
-                  <th className="hidden sm:table-cell px-3 py-3 text-center font-semibold">ה</th>
-                  <th className="hidden md:table-cell px-3 py-3 text-center font-semibold">זכות</th>
-                  <th className="hidden md:table-cell px-3 py-3 text-center font-semibold">חובה</th>
-                  <th className="px-3 py-3 text-center font-semibold">הפרש</th>
-                  <th className="px-3 py-3 text-center font-semibold">נק׳</th>
+                  <th className="px-3 py-3 text-right font-semibold w-10 whitespace-nowrap">#</th>
+                  <th className="px-3 py-3 text-right font-semibold whitespace-nowrap">קבוצה</th>
+                  <th className="px-3 py-3 text-center font-semibold whitespace-nowrap">מש׳</th>
+                  <th className="px-3 py-3 text-center font-semibold whitespace-nowrap">נ</th>
+                  <th className="px-3 py-3 text-center font-semibold whitespace-nowrap">ת</th>
+                  <th className="px-3 py-3 text-center font-semibold whitespace-nowrap">ה</th>
+                  <th className="px-3 py-3 text-center font-semibold whitespace-nowrap">זכות</th>
+                  <th className="px-3 py-3 text-center font-semibold whitespace-nowrap">חובה</th>
+                  <th className="px-3 py-3 text-center font-semibold whitespace-nowrap">הפרש</th>
+                  <th className="px-3 py-3 text-center font-semibold whitespace-nowrap">נק׳</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-700/50">
@@ -122,11 +123,11 @@ export default function Home() {
                       </div>
                     </td>
                     <td className="px-3 py-3 text-center font-medium text-slate-600 dark:text-slate-400">{played(team)}</td>
-                    <td className="hidden sm:table-cell px-3 py-3 text-center font-bold text-emerald-600 dark:text-emerald-400">{team.wins || 0}</td>
-                    <td className="hidden sm:table-cell px-3 py-3 text-center text-slate-500 dark:text-slate-400">{team.ties || 0}</td>
-                    <td className="hidden sm:table-cell px-3 py-3 text-center font-bold text-red-500 dark:text-red-400">{team.losses || 0}</td>
-                    <td className="hidden md:table-cell px-3 py-3 text-center text-slate-600 dark:text-slate-400">{team.goals_for || 0}</td>
-                    <td className="hidden md:table-cell px-3 py-3 text-center text-slate-600 dark:text-slate-400">{team.goals_against || 0}</td>
+                    <td className="px-3 py-3 text-center font-bold text-emerald-600 dark:text-emerald-400">{team.wins || 0}</td>
+                    <td className="px-3 py-3 text-center text-slate-500 dark:text-slate-400">{team.ties || 0}</td>
+                    <td className="px-3 py-3 text-center font-bold text-red-500 dark:text-red-400">{team.losses || 0}</td>
+                    <td className="px-3 py-3 text-center text-slate-600 dark:text-slate-400">{team.goals_for || 0}</td>
+                    <td className="px-3 py-3 text-center text-slate-600 dark:text-slate-400">{team.goals_against || 0}</td>
                     <td className="px-3 py-3 text-center">
                       <span className={`font-bold text-sm ${diff(team) > 0 ? 'text-emerald-600 dark:text-emerald-400' : diff(team) < 0 ? 'text-red-500 dark:text-red-400' : 'text-slate-400'}`}>
                         {diff(team) > 0 ? '+' : ''}{diff(team)}

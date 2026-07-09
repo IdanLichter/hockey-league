@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react"
 import { getTeams, getGames, getLeagueSetting } from "@/lib/api"
-import { Trophy, Crown, Calendar } from "lucide-react"
+import { standingsComparator } from "@/lib/utils"
+import { Trophy, Crown, Calendar, RefreshCw } from "lucide-react"
 import { motion } from "framer-motion"
 import { format } from "date-fns"
 import TeamLogo from "@/components/TeamLogo"
@@ -10,14 +11,16 @@ export default function FinalFour() {
   const [games, setGames] = useState([])
   const [championId, setChampionId] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
 
   useEffect(() => { loadData() }, [])
 
   const loadData = async () => {
+    setLoading(true); setError(null)
     try {
       const [t, g] = await Promise.all([getTeams(), getGames()])
       setTeams(t); setGames(g)
-    } catch (err) { console.error(err) }
+    } catch (err) { console.error(err); setError("שגיאה בטעינת הנתונים"); setLoading(false); return }
     // Champion setting is optional — a failure here must not break the page.
     try {
       const cid = await getLeagueSetting('champion_team_id')
@@ -28,7 +31,7 @@ export default function FinalFour() {
 
   const teamsMap = Object.fromEntries(teams.map(t => [t.id, t]))
   const champion = championId ? teams.find(t => t.id === championId) || null : null
-  const sorted = [...teams].sort((a, b) => (b.points || 0) - (a.points || 0))
+  const sorted = [...teams].sort(standingsComparator)
   const first = sorted[0]
 
   const playoffGames = games.filter(g => g.game_type === 'פלייאוף' || g.game_type === 'Final Four')
@@ -107,6 +110,19 @@ export default function FinalFour() {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="animate-spin rounded-full h-10 w-10 border-2 border-orange-500 border-t-transparent" />
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">
+        <div className="card p-6 border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/30 flex flex-col items-center justify-center text-center gap-3 min-h-[300px]">
+          <span className="text-red-700 dark:text-red-400 text-sm font-medium">{error}</span>
+          <button onClick={loadData} className="flex items-center gap-1.5 px-3 py-1.5 bg-red-600 text-white rounded-lg text-xs font-semibold hover:bg-red-700 transition-colors">
+            <RefreshCw className="w-3.5 h-3.5" /> נסה שוב
+          </button>
+        </div>
       </div>
     )
   }
