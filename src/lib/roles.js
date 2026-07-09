@@ -1,0 +1,46 @@
+import { supabase } from './supabase'
+
+/**
+ * Admin role management (Stage B). Roles live in `user_roles` (player / coach /
+ * content_editor / judge, optionally team-scoped) and are admin-managed by the
+ * existing RLS ("Admin manages roles" FOR ALL; "Read own roles or admin"). No
+ * migration needed. Kept out of api.js to avoid collision with other workstreams.
+ */
+
+export const ROLES = ['player', 'coach', 'content_editor', 'judge']
+export const ROLE_LABEL = {
+  player: 'שחקן',
+  coach: 'מאמן',
+  content_editor: 'עורך תוכן',
+  judge: 'שופט',
+}
+// Roles that are scoped to a specific team.
+export const TEAM_SCOPED = new Set(['coach', 'player'])
+
+export async function getProfiles() {
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('id, display_name, avatar_url, player_id')
+    .order('display_name')
+  if (error) throw error
+  return data
+}
+
+// Admin reads every row via RLS.
+export async function getAllRoles() {
+  const { data, error } = await supabase.from('user_roles').select('*')
+  if (error) throw error
+  return data
+}
+
+export async function grantRole(userId, role, teamId = null) {
+  const { error } = await supabase
+    .from('user_roles')
+    .insert({ user_id: userId, role, team_id: TEAM_SCOPED.has(role) ? teamId : null })
+  if (error) throw error
+}
+
+export async function revokeRole(id) {
+  const { error } = await supabase.from('user_roles').delete().eq('id', id)
+  if (error) throw error
+}

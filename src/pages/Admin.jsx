@@ -24,6 +24,8 @@ import { format } from "date-fns"
 import { useSeasonMode } from "@/App"
 import PosterGenerator from "@/components/PosterGenerator"
 import ClaimsReview from "@/components/admin/ClaimsReview"
+import RolesAdmin from "@/components/admin/RolesAdmin"
+import { Award } from "lucide-react"
 
 const tabs = [
   { id: "games", label: "משחקים", icon: Calendar },
@@ -31,6 +33,7 @@ const tabs = [
   { id: "teams", label: "קבוצות", icon: Users },
   { id: "season", label: "עונה", icon: Archive },
   { id: "claims", label: "בקשות", icon: UserPlus },
+  { id: "roles", label: "תפקידים", icon: Award },
   { id: "users", label: "מנהלים", icon: Crown },
 ]
 
@@ -117,6 +120,7 @@ export default function Admin() {
           {activeTab === "teams" && <TeamsAdmin teams={teams} reload={loadData} />}
           {activeTab === "season" && <SeasonAdmin games={games} teams={teams} players={players} reload={loadData} />}
           {activeTab === "claims" && <ClaimsReview teamsMap={teamsMap} />}
+          {activeTab === "roles" && <RolesAdmin teamsMap={teamsMap} players={players} />}
           {activeTab === "users" && <UsersAdmin adminUsers={adminUsers} currentUserEmail={user.email} reload={loadData} />}
         </>
       )}
