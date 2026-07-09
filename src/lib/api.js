@@ -67,11 +67,15 @@ export async function getGameStatsByGameId(gameId) {
 export async function getPosts() {
   const { data, error } = await supabase
     .from('posts')
-    .select('*, author:profiles(display_name, avatar_url)')
+    .select('*, author:profiles!posts_author_id_fkey(display_name, avatar_url), like_count:post_likes(count), comment_count:comments(count)')
     .is('deleted_at', null)
     .order('created_at', { ascending: false })
   if (error) throw error
-  return data
+  return (data || []).map(p => ({
+    ...p,
+    like_count: p.like_count?.[0]?.count ?? 0,
+    comment_count: p.comment_count?.[0]?.count ?? 0,
+  }))
 }
 
 export async function createPost({ body, teamId = null }) {
@@ -80,15 +84,67 @@ export async function createPost({ body, teamId = null }) {
   const { data, error } = await supabase
     .from('posts')
     .insert({ author_id: user.id, body: body.trim(), team_id: teamId })
-    .select('*, author:profiles(display_name, avatar_url)')
+    .select('*, author:profiles!posts_author_id_fkey(display_name, avatar_url)')
     .single()
   if (error) throw error
-  return data
+  return { ...data, like_count: 0, comment_count: 0 }
 }
 
 export async function deletePost(id) {
   // soft delete
   const { error } = await supabase.from('posts').update({ deleted_at: new Date().toISOString() }).eq('id', id)
+  if (error) throw error
+}
+
+// --- Likes ---
+export async function getMyLikes() {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
+  const { data, error } = await supabase.from('post_likes').select('post_id').eq('user_id', user.id)
+  if (error) throw error
+  return (data || []).map(r => r.post_id)
+}
+
+export async function likePost(postId) {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('not authenticated')
+  const { error } = await supabase.from('post_likes').insert({ post_id: postId, user_id: user.id })
+  if (error) throw error
+}
+
+export async function unlikePost(postId) {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('not authenticated')
+  const { error } = await supabase.from('post_likes').delete().eq('post_id', postId).eq('user_id', user.id)
+  if (error) throw error
+}
+
+// --- Comments ---
+export async function getComments(postId) {
+  const { data, error } = await supabase
+    .from('comments')
+    .select('*, author:profiles!comments_author_id_fkey(display_name, avatar_url)')
+    .eq('post_id', postId)
+    .is('deleted_at', null)
+    .order('created_at', { ascending: true })
+  if (error) throw error
+  return data
+}
+
+export async function createComment(postId, body) {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('not authenticated')
+  const { data, error } = await supabase
+    .from('comments')
+    .insert({ post_id: postId, author_id: user.id, body: body.trim() })
+    .select('*, author:profiles!comments_author_id_fkey(display_name, avatar_url)')
+    .single()
+  if (error) throw error
+  return data
+}
+
+export async function deleteComment(id) {
+  const { error } = await supabase.from('comments').update({ deleted_at: new Date().toISOString() }).eq('id', id)
   if (error) throw error
 }
 

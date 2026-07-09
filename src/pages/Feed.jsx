@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react"
-import { getGames, getTeams, getPlayers, getGameStats, getLeagueSetting, getPosts } from "@/lib/api"
+import { getGames, getTeams, getPlayers, getGameStats, getLeagueSetting, getPosts, getMyLikes } from "@/lib/api"
 import { Newspaper, RefreshCw } from "lucide-react"
 import { motion } from "framer-motion"
 import { useSeasonMode } from "@/App"
@@ -19,6 +19,7 @@ export default function Feed() {
   const [players, setPlayers] = useState([])
   const [gameStats, setGameStats] = useState([])
   const [posts, setPosts] = useState([])
+  const [likedPostIds, setLikedPostIds] = useState(() => new Set())
   const [championId, setChampionId] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -31,10 +32,10 @@ export default function Feed() {
   const loadData = async () => {
     try {
       setLoading(true); setError(null)
-      const [g, t, p, s, champ, po] = await Promise.all([
-        getGames(), getTeams(), getPlayers(), getGameStats(), getLeagueSetting('champion_team_id'), getPosts()
+      const [g, t, p, s, champ, po, likes] = await Promise.all([
+        getGames(), getTeams(), getPlayers(), getGameStats(), getLeagueSetting('champion_team_id'), getPosts(), getMyLikes()
       ])
-      setGames(g); setTeams(t); setPlayers(p); setGameStats(s); setChampionId(champ); setPosts(po)
+      setGames(g); setTeams(t); setPlayers(p); setGameStats(s); setChampionId(champ); setPosts(po); setLikedPostIds(new Set(likes))
     } catch (err) { console.error(err); setError("שגיאה בטעינת הנתונים") }
     finally { setLoading(false) }
   }
@@ -136,7 +137,7 @@ export default function Feed() {
           ) : (
             <div className="space-y-5">
               {visible.map(post => (
-                <FeedPost key={post.id} post={post} playersMap={playersMap} teamsMap={teamsMap} />
+                <FeedPost key={post.id} post={post} playersMap={playersMap} teamsMap={teamsMap} likedPostIds={likedPostIds} />
               ))}
             </div>
           )}

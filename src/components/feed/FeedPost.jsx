@@ -1,8 +1,17 @@
 import { useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { format } from "date-fns"
-import { Crown, Flame, Trophy, MapPin, FileText, ChevronDown } from "lucide-react"
+import { Crown, Flame, Trophy, MapPin, FileText, ChevronDown, Heart, MessageCircle, Send, Loader2 } from "lucide-react"
 import TeamLogo from "@/components/TeamLogo"
+import { useAuth } from "@/lib/AuthContext"
+import { likePost, unlikePost, getComments, createComment } from "@/lib/api"
+
+function Avatar({ url, name, className = "w-9 h-9" }) {
+  const initial = (name || "?").trim().charAt(0).toUpperCase() || "?"
+  return url
+    ? <img src={url} alt="" className={`${className} rounded-full object-cover shrink-0`} />
+    : <div className={`${className} rounded-full bg-orange-500 text-white flex items-center justify-center text-sm font-bold shrink-0`}>{initial}</div>
+}
 
 const fmtDate = (d) => format(new Date(d), "d/M/yyyy")
 
