@@ -154,28 +154,54 @@ export default function Games() {
               <div className="px-5 pb-5">
                 <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-700">
                   <h4 className="font-bold text-sm text-slate-900 dark:text-white mb-3">סטטיסטיקות שחקנים</h4>
-                  <div className="grid grid-cols-2 gap-6">
-                    {[game.home_team_id, game.away_team_id].map(tid => (
-                      <div key={tid}>
-                        <h5 className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-2">{teamName(tid)}</h5>
-                        <div className="space-y-1">
-                          {gameStatsData.filter(s => playersMap[s.player_id]?.team_id === tid).map(stat => {
-                            const p = playersMap[stat.player_id]
-                            return (
+                  {gameStatsData.length === 0 ? (
+                    <p className="text-center text-xs text-slate-400 dark:text-slate-500 py-4">לא הוזנו סטטיסטיקות למשחק זה</p>
+                  ) : (
+                    <>
+                      <div className="grid grid-cols-2 gap-6">
+                        {[game.home_team_id, game.away_team_id].map(tid => (
+                          <div key={tid}>
+                            <h5 className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-2">{teamName(tid)}</h5>
+                            <div className="space-y-1">
+                              {gameStatsData.filter(s => playersMap[s.player_id]?.team_id === tid).map(stat => {
+                                const p = playersMap[stat.player_id]
+                                return (
+                                  <div key={stat.id} className="flex items-center justify-between py-1 text-xs">
+                                    <span className="text-slate-700 dark:text-slate-300">{p?.first_name} {p?.last_name}</span>
+                                    <div className="flex gap-1.5">
+                                      {stat.goals > 0 && <span className="stat-pill bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300 !py-0 !px-1.5">⚽ {stat.goals}</span>}
+                                      {stat.blue_cards > 0 && <span className="stat-pill bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300 !py-0 !px-1.5">🟦 {stat.blue_cards}</span>}
+                                      {stat.red_cards > 0 && <span className="stat-pill bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300 !py-0 !px-1.5">🟥 {stat.red_cards}</span>}
+                                    </div>
+                                  </div>
+                                )
+                              })}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                      {gameStatsData.some(s => s.is_guest_player) && (
+                        <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-700">
+                          <h5 className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-2">אורחים</h5>
+                          <div className="space-y-1">
+                            {gameStatsData.filter(s => s.is_guest_player).map(stat => (
                               <div key={stat.id} className="flex items-center justify-between py-1 text-xs">
-                                <span className="text-slate-700 dark:text-slate-300">{p?.first_name} {p?.last_name}</span>
+                                <span className="text-slate-700 dark:text-slate-300">
+                                  {stat.guest_player_name}
+                                  {stat.guest_player_original_team && <span className="text-slate-400"> ({stat.guest_player_original_team})</span>}
+                                </span>
                                 <div className="flex gap-1.5">
                                   {stat.goals > 0 && <span className="stat-pill bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300 !py-0 !px-1.5">⚽ {stat.goals}</span>}
                                   {stat.blue_cards > 0 && <span className="stat-pill bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300 !py-0 !px-1.5">🟦 {stat.blue_cards}</span>}
                                   {stat.red_cards > 0 && <span className="stat-pill bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300 !py-0 !px-1.5">🟥 {stat.red_cards}</span>}
                                 </div>
                               </div>
-                            )
-                          })}
+                            ))}
+                          </div>
                         </div>
-                      </div>
-                    ))}
-                  </div>
+                      )}
+                    </>
+                  )}
                 </div>
               </div>
             </motion.div>

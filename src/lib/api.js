@@ -379,9 +379,22 @@ export async function recalculateTeamStats() {
 
 /**
  * Recalculate all player stats from game_stats entries.
+ *
+ * NOTE: This is intentionally NOT auto-invoked right now. The historical
+ * game_stats table has not been backfilled yet, so running this against an
+ * (near-)empty table would zero out every player's totals. It is left here
+ * (and guarded below) so that, once the historical backfill is complete
+ * (Package 2), it can be re-enabled as the authoritative source for player
+ * goals/blue_cards/red_cards/games_played.
  */
 export async function recalculatePlayerStats() {
   const [players, allStats] = await Promise.all([getPlayers(), getGameStats()])
+
+  // Safety guard: never wipe player stats from an empty game_stats table.
+  if (!allStats || allStats.length === 0) {
+    console.warn('recalculatePlayerStats: game_stats is empty — skipping to avoid zeroing all player totals.')
+    return
+  }
 
   for (const player of players) {
     const pStats = allStats.filter(s => s.player_id === player.id)

@@ -234,7 +234,7 @@ function GamesAdmin({ games, teams, players, teamsMap, gameStats, reload }) {
     try {
       await deleteGame(id)
       await recalculateTeamStats()
-      await recalculatePlayerStats()
+      // player-stat recalculation is disabled until the historical game_stats backfill is complete (Package 2)
       await reload()
     } catch (err) { alert('שגיאה: ' + err.message) }
   }
@@ -470,6 +470,8 @@ function GameStatsEditor({ game, players, teamsMap, existingStats, reload }) {
       clean_sheet: false,
       is_guest_player: false,
       guest_player_name: '',
+      guest_player_original_team: '',
+      guest_player_type: '',
     }])
   }
 
@@ -491,17 +493,21 @@ function GameStatsEditor({ game, players, teamsMap, existingStats, reload }) {
       // Insert new ones
       for (const stat of stats) {
         if (!stat.player_id && !stat.is_guest_player) continue
-        const { id, ...rest } = stat
+        const isGuest = !!stat.is_guest_player
         await createGameStat({
-          ...rest,
           game_id: game.id,
-          goals: Number(rest.goals) || 0,
-          blue_cards: Number(rest.blue_cards) || 0,
-          red_cards: Number(rest.red_cards) || 0,
+          player_id: isGuest ? null : (stat.player_id || null),
+          goals: Number(stat.goals) || 0,
+          blue_cards: Number(stat.blue_cards) || 0,
+          red_cards: Number(stat.red_cards) || 0,
+          clean_sheet: !!stat.clean_sheet,
+          is_guest_player: isGuest,
+          guest_player_name: isGuest ? String(stat.guest_player_name || '') : '',
+          guest_player_original_team: isGuest ? String(stat.guest_player_original_team || '') : '',
+          guest_player_type: isGuest && stat.guest_player_type ? String(stat.guest_player_type) : null,
         })
       }
-      // Recalculate player stats after game stats change
-      await recalculatePlayerStats()
+      // player-stat recalculation is disabled until the historical game_stats backfill is complete (Package 2)
       await reload()
     } catch (err) { alert('שגיאה: ' + err.message) }
     finally { setSaving(false) }
@@ -521,35 +527,68 @@ function GameStatsEditor({ game, players, teamsMap, existingStats, reload }) {
 
       <div className="space-y-2">
         {stats.map((stat, i) => (
-          <div key={stat.id || i} className="flex items-center gap-2 bg-white dark:bg-slate-800 rounded-lg p-2">
-            <select value={stat.player_id} onChange={e => updateStat(i, 'player_id', e.target.value)}
-              className="filter-select text-xs flex-1 min-w-0">
-              <option value="">בחר שחקן</option>
-              <optgroup label={teamsMap[game.home_team_id]?.name}>
-                {homePlayers.map(p => <option key={p.id} value={p.id}>{p.first_name} {p.last_name}</option>)}
-              </optgroup>
-              <optgroup label={teamsMap[game.away_team_id]?.name}>
-                {awayPlayers.map(p => <option key={p.id} value={p.id}>{p.first_name} {p.last_name}</option>)}
-              </optgroup>
-            </select>
-            <div className="flex items-center gap-1">
-              <label className="text-[10px] text-slate-400">שערים</label>
-              <input type="number" min="0" value={stat.goals} onChange={e => updateStat(i, 'goals', e.target.value)}
-                className="filter-input w-14 text-xs text-center" />
+          <div key={stat.id || i} className="bg-white dark:bg-slate-800 rounded-lg p-2 space-y-2">
+            {/* Player / guest selector row */}
+            <div className="flex flex-wrap items-center gap-2">
+              {stat.is_guest_player ? (
+                <div className="flex flex-wrap items-center gap-2 flex-1 min-w-0">
+                  <input type="text" value={stat.guest_player_name || ''} placeholder="שם השחקן"
+                    onChange={e => updateStat(i, 'guest_player_name', e.target.value)}
+                    className="filter-input text-xs flex-1 min-w-[8rem]" />
+                  <input type="text" value={stat.guest_player_original_team || ''} placeholder="קבוצת מקור"
+                    onChange={e => updateStat(i, 'guest_player_original_team', e.target.value)}
+                    className="filter-input text-xs flex-1 min-w-[8rem]" />
+                  <select value={stat.guest_player_type || ''} onChange={e => updateStat(i, 'guest_player_type', e.target.value)}
+                    className="filter-select text-xs min-w-[6rem]">
+                    <option value="">סוג</option>
+                    <option value="youth">נוער</option>
+                    <option value="guest_goalkeeper">שוער אורח</option>
+                  </select>
+                </div>
+              ) : (
+                <select value={stat.player_id} onChange={e => updateStat(i, 'player_id', e.target.value)}
+                  className="filter-select text-xs flex-1 min-w-[10rem]">
+                  <option value="">בחר שחקן</option>
+                  <optgroup label={teamsMap[game.home_team_id]?.name}>
+                    {homePlayers.map(p => <option key={p.id} value={p.id}>{p.first_name} {p.last_name}</option>)}
+                  </optgroup>
+                  <optgroup label={teamsMap[game.away_team_id]?.name}>
+                    {awayPlayers.map(p => <option key={p.id} value={p.id}>{p.first_name} {p.last_name}</option>)}
+                  </optgroup>
+                </select>
+              )}
+              <label className="flex items-center gap-1 text-[11px] text-slate-500 dark:text-slate-400 cursor-pointer whitespace-nowrap">
+                <input type="checkbox" checked={!!stat.is_guest_player}
+                  onChange={e => updateStat(i, 'is_guest_player', e.target.checked)} />
+                שחקן אורח
+              </label>
+              <button onClick={() => removeStat(i)} className="p-1 text-slate-400 hover:text-red-500 mr-auto">
+                <X className="w-3.5 h-3.5" />
+              </button>
             </div>
-            <div className="flex items-center gap-1">
-              <label className="text-[10px] text-slate-400">כחול</label>
-              <input type="number" min="0" value={stat.blue_cards} onChange={e => updateStat(i, 'blue_cards', e.target.value)}
-                className="filter-input w-14 text-xs text-center" />
+            {/* Stat inputs row */}
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+              <div className="flex items-center gap-1">
+                <label className="text-[10px] text-slate-400">שערים</label>
+                <input type="number" min="0" value={stat.goals} onChange={e => updateStat(i, 'goals', e.target.value)}
+                  className="filter-input w-14 text-xs text-center" />
+              </div>
+              <div className="flex items-center gap-1">
+                <label className="text-[10px] text-slate-400">כחול</label>
+                <input type="number" min="0" value={stat.blue_cards} onChange={e => updateStat(i, 'blue_cards', e.target.value)}
+                  className="filter-input w-14 text-xs text-center" />
+              </div>
+              <div className="flex items-center gap-1">
+                <label className="text-[10px] text-slate-400">אדום</label>
+                <input type="number" min="0" value={stat.red_cards} onChange={e => updateStat(i, 'red_cards', e.target.value)}
+                  className="filter-input w-14 text-xs text-center" />
+              </div>
+              <label className="flex items-center gap-1 text-[11px] text-slate-500 dark:text-slate-400 cursor-pointer whitespace-nowrap">
+                <input type="checkbox" checked={!!stat.clean_sheet}
+                  onChange={e => updateStat(i, 'clean_sheet', e.target.checked)} />
+                שער נקי
+              </label>
             </div>
-            <div className="flex items-center gap-1">
-              <label className="text-[10px] text-slate-400">אדום</label>
-              <input type="number" min="0" value={stat.red_cards} onChange={e => updateStat(i, 'red_cards', e.target.value)}
-                className="filter-input w-14 text-xs text-center" />
-            </div>
-            <button onClick={() => removeStat(i)} className="p-1 text-slate-400 hover:text-red-500">
-              <X className="w-3.5 h-3.5" />
-            </button>
           </div>
         ))}
       </div>
