@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react"
 import { useParams, Link } from "react-router-dom"
-import { getPlayers, getTeams, getGames, getGameStats } from "@/lib/api"
+import { getPlayers, getTeams, getGames, getGameStats, getLeagueSetting } from "@/lib/api"
 import { useAuth } from "@/lib/AuthContext"
+import { useSeasonMode } from "@/App"
 import { getClaimContext, createClaim, cancelClaim } from "@/lib/claims"
-import { ArrowRight, Shirt, Shield, Calendar, RefreshCw, UserPlus, Check, Clock } from "lucide-react"
+import { ArrowRight, Shirt, Shield, Calendar, RefreshCw, UserPlus, Check, Clock, Award, Trophy, Flame } from "lucide-react"
 import { motion } from "framer-motion"
 import { format } from "date-fns"
 import TeamLogo from "@/components/TeamLogo"
@@ -11,14 +12,17 @@ import TeamLogo from "@/components/TeamLogo"
 export default function PlayerDetail() {
   const { id } = useParams()
   const [player, setPlayer] = useState(null)
+  const [allPlayers, setAllPlayers] = useState([])
   const [teams, setTeams] = useState([])
   const [games, setGames] = useState([])
   const [gameStats, setGameStats] = useState([])
+  const [championId, setChampionId] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [photoError, setPhotoError] = useState(false)
   const [logFilter, setLogFilter] = useState("all")
   const { user, loading: authLoading, openAuth } = useAuth()
+  const { seasonMode } = useSeasonMode()
   const [claimCtx, setClaimCtx] = useState(null)
   const [claimBusy, setClaimBusy] = useState(false)
   const [claimErr, setClaimErr] = useState(null)
@@ -37,10 +41,13 @@ export default function PlayerDetail() {
   const loadData = async () => {
     try {
       setLoading(true); setError(null)
-      const [players, t, g, gs] = await Promise.all([getPlayers(), getTeams(), getGames(), getGameStats()])
+      const [players, t, g, gs, champ] = await Promise.all([
+        getPlayers(), getTeams(), getGames(), getGameStats(),
+        getLeagueSetting('champion_team_id').catch(() => null),
+      ])
       const p = players.find(pl => pl.id === id)
       if (!p) { setError("השחקן לא נמצא"); return }
-      setPlayer(p); setTeams(t); setGames(g); setGameStats(gs)
+      setPlayer(p); setAllPlayers(players); setTeams(t); setGames(g); setGameStats(gs); setChampionId(champ)
     } catch (err) { console.error(err); setError("שגיאה בטעינת הנתונים") }
     finally { setLoading(false) }
   }
@@ -112,6 +119,36 @@ export default function PlayerDetail() {
 
   // Last-5 form (most recent first), across all competitions.
   const form = gameLog.slice(0, 5).map(x => resultOf(x.game))
+
+  // ----- Achievements & season honors (derived like the home feed) -----
+  // Season titles:
+  const topScorer = allPlayers
+    .filter(pl => pl.position === 'Field Player' && (pl.goals || 0) > 0)
+    .reduce((best, pl) => ((pl.goals || 0) > (best?.goals || 0) ? pl : best), null)
+  const isTopScorer = !!topScorer && topScorer.id === player.id
+  const isChampion = seasonMode === 'final_four' && !!championId && championId === player.team_id
+
+  // Per-game scoring milestones from recorded box scores (3-4 = hat-trick, 5+ = big game).
+  const milestoneGames = gameLog
+    .filter(x => (x.stat.goals || 0) >= 3)
+    .map(x => {
+      const isHome = x.game.home_team_id === player.team_id
+      return {
+        id: x.stat.id,
+        game: x.game,
+        opp: teamsMap[isHome ? x.game.away_team_id : x.game.home_team_id],
+        goals: x.stat.goals,
+        kind: (x.stat.goals || 0) >= 5 ? 'big_game' : 'hat_trick',
+      }
+    })
+  const hatTricks = milestoneGames.filter(m => m.kind === 'hat_trick').length
+  const bigGames = milestoneGames.filter(m => m.kind === 'big_game').length
+
+  const honors = []
+  if (isChampion) honors.push({ key: 'champ', icon: Trophy, label: 'אלוף העונה', cls: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300' })
+  if (isTopScorer) honors.push({ key: 'scorer', icon: Flame, label: 'מלך השערים', cls: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300' })
+
+  const hasAchievements = honors.length > 0 || milestoneGames.length > 0 || (isGK && cleanSheets > 0)
 
   // Competition filter for the log.
   const comps = [
@@ -256,6 +293,52 @@ export default function PlayerDetail() {
           </div>
         )}
       </motion.div>
+
+      {/* Achievements & season honors */}
+      {hasAchievements && (
+        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.08 }} className="card p-5 space-y-4">
+          <h2 className="flex items-center gap-2 text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wide">
+            <Award className="w-4 h-4 text-orange-500" /> הישגים ותארים
+          </h2>
+
+          {/* Titles + summary counts */}
+          <div className="flex flex-wrap gap-2">
+            {honors.map(h => (
+              <span key={h.key} className={`stat-pill font-bold ${h.cls}`}>
+                <h.icon className="w-3.5 h-3.5" /> {h.label}
+              </span>
+            ))}
+            {bigGames > 0 && <span className="stat-pill bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300">🔥 {bigGames} משחקי ענק</span>}
+            {hatTricks > 0 && <span className="stat-pill bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">🎩 {hatTricks} שלושערים</span>}
+            {isGK && cleanSheets > 0 && <span className="stat-pill bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">🧤 {cleanSheets} שערים נקיים</span>}
+          </div>
+
+          {/* Individual milestone games */}
+          {milestoneGames.length > 0 && (
+            <div className="space-y-2">
+              {milestoneGames.map(m => (
+                <div key={m.id} className="flex items-center justify-between gap-3 p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/50">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <span className="text-base leading-none shrink-0">{m.kind === 'big_game' ? '🔥' : '🎩'}</span>
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-slate-900 dark:text-white">
+                        {m.kind === 'big_game' ? 'משחק ענק' : 'שלושער'} · {m.goals} שערים
+                      </p>
+                      <Link to={m.opp ? `/teams/${m.opp.id}` : '#'} className="text-[11px] text-slate-400 dark:text-slate-500 hover:text-orange-500 transition-colors">
+                        מול {m.opp?.name || '—'} · {format(new Date(m.game.game_date), "d/M/yyyy")}
+                      </Link>
+                    </div>
+                  </div>
+                  {/* dir=ltr keeps the standalone score stable (see rtl-score gotcha) */}
+                  <span dir="ltr" className="text-sm font-bold px-2 py-1 rounded-md tabular-nums bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300">
+                    {m.game.away_score}:{m.game.home_score}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </motion.div>
+      )}
 
       {/* Per-game log */}
       <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="card overflow-hidden">

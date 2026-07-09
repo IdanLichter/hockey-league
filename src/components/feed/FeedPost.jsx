@@ -1,7 +1,8 @@
 import { useState } from "react"
+import { Link } from "react-router-dom"
 import { motion, AnimatePresence } from "framer-motion"
 import { format } from "date-fns"
-import { Crown, Flame, Trophy, MapPin, FileText, ChevronDown, Heart, MessageCircle, Send, Loader2, Camera, ExternalLink } from "lucide-react"
+import { Crown, Flame, Trophy, MapPin, FileText, ChevronDown, Heart, MessageCircle, Send, Loader2, Camera, ExternalLink, BadgeCheck } from "lucide-react"
 import TeamLogo from "@/components/TeamLogo"
 import { useAuth } from "@/lib/AuthContext"
 import { likePost, unlikePost, getComments, createComment } from "@/lib/api"
@@ -12,6 +13,19 @@ function Avatar({ url, name, className = "w-9 h-9" }) {
   return url
     ? <img src={url} alt="" className={`${className} rounded-full object-cover shrink-0`} />
     : <div className={`${className} rounded-full bg-orange-500 text-white flex items-center justify-center text-sm font-bold shrink-0`}>{initial}</div>
+}
+
+/* Wrap children in a link to a team page when the team exists, else render inert. */
+function TeamLink({ team, className = "", children }) {
+  if (!team?.id) return <span className={className}>{children}</span>
+  return <Link to={`/teams/${team.id}`} className={className}>{children}</Link>
+}
+
+/* Wrap children in a link to a player page when a playerId is known, else render inert.
+   Guest scorers and unpaired posters have no player page, so they stay non-clickable. */
+function PlayerLink({ playerId, className = "", children }) {
+  if (!playerId) return <span className={className}>{children}</span>
+  return <Link to={`/players/${playerId}`} className={className}>{children}</Link>
 }
 
 const fmtDate = (d) => format(new Date(d), "d/M/yyyy")
@@ -78,12 +92,14 @@ function ChampionPost({ post, likedItems, itemLikeCounts, itemCommentCounts }) {
         dateLabel="סיכום עונה"
       />
       <div className="flex items-center gap-4">
-        <TeamLogo team={team} size={14} />
+        <TeamLink team={team} className="shrink-0"><TeamLogo team={team} size={14} /></TeamLink>
         <div className="flex-1 min-w-0">
           <p className="text-xs font-semibold text-amber-600 dark:text-amber-400 uppercase tracking-wide">
             אלופת העונה {seasonName}
           </p>
-          <h3 className="text-xl font-extrabold text-slate-900 dark:text-white mt-0.5 truncate">{team?.name}</h3>
+          <TeamLink team={team} className="block w-fit">
+            <h3 className="text-xl font-extrabold text-slate-900 dark:text-white mt-0.5 truncate hover:text-orange-500 transition-colors">{team?.name}</h3>
+          </TeamLink>
         </div>
         <Trophy className="w-8 h-8 text-amber-400 shrink-0" />
       </div>
@@ -108,8 +124,12 @@ function TopScorerPost({ post, likedItems, itemLikeCounts, itemCommentCounts }) 
           <Flame className="w-6 h-6 text-red-500" />
         </div>
         <div className="flex-1 min-w-0">
-          <h3 className="text-lg font-extrabold text-slate-900 dark:text-white truncate">{player?.first_name} {player?.last_name}</h3>
-          <p className="text-sm text-slate-500 dark:text-slate-400 truncate">{team?.name || ''}</p>
+          <PlayerLink playerId={player?.id} className="block w-fit max-w-full">
+            <h3 className="text-lg font-extrabold text-slate-900 dark:text-white truncate hover:text-orange-500 transition-colors">{player?.first_name} {player?.last_name}</h3>
+          </PlayerLink>
+          <TeamLink team={team} className="block w-fit max-w-full">
+            <p className="text-sm text-slate-500 dark:text-slate-400 truncate hover:text-orange-500 transition-colors">{team?.name || ''}</p>
+          </TeamLink>
         </div>
         <div className="text-center shrink-0">
           <p className="text-2xl font-extrabold text-red-500 tabular-nums leading-none">{goals}</p>
@@ -154,32 +174,32 @@ function GameResultPost({ post, playersMap, teamsMap, likedItems, itemLikeCounts
 
         {/* Match row — winning side is tinted + trophy-marked */}
         <div className="flex items-center justify-between gap-2">
-          <div className={`flex items-center gap-3 flex-1 min-w-0 rounded-xl px-2 py-1.5 ${homeWin ? "bg-emerald-50 dark:bg-emerald-900/20" : ""}`}>
+          <TeamLink team={home} className={`group flex items-center gap-3 flex-1 min-w-0 rounded-xl px-2 py-1.5 transition-colors ${homeWin ? "bg-emerald-50 dark:bg-emerald-900/20" : ""}`}>
             <TeamLogo team={home} size={10} />
             <div className="min-w-0">
-              <p className={`text-sm truncate flex items-center gap-1 ${homeWin ? "font-extrabold text-emerald-700 dark:text-emerald-300" : awayWin ? "font-semibold text-slate-400 dark:text-slate-500" : "font-bold text-slate-900 dark:text-white"}`}>
+              <p className={`text-sm truncate flex items-center gap-1 group-hover:text-orange-500 transition-colors ${homeWin ? "font-extrabold text-emerald-700 dark:text-emerald-300" : awayWin ? "font-semibold text-slate-400 dark:text-slate-500" : "font-bold text-slate-900 dark:text-white"}`}>
                 {homeWin && <Trophy className="w-3.5 h-3.5 text-amber-500 shrink-0" />}
                 <span className="truncate">{home?.name}</span>
               </p>
               <p className={`text-[11px] ${homeWin ? "text-emerald-600 dark:text-emerald-400 font-semibold" : "text-slate-400"}`}>{tie ? 'תיקו' : homeWin ? 'מנצחת' : 'בית'}</p>
             </div>
-          </div>
+          </TeamLink>
 
           {/* RTL gotcha: away_score first, home_score last */}
           <div className="px-3 text-center shrink-0">
             <ScoreBlock away={game.away_score} home={game.home_score} awayWin={awayWin} homeWin={homeWin} />
           </div>
 
-          <div className={`flex items-center gap-3 flex-1 min-w-0 flex-row-reverse rounded-xl px-2 py-1.5 ${awayWin ? "bg-emerald-50 dark:bg-emerald-900/20" : ""}`}>
+          <TeamLink team={away} className={`group flex items-center gap-3 flex-1 min-w-0 flex-row-reverse rounded-xl px-2 py-1.5 transition-colors ${awayWin ? "bg-emerald-50 dark:bg-emerald-900/20" : ""}`}>
             <TeamLogo team={away} size={10} />
             <div className="min-w-0 text-left">
-              <p className={`text-sm truncate flex items-center gap-1 flex-row-reverse ${awayWin ? "font-extrabold text-emerald-700 dark:text-emerald-300" : homeWin ? "font-semibold text-slate-400 dark:text-slate-500" : "font-bold text-slate-900 dark:text-white"}`}>
+              <p className={`text-sm truncate flex items-center gap-1 flex-row-reverse group-hover:text-orange-500 transition-colors ${awayWin ? "font-extrabold text-emerald-700 dark:text-emerald-300" : homeWin ? "font-semibold text-slate-400 dark:text-slate-500" : "font-bold text-slate-900 dark:text-white"}`}>
                 {awayWin && <Trophy className="w-3.5 h-3.5 text-amber-500 shrink-0" />}
                 <span className="truncate">{away?.name}</span>
               </p>
               <p className={`text-[11px] ${awayWin ? "text-emerald-600 dark:text-emerald-400 font-semibold" : "text-slate-400"}`}>{tie ? 'תיקו' : awayWin ? 'מנצחת' : 'חוץ'}</p>
             </div>
-          </div>
+          </TeamLink>
         </div>
 
         {/* Meta row */}
@@ -220,7 +240,7 @@ function GameResultPost({ post, playersMap, teamsMap, likedItems, itemLikeCounts
                               const p = playersMap[stat.player_id]
                               return (
                                 <div key={stat.id} className="flex items-center justify-between py-1 text-xs">
-                                  <span className="text-slate-700 dark:text-slate-300">{p?.first_name} {p?.last_name}</span>
+                                  <PlayerLink playerId={stat.player_id} className="text-slate-700 dark:text-slate-300 hover:text-orange-500 transition-colors">{p?.first_name} {p?.last_name}</PlayerLink>
                                   <div className="flex gap-1.5">
                                     {stat.goals > 0 && <span className="stat-pill bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300 !py-0 !px-1.5">⚽ {stat.goals}</span>}
                                     {stat.blue_cards > 0 && <span className="stat-pill bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300 !py-0 !px-1.5">🟦 {stat.blue_cards}</span>}
@@ -270,7 +290,7 @@ function GameResultPost({ post, playersMap, teamsMap, likedItems, itemLikeCounts
 
 /* ============ MILESTONE ============ */
 function MilestonePost({ post, likedItems, itemLikeCounts, itemCommentCounts }) {
-  const { kind, name, teamName, goals, home, away, game } = post.data
+  const { kind, name, playerId, teamName, goals, home, away, game } = post.data
   const bigGame = kind === 'big_game'
   const emoji = bigGame ? '🔥' : '🎩'
   const label = bigGame ? 'משחק ענק' : 'שלושער'
@@ -286,11 +306,15 @@ function MilestonePost({ post, likedItems, itemLikeCounts, itemCommentCounts }) 
         date={post.date}
       />
       <p className="text-sm font-bold text-slate-900 dark:text-white">
-        <span className={accent}>{name}</span> כבש {goals} שערים
+        <PlayerLink playerId={playerId} className={`${accent} hover:underline`}>{name}</PlayerLink> כבש {goals} שערים
       </p>
       <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-1">
         {teamName ? `(${teamName}) • ` : ''}
-        {home?.name} <span className="tabular-nums">{game.away_score} : {game.home_score}</span> {away?.name}
+        <TeamLink team={home} className="hover:text-orange-500 transition-colors">{home?.name}</TeamLink>{' '}
+        {/* dir="ltr" bidi-isolates the score so RTL doesn't split "away:home" and
+            mispair each digit with the wrong team (see hockey-league-rtl-score-gotcha). */}
+        <span dir="ltr" className="tabular-nums">{game.away_score} : {game.home_score}</span>{' '}
+        <TeamLink team={away} className="hover:text-orange-500 transition-colors">{away?.name}</TeamLink>
       </p>
       <EventPhoto photo={post.data.photo} />
       <ReactionBar itemKey={post.id} liked={likedItems?.has?.(post.id)} likeCount={itemLikeCounts?.[post.id] || 0} commentCount={itemCommentCounts?.[post.id] || 0} />
@@ -303,6 +327,7 @@ function PostCard({ post, likedPostIds }) {
   const { user, openAuth } = useAuth()
   const { post: p, author, team } = post.data
   const name = author?.display_name || "חבר/ת הליגה"
+  const linkedPlayerId = author?.player_id || null   // paired → has a player page
 
   const [liked, setLiked] = useState(() => likedPostIds?.has?.(p.id) || false)
   const [likeCount, setLikeCount] = useState(p.like_count || 0)
@@ -356,11 +381,25 @@ function PostCard({ post, likedPostIds }) {
     <motion.div {...fade} className="card p-4">
       {/* Author header */}
       <div className="flex items-center gap-3 mb-3">
-        <Avatar url={author?.avatar_url} name={name} className="w-9 h-9" />
+        <PlayerLink playerId={linkedPlayerId} className="shrink-0">
+          <Avatar url={author?.avatar_url} name={name} className="w-9 h-9" />
+        </PlayerLink>
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-bold text-slate-900 dark:text-white truncate">{name}</p>
-          <p className="text-[11px] text-slate-400 dark:text-slate-500">
-            {fmtDate(post.date)}{team ? ` · ${team.name}` : ""}
+          <div className="flex items-center gap-1.5 min-w-0">
+            <PlayerLink playerId={linkedPlayerId} className="min-w-0">
+              <p className={`text-sm font-bold text-slate-900 dark:text-white truncate ${linkedPlayerId ? "hover:text-orange-500 transition-colors" : ""}`}>{name}</p>
+            </PlayerLink>
+            {linkedPlayerId ? (
+              <span title="מקושר לשחקן — לחצו לעמוד השחקן" className="shrink-0 inline-flex items-center gap-0.5 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30 px-1.5 py-0.5 rounded-full">
+                <BadgeCheck className="w-3 h-3" /> שחקן
+              </span>
+            ) : (
+              <span title="חשבון שאינו מקושר לשחקן" className="shrink-0 text-[10px] font-medium text-slate-400 dark:text-slate-500">אורח/ת</span>
+            )}
+          </div>
+          <p className="text-[11px] text-slate-400 dark:text-slate-500 flex items-center gap-1">
+            <span>{fmtDate(post.date)}</span>
+            {team && <>·<TeamLink team={team} className="hover:text-orange-500 transition-colors">{team.name}</TeamLink></>}
           </p>
         </div>
       </div>
@@ -391,9 +430,13 @@ function PostCard({ post, likedPostIds }) {
                 <>
                   {comments.map(c => (
                     <div key={c.id} className="flex items-start gap-2.5">
-                      <Avatar url={c.author?.avatar_url} name={c.author?.display_name} className="w-8 h-8" />
+                      <PlayerLink playerId={c.author?.player_id} className="shrink-0">
+                        <Avatar url={c.author?.avatar_url} name={c.author?.display_name} className="w-8 h-8" />
+                      </PlayerLink>
                       <div className="min-w-0 flex-1 bg-slate-50 dark:bg-slate-800/60 rounded-xl px-3 py-2">
-                        <p className="text-xs font-bold text-slate-900 dark:text-white">{c.author?.display_name || "חבר/ת הליגה"}</p>
+                        <PlayerLink playerId={c.author?.player_id} className="w-fit max-w-full">
+                          <p className={`text-xs font-bold text-slate-900 dark:text-white truncate ${c.author?.player_id ? "hover:text-orange-500 transition-colors" : ""}`}>{c.author?.display_name || "חבר/ת הליגה"}</p>
+                        </PlayerLink>
                         <p className="text-xs text-slate-700 dark:text-slate-200 whitespace-pre-wrap break-words">{c.body}</p>
                       </div>
                     </div>

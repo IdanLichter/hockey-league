@@ -65,7 +65,7 @@ export async function unlikeItem(itemKey) {
 export async function getItemComments(itemKey) {
   const { data, error } = await supabase
     .from('feed_item_comments')
-    .select('*, author:profiles!feed_item_comments_author_id_fkey(display_name, avatar_url)')
+    .select('*, author:profiles!feed_item_comments_author_id_fkey(display_name, avatar_url, player_id)')
     .eq('item_key', itemKey)
     .is('deleted_at', null)
     .order('created_at', { ascending: true })
@@ -79,7 +79,7 @@ export async function createItemComment(itemKey, body) {
   const { data, error } = await supabase
     .from('feed_item_comments')
     .insert({ item_key: itemKey, author_id: me, body: body.trim() })
-    .select('*, author:profiles!feed_item_comments_author_id_fkey(display_name, avatar_url)')
+    .select('*, author:profiles!feed_item_comments_author_id_fkey(display_name, avatar_url, player_id)')
     .single()
   if (error) throw error
   return data

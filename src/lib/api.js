@@ -67,7 +67,7 @@ export async function getGameStatsByGameId(gameId) {
 export async function getPosts() {
   const { data, error } = await supabase
     .from('posts')
-    .select('*, author:profiles!posts_author_id_fkey(display_name, avatar_url), like_count:post_likes(count), comment_count:comments(count)')
+    .select('*, author:profiles!posts_author_id_fkey(display_name, avatar_url, player_id), like_count:post_likes(count), comment_count:comments(count)')
     .is('deleted_at', null)
     .order('created_at', { ascending: false })
   if (error) throw error
@@ -84,7 +84,7 @@ export async function createPost({ body, teamId = null }) {
   const { data, error } = await supabase
     .from('posts')
     .insert({ author_id: user.id, body: body.trim(), team_id: teamId })
-    .select('*, author:profiles!posts_author_id_fkey(display_name, avatar_url)')
+    .select('*, author:profiles!posts_author_id_fkey(display_name, avatar_url, player_id)')
     .single()
   if (error) throw error
   return { ...data, like_count: 0, comment_count: 0 }
@@ -123,7 +123,7 @@ export async function unlikePost(postId) {
 export async function getComments(postId) {
   const { data, error } = await supabase
     .from('comments')
-    .select('*, author:profiles!comments_author_id_fkey(display_name, avatar_url)')
+    .select('*, author:profiles!comments_author_id_fkey(display_name, avatar_url, player_id)')
     .eq('post_id', postId)
     .is('deleted_at', null)
     .order('created_at', { ascending: true })
@@ -137,7 +137,7 @@ export async function createComment(postId, body) {
   const { data, error } = await supabase
     .from('comments')
     .insert({ post_id: postId, author_id: user.id, body: body.trim() })
-    .select('*, author:profiles!comments_author_id_fkey(display_name, avatar_url)')
+    .select('*, author:profiles!comments_author_id_fkey(display_name, avatar_url, player_id)')
     .single()
   if (error) throw error
   return data
