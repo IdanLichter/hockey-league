@@ -20,7 +20,7 @@ function Badge({ icon: Icon, label, cls }) {
 }
 
 export default function Profile() {
-  const { user, isAdmin, hasRole, loading: authLoading, signOut, openAuth } = useAuth()
+  const { user, isAdmin, hasRole, loading: authLoading, signOut, openAuth, refreshProfile } = useAuth()
   const { dark, toggle } = useTheme()
 
   const [data, setData] = useState(null)
@@ -70,6 +70,7 @@ export default function Profile() {
     setSaving(true); setSaved(false)
     try {
       await updateMyProfile({ display_name: name.trim() || null, avatar_url: avatar.trim() || null })
+      await refreshProfile()   // reflect the new image/name in the navbar avatar immediately
       setSaved(true)
       setTimeout(() => setSaved(false), 2000)
     } catch { /* ignore */ }

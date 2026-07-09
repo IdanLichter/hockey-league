@@ -7,6 +7,9 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [isAdmin, setIsAdmin] = useState(false)
   const [roles, setRoles] = useState([]) // rows from user_roles: { role, team_id }
+  // Editable profile + the linked player's team color, for the navbar avatar.
+  // Shape: { display_name, avatar_url, player_id, player, teamColor } | null
+  const [profile, setProfile] = useState(null)
   const [loading, setLoading] = useState(true)
   const [authOpen, setAuthOpen] = useState(false)
 
@@ -27,6 +30,7 @@ export function AuthProvider({ children }) {
       } else {
         setIsAdmin(false)
         setRoles([])
+        setProfile(null)
         setLoading(false)
       }
     })
@@ -34,10 +38,54 @@ export function AuthProvider({ children }) {
     return () => subscription.unsubscribe()
   }, [])
 
-  // Resolve admin status + granted roles for a signed-in user.
+  // Resolve admin status + granted roles + profile for a signed-in user.
   const loadAccount = async (u) => {
-    await Promise.all([checkAdmin(u.email), loadRoles(u.id)])
+    await Promise.all([checkAdmin(u.email), loadRoles(u.id), loadProfile(u.id)])
     setLoading(false)
+  }
+
+  // Load the editable profile and, if the account is linked to a player,
+  // that player's team color (for the navbar avatar's "paired" state).
+  // Players/teams are fetched separately, matching the rest of the app
+  // (see the embed-ambiguity gotcha — no nested profiles→players embed).
+  const loadProfile = async (userId) => {
+    try {
+      const { data: prof } = await supabase
+        .from('profiles')
+        .select('display_name, avatar_url, player_id')
+        .eq('id', userId)
+        .maybeSingle()
+      if (!prof) { setProfile(null); return }
+
+      let player = null
+      let teamColor = null
+      if (prof.player_id) {
+        const { data: pl } = await supabase
+          .from('players')
+          .select('first_name, last_name, team_id')
+          .eq('id', prof.player_id)
+          .maybeSingle()
+        player = pl || null
+        if (pl?.team_id) {
+          const { data: team } = await supabase
+            .from('teams')
+            .select('primary_color')
+            .eq('id', pl.team_id)
+            .maybeSingle()
+          teamColor = team?.primary_color || null
+        }
+      }
+      setProfile({ ...prof, player, teamColor })
+    } catch {
+      setProfile(null)
+    }
+  }
+
+  // Re-fetch the profile (e.g. after the user edits their avatar on /me).
+  const refreshProfile = async () => {
+    const { data: { user: u } } = await supabase.auth.getUser()
+    if (u) await loadProfile(u.id)
+    else setProfile(null)
   }
 
   const checkAdmin = async (email) => {
@@ -99,6 +147,7 @@ export function AuthProvider({ children }) {
     setUser(null)
     setIsAdmin(false)
     setRoles([])
+    setProfile(null)
   }
 
   const openAuth = () => setAuthOpen(true)
@@ -106,7 +155,7 @@ export function AuthProvider({ children }) {
 
   return (
     <AuthContext.Provider value={{
-      user, isAdmin, roles, hasRole, loading, authOpen,
+      user, isAdmin, roles, hasRole, profile, refreshProfile, loading, authOpen,
       signInWithGoogle, signUpWithEmail, signInWithEmail, signOut,
       openAuth, closeAuth,
     }}>

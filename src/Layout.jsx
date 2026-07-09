@@ -15,17 +15,48 @@ import {
   Archive,
   Gavel,
   Camera,
-  LogOut
+  LogOut,
+  UserCircle
 } from "lucide-react"
 import { useTheme } from "./lib/ThemeContext"
 import { useAuth } from "./lib/AuthContext"
 import AuthModal from "./components/AuthModal"
 
+/**
+ * Navbar avatar with three states (mirrors the /me header + feed avatars):
+ *   1. profile image set        → the uploaded picture
+ *   2. linked to a player       → circle in the player's team color + initial
+ *   3. guest (neither)          → neutral gray generic user icon
+ */
+function NavAvatar({ profile, email, className = "w-8 h-8" }) {
+  const name = profile?.display_name || profile?.player?.first_name || email || ""
+  const initial = name.trim().charAt(0).toUpperCase()
+
+  if (profile?.avatar_url) {
+    return <img src={profile.avatar_url} alt="" className={`${className} rounded-full object-cover shrink-0`} />
+  }
+  if (profile?.player_id) {
+    return (
+      <div
+        className={`${className} rounded-full shrink-0 flex items-center justify-center text-white text-sm font-bold`}
+        style={{ backgroundColor: profile.teamColor || "#f97316" }}
+      >
+        {initial || <UserCircle className="w-1/2 h-1/2" />}
+      </div>
+    )
+  }
+  return (
+    <div className={`${className} rounded-full shrink-0 flex items-center justify-center bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500`}>
+      <UserCircle className="w-3/5 h-3/5" />
+    </div>
+  )
+}
+
 export default function Layout({ children }) {
   const location = useLocation()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const { dark, toggle } = useTheme()
-  const { user, isAdmin, hasRole, signOut, openAuth } = useAuth()
+  const { user, isAdmin, hasRole, profile, signOut, openAuth } = useAuth()
 
   const navItems = [
     { title: "בית", url: "/", icon: Home },
@@ -45,8 +76,6 @@ export default function Layout({ children }) {
     url === "/"
       ? location.pathname === "/"
       : location.pathname === url || location.pathname.startsWith(url + "/")
-
-  const initial = user?.email?.charAt(0)?.toUpperCase() || null
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950" dir="rtl">
@@ -97,9 +126,9 @@ export default function Layout({ children }) {
                     to="/me"
                     title="הדף שלי"
                     aria-label="הדף שלי"
-                    className="w-8 h-8 rounded-full bg-orange-500 text-white flex items-center justify-center text-sm font-bold shrink-0 hover:ring-2 hover:ring-orange-300 dark:hover:ring-orange-500/40 transition-all"
+                    className="rounded-full shrink-0 hover:ring-2 hover:ring-orange-300 dark:hover:ring-orange-500/40 transition-all"
                   >
-                    {initial || <UserCheck className="w-4 h-4" />}
+                    <NavAvatar profile={profile} email={user.email} className="w-8 h-8" />
                   </Link>
                   <button
                     onClick={() => signOut()}
@@ -168,7 +197,7 @@ export default function Layout({ children }) {
                   onClick={() => setMobileMenuOpen(false)}
                   className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-sm font-semibold text-white bg-orange-500 hover:bg-orange-600 transition-colors"
                 >
-                  <UserCheck className="w-4 h-4" /> הדף שלי
+                  <NavAvatar profile={profile} email={user.email} className="w-6 h-6 ring-2 ring-white/50" /> הדף שלי
                 </Link>
                 <button
                   onClick={() => { signOut(); setMobileMenuOpen(false) }}
