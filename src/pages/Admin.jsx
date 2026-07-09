@@ -24,6 +24,7 @@ import { format } from "date-fns"
 import { useSeasonMode } from "@/App"
 import PosterGenerator from "@/components/PosterGenerator"
 import ClaimsReview from "@/components/admin/ClaimsReview"
+import SuggestionsReview from "@/components/admin/SuggestionsReview"
 import RolesAdmin from "@/components/admin/RolesAdmin"
 import { Award } from "lucide-react"
 
@@ -119,7 +120,7 @@ export default function Admin() {
           {activeTab === "players" && <PlayersAdmin players={players} teams={teams} teamsMap={teamsMap} reload={loadData} />}
           {activeTab === "teams" && <TeamsAdmin teams={teams} reload={loadData} />}
           {activeTab === "season" && <SeasonAdmin games={games} teams={teams} players={players} reload={loadData} />}
-          {activeTab === "claims" && <ClaimsReview teamsMap={teamsMap} />}
+          {activeTab === "claims" && <><ClaimsReview teamsMap={teamsMap} /><SuggestionsReview players={players} /></>}
           {activeTab === "roles" && <RolesAdmin teamsMap={teamsMap} players={players} />}
           {activeTab === "users" && <UsersAdmin adminUsers={adminUsers} currentUserEmail={user.email} reload={loadData} />}
         </>

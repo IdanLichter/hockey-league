@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { Heart, MessageCircle, Send, Loader2 } from "lucide-react"
 import { useAuth } from "@/lib/AuthContext"
@@ -30,6 +30,13 @@ export default function ReactionBar({ itemKey, liked: likedInit = false, likeCou
   const [loadingComments, setLoadingComments] = useState(false)
   const [newComment, setNewComment] = useState("")
   const [posting, setPosting] = useState(false)
+
+  // Feed loads item like/comment counts in a separate pass, so they can arrive
+  // after this bar mounts. Sync when the (primitive) initial values resolve;
+  // a user's own optimistic toggle doesn't change these props, so it's safe.
+  useEffect(() => { setLiked(likedInit) }, [likedInit])
+  useEffect(() => { setLikeCount(likeInit) }, [likeInit])
+  useEffect(() => { setCommentCount(commentInit) }, [commentInit])
 
   const toggleLike = async () => {
     if (!user) { openAuth(); return }

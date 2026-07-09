@@ -69,6 +69,56 @@ export async function getPhotoIndex() {
   return { photos, photoPlayers }
 }
 
+// ---- Admin: review queue for name suggestions (shown in the "requests" tab) ----
+
+// Unresolved clusters that have >=1 suggestion, with their suggested names tallied.
+export async function getSuggestionQueue() {
+  const { data: sugg, error } = await supabase
+    .from('cluster_suggestions')
+    .select('cluster_key, first_name, last_name')
+  if (error) throw error
+  if (!sugg?.length) return []
+  const byCluster = {}
+  for (const s of sugg) {
+    const full = `${(s.first_name || '').trim()} ${(s.last_name || '').trim()}`.trim()
+    const c = (byCluster[s.cluster_key] ||= { total: 0, names: {} })
+    c.total++; c.names[full] = (c.names[full] || 0) + 1
+  }
+  const keys = Object.keys(byCluster)
+  const { data: clusters, error: e2 } = await supabase
+    .from('face_clusters')
+    .select('cluster_key, size, status, cover_url, albums, game_date')
+    .in('cluster_key', keys)
+    .eq('status', 'unresolved')
+  if (e2) throw e2
+  return (clusters || []).map(c => ({
+    ...c,
+    total: byCluster[c.cluster_key].total,
+    suggestions: Object.entries(byCluster[c.cluster_key].names)
+      .map(([name, count]) => ({ name, count }))
+      .sort((a, b) => b.count - a.count),
+  })).sort((a, b) => (b.total - a.total) || (b.size - a.size))
+}
+
+// Approve: link the cluster to a roster player + mark resolved. The photo_players
+// view is derived from this, so the feed picks it up immediately.
+export async function resolveCluster(clusterKey, { playerId, playerName }) {
+  const { error } = await supabase
+    .from('face_clusters')
+    .update({ player_id: playerId ?? null, player_name: playerName, status: 'resolved' })
+    .eq('cluster_key', clusterKey)
+  if (error) throw error
+}
+
+// Dismiss: hide the cluster (not a real/identifiable player) — leaves the queue & Media page.
+export async function hideCluster(clusterKey) {
+  const { error } = await supabase
+    .from('face_clusters')
+    .update({ status: 'hidden' })
+    .eq('cluster_key', clusterKey)
+  if (error) throw error
+}
+
 // Count of clusters already resolved (for the page header).
 export async function getResolvedCount() {
   const { count, error } = await supabase
