@@ -1,44 +1,18 @@
 import { useState, useEffect } from "react"
 import { useParams, Link } from "react-router-dom"
 import { getGameById, getTeams, getPlayers } from "@/lib/api"
-import { ArrowRight, Calendar, Clock, MapPin, RefreshCw, Gavel, Info } from "lucide-react"
+import { ArrowRight, Calendar, Clock, MapPin, RefreshCw, Gavel } from "lucide-react"
 import { motion } from "framer-motion"
 import { format } from "date-fns"
 import TeamLogo from "@/components/TeamLogo"
 import JudgeGate from "@/components/judge/JudgeGate"
+import ScoreBoard from "@/components/judge/ScoreBoard"
 
 const statusCfg = {
   scheduled: { label: "מתוכנן", cls: "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300" },
   in_progress: { label: "משחק חי", cls: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300" },
   waiting_result: { label: "ממתין לתוצאה", cls: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300" },
   completed: { label: "הסתיים", cls: "bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-400" },
-}
-
-function Roster({ team, players }) {
-  const roster = players
-    .filter(p => p.team_id === team?.id)
-    .sort((a, b) => (a.jersey_number ?? 999) - (b.jersey_number ?? 999))
-  return (
-    <div className="card overflow-hidden">
-      <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-700 flex items-center gap-2.5">
-        <TeamLogo team={team} size={8} />
-        <h3 className="font-bold text-sm text-slate-900 dark:text-white truncate">{team?.name || '—'}</h3>
-        <span className="text-[11px] text-slate-400 dark:text-slate-500 mr-auto">{roster.length} שחקנים</span>
-      </div>
-      <div className="p-2 space-y-0.5">
-        {roster.length === 0 && <p className="text-center text-xs text-slate-400 dark:text-slate-500 py-4">אין שחקנים</p>}
-        {roster.map(p => (
-          <div key={p.id} className="flex items-center gap-2 py-1.5 px-2 rounded-lg text-sm">
-            <span className="w-6 text-center text-[11px] font-mono text-slate-400 dark:text-slate-500 shrink-0">{p.jersey_number ?? '–'}</span>
-            <span className="font-medium text-slate-800 dark:text-slate-200 truncate">{p.first_name} {p.last_name}</span>
-            <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded shrink-0 mr-auto ${p.position === 'Goalkeeper' ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400' : 'bg-slate-100 text-slate-500 dark:bg-slate-700 dark:text-slate-400'}`}>
-              {p.position === 'Goalkeeper' ? 'GK' : 'FP'}
-            </span>
-          </div>
-        ))}
-      </div>
-    </div>
-  )
 }
 
 function JudgeGameView() {
@@ -133,19 +107,8 @@ function JudgeGameView() {
         </div>
       </motion.div>
 
-      {/* Rosters */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <Roster team={home} players={players} />
-        <Roster team={away} players={players} />
-      </div>
-
-      {/* Live control placeholder (arrives next package) */}
-      <div className="card p-4 flex items-center gap-3 bg-slate-50 dark:bg-slate-800/50">
-        <Info className="w-5 h-5 text-orange-500 shrink-0" />
-        <p className="text-sm text-slate-600 dark:text-slate-300">
-          לוח הבקרה החי — שעון משחק, ניהול תוצאה ורישום שערים וכרטיסים — יתווסף בשלב הבא, וישמור את גיליון המשחק אוטומטית בסיום.
-        </p>
-      </div>
+      {/* Live scoring board */}
+      <ScoreBoard game={game} home={home} away={away} players={players} />
     </div>
   )
 }
