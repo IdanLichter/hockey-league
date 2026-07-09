@@ -1,17 +1,17 @@
 import { useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { format } from "date-fns"
-import { Crown, Flame, Trophy, Calendar, MapPin, FileText, ChevronDown } from "lucide-react"
+import { Crown, Flame, Trophy, MapPin, FileText, ChevronDown } from "lucide-react"
 import TeamLogo from "@/components/TeamLogo"
 
 const fmtDate = (d) => format(new Date(d), "d/M/yyyy")
 
-function PostHeader({ icon, label, date }) {
+function PostHeader({ icon, label, date, dateLabel }) {
   return (
     <div className="flex items-center gap-2 mb-3">
       {icon}
       <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">{label}</span>
-      <span className="text-[11px] text-slate-400 dark:text-slate-500 mr-auto">{fmtDate(date)}</span>
+      <span className="text-[11px] text-slate-400 dark:text-slate-500 mr-auto">{dateLabel || fmtDate(date)}</span>
     </div>
   )
 }
@@ -40,7 +40,7 @@ function ChampionPost({ post }) {
       <PostHeader
         icon={<Crown className="w-4 h-4 text-amber-500" />}
         label="אלופת העונה"
-        date={post.date}
+        dateLabel="סיכום עונה"
       />
       <div className="flex items-center gap-4">
         <TeamLogo team={team} size={14} />
@@ -64,7 +64,7 @@ function TopScorerPost({ post }) {
       <PostHeader
         icon={<Flame className="w-4 h-4 text-red-500" />}
         label="מלך השערים של העונה"
-        date={post.date}
+        dateLabel="סיכום עונה"
       />
       <div className="flex items-center gap-4">
         <div className="w-12 h-12 rounded-full shrink-0 flex items-center justify-center bg-red-50 dark:bg-red-900/30">
@@ -133,16 +133,17 @@ function GameResultPost({ post, playersMap, teamsMap }) {
 
         {/* Meta row */}
         <div className="flex items-center gap-3 mt-3 pt-3 border-t border-slate-100 dark:border-slate-700/50 text-xs text-slate-500 dark:text-slate-400 flex-wrap">
-          <span className="flex items-center gap-1"><Calendar className="w-3.5 h-3.5" />{format(new Date(game.game_date), "d/M/yyyy")}</span>
           <span className="flex items-center gap-1"><MapPin className="w-3.5 h-3.5" />{game.venue || '—'}</span>
-          <button
-            onClick={() => setOpen(o => !o)}
-            className="mr-auto flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg font-medium border border-slate-200 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
-          >
-            <FileText className="w-3.5 h-3.5" />
-            {open ? 'סגור' : 'פרטים'}
-            <ChevronDown className={`w-3 h-3 transition-transform ${open ? 'rotate-180' : ''}`} />
-          </button>
+          {stats.length > 0 && (
+            <button
+              onClick={() => setOpen(o => !o)}
+              className="mr-auto flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg font-medium border border-slate-200 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+            >
+              <FileText className="w-3.5 h-3.5" />
+              {open ? 'סגור' : 'פרטים'}
+              <ChevronDown className={`w-3 h-3 transition-transform ${open ? 'rotate-180' : ''}`} />
+            </button>
+          )}
         </div>
       </div>
 
