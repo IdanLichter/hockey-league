@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react"
+import { Link } from "react-router-dom"
 import { getGames, getTeams, getPlayers, getReferees, getGameStatsByGameId } from "@/lib/api"
 import { Calendar, Clock, MapPin, Trophy, Shield, X, FileText, ChevronDown, RefreshCw } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
@@ -110,13 +111,13 @@ export default function Games() {
 
           {/* Match row */}
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3 flex-1 min-w-0">
+            <Link to={home ? `/teams/${home.id}` : '#'} className="flex items-center gap-3 flex-1 min-w-0 group">
               <TeamLogo team={home} size={10} />
               <div className="min-w-0">
-                <p className="font-bold text-slate-900 dark:text-white text-sm truncate">{home?.name}</p>
+                <p className="font-bold text-slate-900 dark:text-white text-sm truncate group-hover:text-orange-500 transition-colors">{home?.name}</p>
                 <p className="text-[11px] text-slate-400">בית</p>
               </div>
-            </div>
+            </Link>
 
             {/* RTL: the flex row visually places the home team on the RIGHT and the
                 away team on the LEFT, but numeric digits always render left-to-right.
@@ -137,13 +138,13 @@ export default function Games() {
               )}
             </div>
 
-            <div className="flex items-center gap-3 flex-1 min-w-0 flex-row-reverse">
+            <Link to={away ? `/teams/${away.id}` : '#'} className="flex items-center gap-3 flex-1 min-w-0 flex-row-reverse group">
               <TeamLogo team={away} size={10} />
               <div className="min-w-0 text-left">
-                <p className="font-bold text-slate-900 dark:text-white text-sm truncate">{away?.name}</p>
+                <p className="font-bold text-slate-900 dark:text-white text-sm truncate group-hover:text-orange-500 transition-colors">{away?.name}</p>
                 <p className="text-[11px] text-slate-400">חוץ</p>
               </div>
-            </div>
+            </Link>
           </div>
 
           {/* Meta row */}
@@ -187,7 +188,7 @@ export default function Games() {
                                 const p = playersMap[stat.player_id]
                                 return (
                                   <div key={stat.id} className="flex items-center justify-between py-1 text-xs">
-                                    <span className="text-slate-700 dark:text-slate-300">{p?.first_name} {p?.last_name}</span>
+                                    <Link to={`/players/${stat.player_id}`} className="text-slate-700 dark:text-slate-300 hover:text-orange-500 transition-colors">{p?.first_name} {p?.last_name}</Link>
                                     <div className="flex gap-1.5">
                                       {stat.goals > 0 && <span className="stat-pill bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300 !py-0 !px-1.5">⚽ {stat.goals}</span>}
                                       {stat.blue_cards > 0 && <span className="stat-pill bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300 !py-0 !px-1.5">🟦 {stat.blue_cards}</span>}

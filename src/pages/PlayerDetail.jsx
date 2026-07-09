@@ -15,6 +15,7 @@ export default function PlayerDetail() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [photoError, setPhotoError] = useState(false)
+  const [logFilter, setLogFilter] = useState("all")
 
   useEffect(() => { loadData() }, [id])
 
@@ -86,6 +87,25 @@ export default function PlayerDetail() {
     .filter(x => x.game)
     .sort((a, b) => new Date(b.game.game_date) - new Date(a.game.game_date))
 
+  // Result (from the player's team perspective) for a given game.
+  const resultOf = (game) => {
+    const isHome = game.home_team_id === player.team_id
+    const my = isHome ? game.home_score : game.away_score
+    const opp = isHome ? game.away_score : game.home_score
+    return my > opp ? 'win' : my < opp ? 'loss' : 'tie'
+  }
+
+  // Last-5 form (most recent first), across all competitions.
+  const form = gameLog.slice(0, 5).map(x => resultOf(x.game))
+
+  // Competition filter for the log.
+  const comps = [
+    { id: "all", label: "הכל" },
+    { id: "ליגה", label: "ליגה" },
+    { id: "פלייאוף", label: "פלייאוף" },
+  ].filter(c => c.id === "all" || gameLog.some(x => x.game.game_type === c.id))
+  const filteredLog = logFilter === "all" ? gameLog : gameLog.filter(x => x.game.game_type === logFilter)
+
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-3xl mx-auto space-y-5">
       <Link to="/players" className="inline-flex items-center gap-1.5 text-sm font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 transition-colors">
@@ -107,14 +127,17 @@ export default function PlayerDetail() {
           )}
           <div className="min-w-0">
             <h1 className="page-title truncate">{player.first_name} {player.last_name}</h1>
-            <Link to="/players" className="flex items-center gap-2 mt-1.5 group w-fit">
+            <Link to={team ? `/teams/${team.id}` : '/teams'} className="flex items-center gap-2 mt-1.5 group w-fit">
               <TeamLogo team={team} size={6} />
-              <span className="text-sm font-medium text-slate-500 dark:text-slate-400 group-hover:text-slate-700 dark:group-hover:text-slate-300">{team?.name || '—'}</span>
+              <span className="text-sm font-medium text-slate-500 dark:text-slate-400 group-hover:text-orange-500 transition-colors">{team?.name || '—'}</span>
             </Link>
             <div className="flex flex-wrap items-center gap-1.5 mt-2.5">
               <span className={`stat-pill ${isGK ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400' : 'bg-slate-100 text-slate-500 dark:bg-slate-700 dark:text-slate-400'}`}>
                 <Shield className="w-3.5 h-3.5" /> {positionLabel}
               </span>
+              {player.age != null && (
+                <span className="stat-pill bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300">גיל {player.age}</span>
+              )}
               {player.jersey_number != null && (
                 <span className="stat-pill bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300">
                   <Shirt className="w-3.5 h-3.5" /> {player.jersey_number}
@@ -138,21 +161,46 @@ export default function PlayerDetail() {
             </div>
           ))}
         </div>
+        {form.length > 0 && (
+          <div className="flex items-center gap-2.5 mt-3">
+            <span className="text-[11px] text-slate-400 dark:text-slate-500 font-medium">{form.length} משחקים אחרונים</span>
+            <div className="flex gap-1">
+              {form.map((r, i) => (
+                <span key={i} title={r === 'win' ? 'ניצחון' : r === 'loss' ? 'הפסד' : 'תיקו'}
+                  className={`w-6 h-6 rounded-md flex items-center justify-center text-[11px] font-bold text-white ${r === 'win' ? 'bg-emerald-500' : r === 'loss' ? 'bg-red-500' : 'bg-slate-400 dark:bg-slate-600'}`}>
+                  {r === 'win' ? 'נ' : r === 'loss' ? 'ה' : 'ת'}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
       </motion.div>
 
       {/* Per-game log */}
       <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="card overflow-hidden">
-        <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
+        <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between gap-3 flex-wrap">
           <h2 className="flex items-center gap-2 font-bold text-sm text-slate-900 dark:text-white">
             <Calendar className="w-4 h-4 text-orange-500" /> יומן משחקים
           </h2>
-          {gameLog.length > 0 && <span className="text-[11px] text-slate-400 dark:text-slate-500 font-medium">{gameLog.length} משחקים מתועדים</span>}
+          <div className="flex items-center gap-3">
+            {comps.length > 2 && (
+              <div className="flex gap-1">
+                {comps.map(c => (
+                  <button key={c.id} onClick={() => setLogFilter(c.id)}
+                    className={`text-[11px] font-semibold px-2.5 py-1 rounded-lg transition-colors ${logFilter === c.id ? 'bg-slate-900 dark:bg-orange-500 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'}`}>
+                    {c.label}
+                  </button>
+                ))}
+              </div>
+            )}
+            {gameLog.length > 0 && <span className="text-[11px] text-slate-400 dark:text-slate-500 font-medium">{filteredLog.length} מתוך {gameLog.length}</span>}
+          </div>
         </div>
         <div className="p-4 space-y-2">
-          {gameLog.length === 0 && (
+          {filteredLog.length === 0 && (
             <p className="text-center text-slate-400 dark:text-slate-500 py-8 text-sm">אין משחקים מתועדים</p>
           )}
-          {gameLog.map(({ stat, game }) => {
+          {filteredLog.map(({ stat, game }) => {
             const isHome = game.home_team_id === player.team_id
             const opp = teamsMap[isHome ? game.away_team_id : game.home_team_id]
             const myScore = isHome ? game.home_score : game.away_score
@@ -165,15 +213,15 @@ export default function PlayerDetail() {
             return (
               <div key={stat.id} className="flex items-center justify-between gap-3 p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/50">
                 {/* Opponent + meta (right side in RTL) */}
-                <div className="flex items-center gap-2.5 min-w-0">
+                <Link to={opp ? `/teams/${opp.id}` : '#'} className="flex items-center gap-2.5 min-w-0 group">
                   <TeamLogo team={opp} size={8} />
                   <div className="min-w-0">
-                    <p className="font-semibold text-sm text-slate-900 dark:text-white truncate">{opp?.name || '—'}</p>
+                    <p className="font-semibold text-sm text-slate-900 dark:text-white truncate group-hover:text-orange-500 transition-colors">{opp?.name || '—'}</p>
                     <p className="text-[11px] text-slate-400 dark:text-slate-500">
                       {format(new Date(game.game_date), "d/M/yyyy")} · {isHome ? 'בית' : 'חוץ'}
                     </p>
                   </div>
-                </div>
+                </Link>
                 {/* Player's per-game contribution + result score (left side in RTL) */}
                 <div className="flex items-center gap-1.5 shrink-0">
                   {stat.goals > 0 && <span className="stat-pill bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300 !py-0.5 !px-1.5">⚽ {stat.goals}</span>}

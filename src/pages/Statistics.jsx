@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react"
+import { Link } from "react-router-dom"
 import { getTeams, getPlayers, getGames, getReferees } from "@/lib/api"
 import { BarChart3, Target, Flame, Shield, Award, Crown, ChevronDown, ChevronUp, Gavel, RefreshCw } from "lucide-react"
 import { motion } from "framer-motion"
@@ -100,16 +101,16 @@ export default function Statistics() {
   }
 
   const PlayerRow = ({ player, index, value, color = "bg-slate-900 dark:bg-orange-500" }) => (
-    <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors">
+    <Link to={`/players/${player.id}`} className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors group">
       <div className="flex items-center gap-2.5">
         <span className={`w-6 h-6 rounded-md flex items-center justify-center text-[10px] font-bold ${medal(index)}`}>{index + 1}</span>
         <div>
-          <p className="font-semibold text-sm text-slate-900 dark:text-white">{player.first_name} {player.last_name}</p>
+          <p className="font-semibold text-sm text-slate-900 dark:text-white group-hover:text-orange-500 transition-colors">{player.first_name} {player.last_name}</p>
           <p className="text-[11px] text-slate-400 dark:text-slate-500">{teamName(player.team_id)}</p>
         </div>
       </div>
       <span className={`${color} text-white text-xs font-bold px-2.5 py-1 rounded-md`}>{value}</span>
-    </div>
+    </Link>
   )
 
   if (loading) {
@@ -181,16 +182,16 @@ export default function Statistics() {
       {activeTab === "goalkeepers" && (
         <List title="שוערי הברזל" icon={<Shield className="w-4 h-4 text-blue-500" />} data={goalkeepers} tKey="gk" empty="אין שוערים"
           render={(gk, i) => (
-            <div key={gk.id} className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/50">
+            <Link key={gk.id} to={`/players/${gk.id}`} className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors group">
               <div className="flex items-center gap-2.5">
                 <span className={`w-6 h-6 rounded-md flex items-center justify-center text-[10px] font-bold ${medal(i)}`}>{i + 1}</span>
                 <div>
-                  <p className="font-semibold text-sm text-slate-900 dark:text-white">{gk.first_name} {gk.last_name}</p>
+                  <p className="font-semibold text-sm text-slate-900 dark:text-white group-hover:text-orange-500 transition-colors">{gk.first_name} {gk.last_name}</p>
                   <p className="text-[11px] text-slate-400 dark:text-slate-500">{teamName(gk.team_id)} • {gk.total_games} משחקים</p>
                 </div>
               </div>
               <span className="bg-blue-500 text-white text-xs font-bold px-2.5 py-1 rounded-md">{gk.clean_sheets} נקיות</span>
-            </div>
+            </Link>
           )} />
       )}
 
@@ -201,13 +202,13 @@ export default function Statistics() {
             render={(p, i) => <PlayerRow key={p.id} player={p} index={i} value={p.blue_cards} color="bg-blue-500" />} />
           <List title="כחולים לפי קבוצה" icon={<Shield className="w-4 h-4 text-blue-500" />} data={blueTeams} tKey="blueT" empty="אין"
             render={(t, i) => (
-              <div key={t.id} className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/50">
+              <Link key={t.id} to={`/teams/${t.id}`} className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors group">
                 <div className="flex items-center gap-2.5">
                   <TeamLogo team={t} size={6} />
-                  <span className="font-semibold text-sm text-slate-900 dark:text-white">{t.name}</span>
+                  <span className="font-semibold text-sm text-slate-900 dark:text-white group-hover:text-orange-500 transition-colors">{t.name}</span>
                 </div>
                 <span className="bg-blue-500 text-white text-xs font-bold px-2.5 py-1 rounded-md">{t.total_blue}</span>
-              </div>
+              </Link>
             )} />
           <List title="כרטיסים אדומים" icon={<Award className="w-4 h-4 text-red-500" />} data={redPlayers} tKey="red" empty="אין"
             render={(p, i) => <PlayerRow key={p.id} player={p} index={i} value={p.red_cards} color="bg-red-500" />} />
