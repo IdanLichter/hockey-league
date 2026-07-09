@@ -1,11 +1,8 @@
 import { Link, useLocation } from "react-router-dom"
 import { useState } from "react"
 import {
-  Home,
   Trophy,
-  Users,
   UserCheck,
-  Calendar,
   BarChart3,
   Menu,
   X,
@@ -13,14 +10,23 @@ import {
   Moon,
   Shield,
   Archive,
-  Gavel,
   Camera,
   LogOut,
   UserCircle
 } from "lucide-react"
+import { Rink, Standings, Crossed, Teams, Player, Whistle } from "./components/icons/HockeyIcons"
 import { useTheme } from "./lib/ThemeContext"
 import { useAuth } from "./lib/AuthContext"
 import AuthModal from "./components/AuthModal"
+
+// Nav uses the hockey icons in `mono`, so their orange accent becomes currentColor
+// and stays visible on the active tab's solid-orange background.
+const NavRink = (p) => <Rink mono {...p} />
+const NavStandings = (p) => <Standings mono {...p} />
+const NavGames = (p) => <Crossed mono {...p} />
+const NavTeams = (p) => <Teams mono {...p} />
+const NavPlayers = (p) => <Player mono {...p} />
+const NavWhistle = (p) => <Whistle mono {...p} />
 
 /**
  * Navbar avatar with three states (mirrors the /me header + feed avatars):
@@ -59,16 +65,16 @@ export default function Layout({ children }) {
   const { user, isAdmin, hasRole, profile, signOut, openAuth } = useAuth()
 
   const navItems = [
-    { title: "בית", url: "/", icon: Home },
-    { title: "טבלה", url: "/standings", icon: Trophy },
-    { title: "משחקים", url: "/games", icon: Calendar },
+    { title: "בית", url: "/", icon: NavRink },
+    { title: "טבלה", url: "/standings", icon: NavStandings },
+    { title: "משחקים", url: "/games", icon: NavGames },
     { title: "סטטיסטיקות", url: "/statistics", icon: BarChart3 },
-    { title: "קבוצות", url: "/teams", icon: Users },
-    { title: "שחקנים", url: "/players", icon: UserCheck },
+    { title: "קבוצות", url: "/teams", icon: NavTeams },
+    { title: "שחקנים", url: "/players", icon: NavPlayers },
     { title: "מדיה", url: "/media", icon: Camera },
     { title: "Final Four", url: "/final-four", icon: Trophy },
     { title: "ארכיון", url: "/archive", icon: Archive },
-    ...(hasRole("judge") ? [{ title: "שיפוט", url: "/judge", icon: Gavel }] : []),
+    ...(hasRole("judge") ? [{ title: "שיפוט", url: "/judge", icon: NavWhistle }] : []),
     ...(isAdmin ? [{ title: "ניהול", url: "/admin", icon: Shield }] : []),
   ]
 

@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef, useMemo } from "react"
 import { getGames, getTeams, getPlayers, getGameStats, getLeagueSetting, getPosts, getMyLikes } from "@/lib/api"
 import { getItemLikes, getItemCommentCounts } from "@/lib/reactions"
-import { Newspaper, RefreshCw } from "lucide-react"
+import { RefreshCw } from "lucide-react"
+import { Rink } from "@/components/icons/HockeyIcons"
 import { motion } from "framer-motion"
 import { useSeasonMode } from "@/App"
 import { buildFeed } from "@/lib/feed"
@@ -137,7 +138,7 @@ export default function Feed() {
           {/* Page header */}
           <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
             <h1 className="page-title flex items-center gap-2.5">
-              <Newspaper className="w-7 h-7 text-orange-500" /> המגרש
+              <Rink className="w-7 h-7 text-orange-500" /> המגרש
             </h1>
             <p className="page-subtitle mt-1">כל מה שקורה בליגה</p>
           </motion.div>
@@ -154,7 +155,7 @@ export default function Feed() {
           {/* Feed list */}
           {filtered.length === 0 ? (
             <div className="card p-10 text-center">
-              <Newspaper className="w-12 h-12 mx-auto text-slate-300 dark:text-slate-600 mb-3" />
+              <Rink className="w-12 h-12 mx-auto text-slate-300 dark:text-slate-600 mb-3" />
               <h3 className="text-lg font-semibold text-slate-500 dark:text-slate-400">אין עדכונים להצגה</h3>
               <p className="text-sm text-slate-400 dark:text-slate-500 mt-1">נסו סינון אחר</p>
             </div>

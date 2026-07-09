@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react"
 import { Link } from "react-router-dom"
 import { getTeams, getPlayers, getGames, getReferees } from "@/lib/api"
-import { BarChart3, Target, Flame, Shield, Award, Crown, ChevronDown, ChevronUp, Gavel, RefreshCw } from "lucide-react"
+import { BarChart3, Target, Shield, Crown, ChevronDown, ChevronUp, RefreshCw } from "lucide-react"
+import { Player, Glove, Cards, Whistle, StickBall, BlueCard, RedCard } from "@/components/icons/HockeyIcons"
 import { motion } from "framer-motion"
 import TeamLogo from "@/components/TeamLogo"
 
@@ -67,10 +68,10 @@ export default function Statistics() {
   })()
 
   const tabs = [
-    { id: "scorers", label: "מבקיעים", icon: Flame },
-    { id: "goalkeepers", label: "שוערים", icon: Shield },
-    { id: "cards", label: "כרטיסים", icon: Award },
-    { id: "referees", label: "שופטים", icon: Gavel },
+    { id: "scorers", label: "מבקיעים", icon: Player },
+    { id: "goalkeepers", label: "שוערים", icon: Glove },
+    { id: "cards", label: "כרטיסים", icon: Cards },
+    { id: "referees", label: "שופטים", icon: Whistle },
   ]
 
   const medal = (i) =>
@@ -171,7 +172,7 @@ export default function Statistics() {
       {/* Scorers */}
       {activeTab === "scorers" && (
         <div className="space-y-4">
-          <List title="מלכי השערים" icon={<Flame className="w-4 h-4 text-red-500" />} data={topScorers} tKey="top" empty="אין נתונים"
+          <List title="מלכי השערים" icon={<StickBall className="w-4 h-4 text-orange-500" />} data={topScorers} tKey="top" empty="אין נתונים"
             render={(p, i) => <PlayerRow key={p.id} player={p} index={i} value={`${p.goals || 0} שערים`} />} />
           <List title="מצטיין מכל קבוצה" icon={<Crown className="w-4 h-4 text-amber-500" />} data={topPerTeam} tKey="perTeam" empty="אין נתונים"
             render={(p, i) => <PlayerRow key={p.id} player={p} index={i} value={`${p.goals || 0}`} color="bg-amber-500" />} />
@@ -180,7 +181,7 @@ export default function Statistics() {
 
       {/* Goalkeepers */}
       {activeTab === "goalkeepers" && (
-        <List title="שוערי הברזל" icon={<Shield className="w-4 h-4 text-blue-500" />} data={goalkeepers} tKey="gk" empty="אין שוערים"
+        <List title="שוערי הברזל" icon={<Glove className="w-4 h-4 text-blue-500" />} data={goalkeepers} tKey="gk" empty="אין שוערים"
           render={(gk, i) => (
             <Link key={gk.id} to={`/players/${gk.id}`} className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors group">
               <div className="flex items-center gap-2.5">
@@ -198,7 +199,7 @@ export default function Statistics() {
       {/* Cards */}
       {activeTab === "cards" && (
         <div className="space-y-4">
-          <List title="כרטיסים כחולים" icon={<Award className="w-4 h-4 text-blue-500" />} data={bluePlayers} tKey="blue" empty="אין"
+          <List title="כרטיסים כחולים" icon={<BlueCard className="w-4 h-4" />} data={bluePlayers} tKey="blue" empty="אין"
             render={(p, i) => <PlayerRow key={p.id} player={p} index={i} value={p.blue_cards} color="bg-blue-500" />} />
           <List title="כחולים לפי קבוצה" icon={<Shield className="w-4 h-4 text-blue-500" />} data={blueTeams} tKey="blueT" empty="אין"
             render={(t, i) => (
@@ -210,7 +211,7 @@ export default function Statistics() {
                 <span className="bg-blue-500 text-white text-xs font-bold px-2.5 py-1 rounded-md">{t.total_blue}</span>
               </Link>
             )} />
-          <List title="כרטיסים אדומים" icon={<Award className="w-4 h-4 text-red-500" />} data={redPlayers} tKey="red" empty="אין"
+          <List title="כרטיסים אדומים" icon={<RedCard className="w-4 h-4" />} data={redPlayers} tKey="red" empty="אין"
             render={(p, i) => <PlayerRow key={p.id} player={p} index={i} value={p.red_cards} color="bg-red-500" />} />
         </div>
       )}
@@ -219,7 +220,7 @@ export default function Statistics() {
       {activeTab === "referees" && (
         <div className="card overflow-hidden">
           <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-700">
-            <h3 className="flex items-center gap-2 font-bold text-sm text-slate-900 dark:text-white"><Gavel className="w-4 h-4 text-purple-500" /> שופטים</h3>
+            <h3 className="flex items-center gap-2 font-bold text-sm text-slate-900 dark:text-white"><Whistle className="w-4 h-4 text-purple-500" /> שופטים</h3>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
