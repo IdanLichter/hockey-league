@@ -10,6 +10,8 @@ import TeamDetail from './pages/TeamDetail'
 import Players from './pages/Players'
 import PlayerDetail from './pages/PlayerDetail'
 import FinalFour from './pages/FinalFour'
+import Judge from './pages/Judge'
+import JudgeGame from './pages/JudgeGame'
 import Admin from './pages/Admin'
 import ArchivePage from './pages/Archive'
 import { getLeagueSetting } from './lib/api'
@@ -50,6 +52,8 @@ function App() {
             <Route path="/players" element={<Players />} />
             <Route path="/players/:id" element={<PlayerDetail />} />
             <Route path="/final-four" element={<FinalFour />} />
+            <Route path="/judge" element={<Judge />} />
+            <Route path="/judge/:id" element={<JudgeGame />} />
             <Route path="/admin" element={<Admin />} />
             <Route path="/archive" element={<ArchivePage />} />
             <Route path="/archive/:seasonId" element={<ArchivePage />} />

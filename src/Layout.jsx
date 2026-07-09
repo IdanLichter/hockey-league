@@ -13,6 +13,7 @@ import {
   Moon,
   Shield,
   Archive,
+  Gavel,
   LogOut
 } from "lucide-react"
 import { useTheme } from "./lib/ThemeContext"
@@ -23,7 +24,7 @@ export default function Layout({ children }) {
   const location = useLocation()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const { dark, toggle } = useTheme()
-  const { user, isAdmin, signOut, openAuth } = useAuth()
+  const { user, isAdmin, hasRole, signOut, openAuth } = useAuth()
 
   const navItems = [
     { title: "בית", url: "/", icon: Home },
@@ -34,6 +35,7 @@ export default function Layout({ children }) {
     { title: "שחקנים", url: "/players", icon: UserCheck },
     { title: "Final Four", url: "/final-four", icon: Trophy },
     { title: "ארכיון", url: "/archive", icon: Archive },
+    ...(hasRole("judge") ? [{ title: "שיפוט", url: "/judge", icon: Gavel }] : []),
     ...(isAdmin ? [{ title: "ניהול", url: "/admin", icon: Shield }] : []),
   ]
 

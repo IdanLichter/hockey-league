@@ -6,6 +6,7 @@ const AuthContext = createContext()
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [isAdmin, setIsAdmin] = useState(false)
+  const [roles, setRoles] = useState([]) // rows from user_roles: { role, team_id }
   const [loading, setLoading] = useState(true)
   const [authOpen, setAuthOpen] = useState(false)
 
@@ -13,7 +14,7 @@ export function AuthProvider({ children }) {
     // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null)
-      if (session?.user) checkAdmin(session.user.email)
+      if (session?.user) loadAccount(session.user)
       else setLoading(false)
     })
 
@@ -22,15 +23,22 @@ export function AuthProvider({ children }) {
       setUser(session?.user ?? null)
       if (session?.user) {
         setAuthOpen(false) // close the auth modal once signed in
-        checkAdmin(session.user.email)
+        loadAccount(session.user)
       } else {
         setIsAdmin(false)
+        setRoles([])
         setLoading(false)
       }
     })
 
     return () => subscription.unsubscribe()
   }, [])
+
+  // Resolve admin status + granted roles for a signed-in user.
+  const loadAccount = async (u) => {
+    await Promise.all([checkAdmin(u.email), loadRoles(u.id)])
+    setLoading(false)
+  }
 
   const checkAdmin = async (email) => {
     try {
@@ -43,8 +51,22 @@ export function AuthProvider({ children }) {
     } catch {
       setIsAdmin(false)
     }
-    setLoading(false)
   }
+
+  const loadRoles = async (userId) => {
+    try {
+      const { data, error } = await supabase
+        .from('user_roles')
+        .select('role, team_id')
+        .eq('user_id', userId)
+      setRoles(error ? [] : (data || []))
+    } catch {
+      setRoles([])
+    }
+  }
+
+  // Does the signed-in user hold a given role? Admins implicitly pass every gate.
+  const hasRole = (role) => isAdmin || roles.some(r => r.role === role)
 
   const signInWithGoogle = async () => {
     const { error } = await supabase.auth.signInWithOAuth({
@@ -76,6 +98,7 @@ export function AuthProvider({ children }) {
     await supabase.auth.signOut()
     setUser(null)
     setIsAdmin(false)
+    setRoles([])
   }
 
   const openAuth = () => setAuthOpen(true)
@@ -83,7 +106,7 @@ export function AuthProvider({ children }) {
 
   return (
     <AuthContext.Provider value={{
-      user, isAdmin, loading, authOpen,
+      user, isAdmin, roles, hasRole, loading, authOpen,
       signInWithGoogle, signUpWithEmail, signInWithEmail, signOut,
       openAuth, closeAuth,
     }}>
