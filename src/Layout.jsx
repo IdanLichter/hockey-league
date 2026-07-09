@@ -49,11 +49,11 @@ export default function Layout({ children }) {
       <header className="sticky top-0 z-50 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
         <div className="flex items-center gap-3 px-4 sm:px-6 h-16">
           {/* RTL start (right): logo + title */}
-          <Link to="/" className="flex items-center gap-2.5 shrink-0">
-            <img src="/logos/main-logo.png" alt="ליגת הוקי" className="w-9 h-9 rounded-lg object-cover" />
-            <div className="leading-none">
-              <h1 className="text-base font-extrabold text-slate-900 dark:text-white tracking-tight">ליגת הוקי</h1>
-              <p className="hidden sm:block text-[10px] text-slate-400 dark:text-slate-500 font-medium mt-0.5">עונת 2025-26</p>
+          <Link to="/" className="flex items-center gap-3 shrink-0">
+            <img src="/logos/main-logo.png" alt="ליגת הוקי" className="w-10 h-10 rounded-lg object-cover" />
+            <div className="leading-tight">
+              <h1 className="text-lg font-extrabold text-slate-900 dark:text-white tracking-tight">ליגת הוקי</h1>
+              <span className="text-xs sm:text-sm font-bold text-orange-600 dark:text-orange-400">עונת 2025-26</span>
             </div>
           </Link>
 
