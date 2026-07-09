@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react"
-import { getTeams, getGames } from "@/lib/api"
+import { getTeams, getGames, getLeagueSetting } from "@/lib/api"
 import { Trophy, Crown, Calendar } from "lucide-react"
 import { motion } from "framer-motion"
 import { format } from "date-fns"
@@ -8,6 +8,7 @@ import TeamLogo from "@/components/TeamLogo"
 export default function FinalFour() {
   const [teams, setTeams] = useState([])
   const [games, setGames] = useState([])
+  const [championId, setChampionId] = useState(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => { loadData() }, [])
@@ -17,10 +18,16 @@ export default function FinalFour() {
       const [t, g] = await Promise.all([getTeams(), getGames()])
       setTeams(t); setGames(g)
     } catch (err) { console.error(err) }
+    // Champion setting is optional — a failure here must not break the page.
+    try {
+      const cid = await getLeagueSetting('champion_team_id')
+      setChampionId(cid || null)
+    } catch (err) { console.error(err) }
     finally { setLoading(false) }
   }
 
   const teamsMap = Object.fromEntries(teams.map(t => [t.id, t]))
+  const champion = championId ? teams.find(t => t.id === championId) || null : null
   const sorted = [...teams].sort((a, b) => (b.points || 0) - (a.points || 0))
   const first = sorted[0]
 
@@ -65,8 +72,8 @@ export default function FinalFour() {
   const winnerC = getSeriesWinner(seriesC, seriesCGames)
 
   // Semi-finals: #1 vs winner of Series C (#4vs#5), winner A (#2vs#7) vs winner B (#3vs#6)
-  const semi1 = { t1: first, t2: winnerC, label: "חצי גמר 1", dateTime: "4/6 • 18:45" }
-  const semi2 = { t1: winnerA, t2: winnerB, label: "חצי גמר 2", dateTime: "4/6 • 20:30" }
+  const semi1 = { t1: first, t2: winnerC, label: "חצי גמר 1", dateTime: null }
+  const semi2 = { t1: winnerA, t2: winnerB, label: "חצי גמר 2", dateTime: null }
 
   // Find semi-final games
   const getSemiGames = (s) => {
@@ -113,9 +120,32 @@ export default function FinalFour() {
         <p className="page-subtitle mt-1">שלב הגמר — עונת 2025-26</p>
       </motion.div>
 
+      {/* === CHAMPION HERO === */}
+      {champion && (
+        <motion.div
+          initial={{ opacity: 0, scale: 0.96 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.05 }}
+          className="relative overflow-hidden bg-gradient-to-l from-amber-50 via-white to-amber-50 dark:from-amber-950/40 dark:via-slate-800 dark:to-amber-950/40 rounded-2xl border-2 border-amber-200 dark:border-amber-700 p-6 sm:p-8 shadow-lg text-center"
+        >
+          <div className="flex justify-center mb-4">
+            <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shadow-lg shadow-amber-500/30">
+              <Crown className="w-8 h-8 sm:w-10 sm:h-10 text-white" />
+            </div>
+          </div>
+          <p className="text-xs sm:text-sm font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider">אלופת ה-Final Four</p>
+          <p className="text-[11px] sm:text-xs text-slate-400 dark:text-slate-500 font-medium mt-0.5">עונת 2025-26</p>
+          <div className="flex items-center justify-center gap-3 mt-4">
+            <TeamLogo team={champion} size={12} />
+            <span className="font-extrabold text-2xl sm:text-3xl text-slate-900 dark:text-white">{champion.name}</span>
+            <span className="text-3xl sm:text-4xl">🏆</span>
+          </div>
+        </motion.div>
+      )}
+
       {/* === BRACKET === */}
-      {/* Desktop bracket */}
-      <div className="hidden lg:block">
+      {/* Desktop bracket — hidden once the season is complete (champion set) */}
+      <div className={champion ? "hidden" : "hidden lg:block"}>
         <div className="card p-6 overflow-hidden">
           <div className="bracket-container relative" style={{ minHeight: 520 }}>
             {/* Background gradient */}
@@ -172,8 +202,8 @@ export default function FinalFour() {
         </div>
       </div>
 
-      {/* Mobile bracket (stacked) */}
-      <div className="lg:hidden space-y-4">
+      {/* Mobile bracket (stacked) — hidden once the season is complete (champion set) */}
+      <div className={champion ? "hidden" : "lg:hidden space-y-4"}>
         {/* Playoffs */}
         <div className="card p-4">
           <h2 className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-3 text-center">פלייאוף</h2>
@@ -203,6 +233,18 @@ export default function FinalFour() {
         <ThirdPlaceMatchup t1={semi1Loser} t2={semi2Loser} games={thirdPlaceGames} delay={0.35} />
       </div>
 
+      {/* First-round results — shown when the season is complete (champion set) */}
+      {champion && (
+        <div className="card p-4 sm:p-5">
+          <h2 className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-3">תוצאות שלב הראשון</h2>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            <PlayoffMatchup series={seriesA} games={seriesAGames} label="סדרה A" winner={winnerA} delay={0} onlyCompleted />
+            <PlayoffMatchup series={seriesB} games={seriesBGames} label="סדרה B" winner={winnerB} delay={0.05} onlyCompleted />
+            <PlayoffMatchup series={seriesC} games={seriesCGames} label="סדרה C" winner={winnerC} delay={0.1} onlyCompleted />
+          </div>
+        </div>
+      )}
+
       {/* Playoff Schedule */}
       {playoffGames.length > 0 && (
         <div className="card overflow-hidden">
@@ -212,7 +254,9 @@ export default function FinalFour() {
             </h2>
           </div>
           <div className="divide-y divide-slate-100 dark:divide-slate-700/50">
-            {playoffGames.sort((a, b) => new Date(a.game_date) - new Date(b.game_date)).map(game => (
+            {playoffGames
+              .filter(game => !champion || game.status === 'completed')
+              .sort((a, b) => new Date(a.game_date) - new Date(b.game_date)).map(game => (
               <div key={game.id} className="flex items-center justify-between px-5 py-3.5 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
                 <div className="flex items-center gap-3">
                   <TeamLogo team={teamsMap[game.home_team_id]} size={8} />
@@ -224,8 +268,7 @@ export default function FinalFour() {
                 <div className="text-left text-sm">
                   <p className="font-semibold text-slate-900 dark:text-white tabular-nums">{format(new Date(game.game_date), "d/M/yy")}</p>
                   <p className="text-xs text-slate-400">
-                    {/* RTL: away first, home last (digits render LTR; home team is on the right). */}
-                    {game.status === 'completed' ? <span className="font-bold">{game.away_score} - {game.home_score}</span> : 'מתוכנן'}
+                    {game.status === 'completed' ? <span className="font-bold">{game.home_score} - {game.away_score}</span> : 'מתוכנן'}
                   </p>
                 </div>
               </div>
@@ -276,16 +319,18 @@ function GameResult({ game }) {
       <span className="text-slate-500 dark:text-slate-400">מ׳ {game.series_game || '—'}</span>
       <span className="text-slate-400 dark:text-slate-500">{format(new Date(game.game_date), "d/M")}</span>
       {game.status === 'completed'
-        ? <span className="font-bold text-slate-900 dark:text-white tabular-nums">{game.away_score} - {game.home_score}</span>
+        ? <span className="font-bold text-slate-900 dark:text-white tabular-nums">{game.home_score} - {game.away_score}</span>
         : <span className="text-blue-600 dark:text-blue-400 font-medium">מתוכנן</span>
       }
     </div>
   )
 }
 
-function PlayoffMatchup({ series, games, label, winner, delay }) {
+function PlayoffMatchup({ series, games, label, winner, delay, onlyCompleted }) {
   if (!series) return null
   const loser = winner ? (winner.id === series.t1.id ? series.t2 : series.t1) : null
+  // When the season is complete, hide never-played "scheduled" ghost rows.
+  const shownGames = onlyCompleted ? games.filter(g => g.status === 'completed') : games
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.95 }}
@@ -306,9 +351,9 @@ function PlayoffMatchup({ series, games, label, winner, delay }) {
         </div>
         <TeamSlot team={series.t2} pos={series.p2} isWinner={winner?.id === series.t2.id} isLoser={loser?.id === series.t2.id} />
       </div>
-      {games.length > 0 && (
+      {shownGames.length > 0 && (
         <div className="mt-2 space-y-1">
-          {games.map(g => <GameResult key={g.id} game={g} />)}
+          {shownGames.map(g => <GameResult key={g.id} game={g} />)}
         </div>
       )}
     </motion.div>
@@ -409,10 +454,7 @@ function FinalMatchup({ t1, t2, games, delay }) {
             <Trophy className="w-7 h-7 text-white" />
           </div>
         </div>
-        <h3 className="text-xs font-bold text-orange-600 dark:text-orange-400 text-center uppercase tracking-wider mb-1">גמר</h3>
-        <p className="text-[10px] text-slate-400 dark:text-slate-500 font-medium text-center mb-3 flex items-center justify-center gap-1">
-          <Calendar className="w-3 h-3" /> 6/6 • 19:30
-        </p>
+        <h3 className="text-xs font-bold text-orange-600 dark:text-orange-400 text-center uppercase tracking-wider mb-3">גמר</h3>
 
         <div className="space-y-1.5">
           <TeamSlot team={t1} isWinner={champion?.id === t1?.id} isLoser={champion && champion?.id !== t1?.id} />
@@ -471,9 +513,6 @@ function ThirdPlaceMatchup({ t1, t2, games, delay }) {
         <span className="text-[10px] font-bold text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-700 px-2 py-0.5 rounded-md">משחק על מקום 3/4</span>
         {winner && <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400">הוכרע</span>}
       </div>
-      <p className="text-[10px] text-slate-400 dark:text-slate-500 font-medium mb-2 flex items-center gap-1">
-        <Calendar className="w-3 h-3" /> 6/6 • 17:00
-      </p>
 
       <div className="flex items-center gap-3">
         <div className="flex-1">
