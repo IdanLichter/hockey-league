@@ -20,6 +20,7 @@ const Admin = lazy(() => import('./pages/Admin'))
 const ArchivePage = lazy(() => import('./pages/Archive'))
 const Media = lazy(() => import('./pages/Media'))
 const Profile = lazy(() => import('./pages/Profile'))
+const Privacy = lazy(() => import('./pages/Privacy'))
 
 const SeasonModeContext = createContext()
 export const useSeasonMode = () => useContext(SeasonModeContext)
@@ -62,6 +63,7 @@ function App() {
             <Route path="/players" element={<Players />} />
             <Route path="/players/:id" element={<PlayerDetail />} />
             <Route path="/me" element={<Profile />} />
+            <Route path="/privacy" element={<Privacy />} />
             <Route path="/media" element={<Media />} />
             <Route path="/final-four" element={<FinalFour />} />
             <Route path="/judge" element={<Judge />} />
