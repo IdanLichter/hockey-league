@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom'
 import { useState, useEffect, createContext, useContext } from 'react'
 import Layout from './Layout'
+import Feed from './pages/Feed'
 import Home from './pages/Home'
 import Games from './pages/Games'
 import Statistics from './pages/Statistics'
@@ -33,14 +34,12 @@ function App() {
     )
   }
 
-  const homePage = seasonMode === 'final_four' ? <FinalFour /> : <Home />
-
   return (
     <SeasonModeContext.Provider value={{ seasonMode, setSeasonMode }}>
       <Router>
         <Layout>
           <Routes>
-            <Route path="/" element={homePage} />
+            <Route path="/" element={<Feed />} />
             <Route path="/standings" element={<Home />} />
             <Route path="/games" element={<Games />} />
             <Route path="/statistics" element={<Statistics />} />
