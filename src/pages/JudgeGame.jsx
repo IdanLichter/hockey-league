@@ -114,5 +114,5 @@ function JudgeGameView() {
 }
 
 export default function JudgeGame() {
-  return <JudgeGameView /> /* TEMP-BYPASS-GATE */
+  return <JudgeGate><JudgeGameView /></JudgeGate>
 }
