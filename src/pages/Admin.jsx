@@ -26,6 +26,7 @@ import PosterGenerator from "@/components/PosterGenerator"
 import ClaimsReview from "@/components/admin/ClaimsReview"
 import SuggestionsReview from "@/components/admin/SuggestionsReview"
 import RolesAdmin from "@/components/admin/RolesAdmin"
+import WhatsNew from "@/components/admin/WhatsNew"
 import { Award } from "lucide-react"
 
 const tabs = [
@@ -138,6 +139,8 @@ export default function Admin() {
           )}
         </div>
       </div>
+
+      <WhatsNew />
     </div>
   )
 }
