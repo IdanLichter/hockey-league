@@ -6,6 +6,7 @@ import Home from './pages/Home'
 import Games from './pages/Games'
 import Statistics from './pages/Statistics'
 import Teams from './pages/Teams'
+import TeamDetail from './pages/TeamDetail'
 import Players from './pages/Players'
 import PlayerDetail from './pages/PlayerDetail'
 import FinalFour from './pages/FinalFour'
@@ -45,6 +46,7 @@ function App() {
             <Route path="/games" element={<Games />} />
             <Route path="/statistics" element={<Statistics />} />
             <Route path="/teams" element={<Teams />} />
+            <Route path="/teams/:id" element={<TeamDetail />} />
             <Route path="/players" element={<Players />} />
             <Route path="/players/:id" element={<PlayerDetail />} />
             <Route path="/final-four" element={<FinalFour />} />
