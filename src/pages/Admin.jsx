@@ -23,12 +23,14 @@ import TeamLogo from "@/components/TeamLogo"
 import { format } from "date-fns"
 import { useSeasonMode } from "@/App"
 import PosterGenerator from "@/components/PosterGenerator"
+import ClaimsReview from "@/components/admin/ClaimsReview"
 
 const tabs = [
   { id: "games", label: "משחקים", icon: Calendar },
   { id: "players", label: "שחקנים", icon: UserCheck },
   { id: "teams", label: "קבוצות", icon: Users },
   { id: "season", label: "עונה", icon: Archive },
+  { id: "claims", label: "בקשות", icon: UserPlus },
   { id: "users", label: "מנהלים", icon: Crown },
 ]
 
@@ -114,6 +116,7 @@ export default function Admin() {
           {activeTab === "players" && <PlayersAdmin players={players} teams={teams} teamsMap={teamsMap} reload={loadData} />}
           {activeTab === "teams" && <TeamsAdmin teams={teams} reload={loadData} />}
           {activeTab === "season" && <SeasonAdmin games={games} teams={teams} players={players} reload={loadData} />}
+          {activeTab === "claims" && <ClaimsReview teamsMap={teamsMap} />}
           {activeTab === "users" && <UsersAdmin adminUsers={adminUsers} currentUserEmail={user.email} reload={loadData} />}
         </>
       )}

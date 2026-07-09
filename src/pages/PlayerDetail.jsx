@@ -1,7 +1,9 @@
 import { useState, useEffect } from "react"
 import { useParams, Link } from "react-router-dom"
 import { getPlayers, getTeams, getGames, getGameStats } from "@/lib/api"
-import { ArrowRight, Shirt, Shield, Calendar, RefreshCw, UserCheck } from "lucide-react"
+import { useAuth } from "@/lib/AuthContext"
+import { getClaimContext, createClaim, cancelClaim } from "@/lib/claims"
+import { ArrowRight, Shirt, Shield, Calendar, RefreshCw, UserPlus, Check, Clock } from "lucide-react"
 import { motion } from "framer-motion"
 import { format } from "date-fns"
 import TeamLogo from "@/components/TeamLogo"
@@ -16,8 +18,21 @@ export default function PlayerDetail() {
   const [error, setError] = useState(null)
   const [photoError, setPhotoError] = useState(false)
   const [logFilter, setLogFilter] = useState("all")
+  const { user, loading: authLoading, openAuth } = useAuth()
+  const [claimCtx, setClaimCtx] = useState(null)
+  const [claimBusy, setClaimBusy] = useState(false)
+  const [claimErr, setClaimErr] = useState(null)
 
   useEffect(() => { loadData() }, [id])
+
+  // Load claim state for this player once it (and the auth user) are known.
+  useEffect(() => {
+    let alive = true
+    setClaimCtx(null); setClaimErr(null)
+    if (!player) return
+    getClaimContext(player.id).then(c => alive && setClaimCtx(c)).catch(() => alive && setClaimCtx(null))
+    return () => { alive = false }
+  }, [player?.id, user])
 
   const loadData = async () => {
     try {
@@ -106,6 +121,28 @@ export default function PlayerDetail() {
   ].filter(c => c.id === "all" || gameLog.some(x => x.game.game_type === c.id))
   const filteredLog = logFilter === "all" ? gameLog : gameLog.filter(x => x.game.game_type === logFilter)
 
+  // ----- claim-your-player state -----
+  const refreshClaim = () => getClaimContext(player.id).then(setClaimCtx).catch(() => {})
+  const handleClaim = async () => {
+    setClaimBusy(true); setClaimErr(null)
+    try { await createClaim(player.id); await refreshClaim() }
+    catch (e) { setClaimErr(e.message === 'not-authenticated' ? 'יש להתחבר תחילה' : 'שגיאה בשליחת הבקשה') }
+    finally { setClaimBusy(false) }
+  }
+  const handleCancelClaim = async () => {
+    if (!claimCtx?.pendingClaim) return
+    setClaimBusy(true); setClaimErr(null)
+    try { await cancelClaim(claimCtx.pendingClaim.id); await refreshClaim() }
+    catch { setClaimErr('שגיאה בביטול הבקשה') }
+    finally { setClaimBusy(false) }
+  }
+  const owned = claimCtx && claimCtx.profile?.player_id === player.id
+  const pendingHere = claimCtx?.pendingClaim && claimCtx.pendingClaim.player_id === player.id
+  const pendingElsewhere = claimCtx?.pendingClaim && claimCtx.pendingClaim.player_id !== player.id
+  const takenByOther = claimCtx && claimCtx.playerOwnerId && claimCtx.playerOwnerId !== claimCtx.userId
+  const linkedElsewhere = claimCtx && claimCtx.profile?.player_id && claimCtx.profile.player_id !== player.id
+  const canClaim = claimCtx && !owned && !takenByOther && !pendingHere && !pendingElsewhere && !linkedElsewhere
+
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-3xl mx-auto space-y-5">
       <Link to="/players" className="inline-flex items-center gap-1.5 text-sm font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 transition-colors">
@@ -149,6 +186,50 @@ export default function PlayerDetail() {
           </div>
         </div>
       </motion.div>
+
+      {/* Claim-your-player */}
+      {!authLoading && (owned || pendingHere || takenByOther || pendingElsewhere || linkedElsewhere || canClaim || !user) && (
+        <div className="card p-3.5 flex items-center justify-between gap-3">
+          {owned ? (
+            <span className="flex items-center gap-2 text-sm font-semibold text-emerald-600 dark:text-emerald-400">
+              <Check className="w-4 h-4" /> זה הפרופיל שלך
+            </span>
+          ) : pendingHere ? (
+            <>
+              <span className="flex items-center gap-2 text-sm font-medium text-amber-600 dark:text-amber-400">
+                <Clock className="w-4 h-4" /> בקשת הבעלות נשלחה — ממתינה לאישור מנהל
+              </span>
+              <button onClick={handleCancelClaim} disabled={claimBusy}
+                className="text-xs font-semibold px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-600 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors disabled:opacity-50 shrink-0">
+                ביטול
+              </button>
+            </>
+          ) : takenByOther ? (
+            <span className="text-sm text-slate-400 dark:text-slate-500">פרופיל זה כבר משויך לחשבון קיים</span>
+          ) : pendingElsewhere ? (
+            <span className="text-sm text-slate-400 dark:text-slate-500">כבר הגשת בקשת בעלות על שחקן אחר</span>
+          ) : linkedElsewhere ? (
+            <span className="text-sm text-slate-400 dark:text-slate-500">החשבון שלך כבר משויך לשחקן אחר</span>
+          ) : !user ? (
+            <>
+              <span className="text-sm text-slate-600 dark:text-slate-300">שיחקת בליגה? דרוש/י בעלות על הפרופיל</span>
+              <button onClick={openAuth}
+                className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg bg-orange-500 text-white hover:bg-orange-600 transition-colors shrink-0">
+                <UserPlus className="w-3.5 h-3.5" /> התחברות
+              </button>
+            </>
+          ) : ( /* canClaim */
+            <>
+              <span className="text-sm text-slate-600 dark:text-slate-300">זה אתה?</span>
+              <button onClick={handleClaim} disabled={claimBusy}
+                className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg bg-orange-500 text-white hover:bg-orange-600 transition-colors disabled:opacity-50 shrink-0">
+                <UserPlus className="w-3.5 h-3.5" /> {claimBusy ? 'שולח...' : 'בקש בעלות על הפרופיל'}
+              </button>
+            </>
+          )}
+        </div>
+      )}
+      {claimErr && <p className="text-xs text-red-500 -mt-3">{claimErr}</p>}
 
       {/* Season totals */}
       <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}>
