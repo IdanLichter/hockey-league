@@ -62,6 +62,36 @@ export async function getGameStatsByGameId(gameId) {
   return data
 }
 
+// ============ FEED POSTS (Stage B2) ============
+
+export async function getPosts() {
+  const { data, error } = await supabase
+    .from('posts')
+    .select('*, author:profiles(display_name, avatar_url)')
+    .is('deleted_at', null)
+    .order('created_at', { ascending: false })
+  if (error) throw error
+  return data
+}
+
+export async function createPost({ body, teamId = null }) {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('not authenticated')
+  const { data, error } = await supabase
+    .from('posts')
+    .insert({ author_id: user.id, body: body.trim(), team_id: teamId })
+    .select('*, author:profiles(display_name, avatar_url)')
+    .single()
+  if (error) throw error
+  return data
+}
+
+export async function deletePost(id) {
+  // soft delete
+  const { error } = await supabase.from('posts').update({ deleted_at: new Date().toISOString() }).eq('id', id)
+  if (error) throw error
+}
+
 // ============ ADMIN OPERATIONS ============
 
 // --- Games ---

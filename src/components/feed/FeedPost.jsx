@@ -239,6 +239,31 @@ function MilestonePost({ post }) {
   )
 }
 
+/* ============ HUMAN POST (Stage B2) ============ */
+function HumanPostCard({ post }) {
+  const { post: p, author, team } = post.data
+  const name = author?.display_name || "חבר/ת הליגה"
+  const initial = name.trim().charAt(0).toUpperCase() || "?"
+  return (
+    <motion.div {...fade} className="card p-4">
+      <div className="flex items-center gap-3 mb-3">
+        {author?.avatar_url ? (
+          <img src={author.avatar_url} alt="" className="w-9 h-9 rounded-full object-cover shrink-0" />
+        ) : (
+          <div className="w-9 h-9 rounded-full bg-orange-500 text-white flex items-center justify-center text-sm font-bold shrink-0">{initial}</div>
+        )}
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-bold text-slate-900 dark:text-white truncate">{name}</p>
+          <p className="text-[11px] text-slate-400 dark:text-slate-500">
+            {fmtDate(post.date)}{team ? ` · ${team.name}` : ""}
+          </p>
+        </div>
+      </div>
+      <p className="text-sm text-slate-700 dark:text-slate-200 whitespace-pre-wrap break-words leading-relaxed">{p.body}</p>
+    </motion.div>
+  )
+}
+
 /* ============ Dispatcher ============ */
 export default function FeedPost({ post, playersMap, teamsMap }) {
   switch (post.type) {
@@ -250,6 +275,8 @@ export default function FeedPost({ post, playersMap, teamsMap }) {
       return <GameResultPost post={post} playersMap={playersMap} teamsMap={teamsMap} />
     case 'milestone':
       return <MilestonePost post={post} />
+    case 'post':
+      return <HumanPostCard post={post} />
     default:
       return null
   }

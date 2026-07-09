@@ -35,6 +35,7 @@ export function buildFeed({
   teams = [],
   players = [],
   gameStats = [],
+  humanPosts = [],
   championId = null,
   seasonName = '',
   seasonMode = 'regular',
@@ -140,6 +141,22 @@ export function buildFeed({
         player: topScorer,
         team: teamsMap[topScorer.team_id],
         goals: topScorer.goals || 0,
+      },
+    })
+  }
+
+  // ---- HUMAN posts (Stage B2) ----
+  for (const p of humanPosts) {
+    if (!p || p.deleted_at) continue
+    posts.push({
+      id: `post-${p.id}`,
+      type: 'post',
+      date: p.created_at,
+      rank: 50,
+      data: {
+        post: p,
+        author: p.author || null,
+        team: p.team_id ? teamsMap[p.team_id] : null,
       },
     })
   }

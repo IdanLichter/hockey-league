@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react"
-import { getGames, getTeams, getPlayers, getGameStats, getLeagueSetting } from "@/lib/api"
+import { getGames, getTeams, getPlayers, getGameStats, getLeagueSetting, getPosts } from "@/lib/api"
 import { Newspaper, RefreshCw } from "lucide-react"
 import { motion } from "framer-motion"
 import { useSeasonMode } from "@/App"
@@ -18,6 +18,7 @@ export default function Feed() {
   const [teams, setTeams] = useState([])
   const [players, setPlayers] = useState([])
   const [gameStats, setGameStats] = useState([])
+  const [posts, setPosts] = useState([])
   const [championId, setChampionId] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -30,10 +31,10 @@ export default function Feed() {
   const loadData = async () => {
     try {
       setLoading(true); setError(null)
-      const [g, t, p, s, champ] = await Promise.all([
-        getGames(), getTeams(), getPlayers(), getGameStats(), getLeagueSetting('champion_team_id')
+      const [g, t, p, s, champ, po] = await Promise.all([
+        getGames(), getTeams(), getPlayers(), getGameStats(), getLeagueSetting('champion_team_id'), getPosts()
       ])
-      setGames(g); setTeams(t); setPlayers(p); setGameStats(s); setChampionId(champ)
+      setGames(g); setTeams(t); setPlayers(p); setGameStats(s); setChampionId(champ); setPosts(po)
     } catch (err) { console.error(err); setError("שגיאה בטעינת הנתונים") }
     finally { setLoading(false) }
   }
@@ -45,14 +46,19 @@ export default function Feed() {
   const playersMap = Object.fromEntries(players.map(p => [p.id, p]))
 
   const feed = buildFeed({
-    games, teams, players, gameStats,
+    games, teams, players, gameStats, humanPosts: posts,
     championId, seasonName: SEASON_NAME, seasonMode,
   })
 
   const counts = {
     all: feed.length,
+    posts: feed.filter(p => matchesFilter(p, "posts")).length,
     results: feed.filter(p => matchesFilter(p, "results")).length,
     highlights: feed.filter(p => matchesFilter(p, "highlights")).length,
+  }
+
+  const handlePosted = (newPost) => {
+    if (newPost) setPosts(prev => [newPost, ...prev])
   }
 
   const filtered = feed.filter(p => matchesFilter(p, filter))
@@ -94,7 +100,7 @@ export default function Feed() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
+    <div className="max-w-[1500px] mx-auto p-4 sm:p-6 lg:p-8">
       <div className="lg:grid lg:grid-cols-[200px_minmax(0,1fr)_300px] lg:gap-6 lg:items-start">
         {/* (1) Filter rail — right-most in RTL */}
         <aside className="hidden lg:block lg:sticky lg:top-20 self-start">
@@ -111,7 +117,7 @@ export default function Feed() {
             <p className="page-subtitle mt-1">כל מה שקורה בליגה</p>
           </motion.div>
 
-          <Composer />
+          <Composer onPosted={handlePosted} />
 
           {/* Mobile-only filters + compact widgets */}
           <div className="lg:hidden space-y-5">
@@ -151,7 +157,7 @@ export default function Feed() {
         </div>
 
         {/* (3) Widget rail — left-most in RTL, own scroll */}
-        <aside className="hidden lg:block lg:sticky lg:top-20 self-start lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto space-y-5 pl-1">
+        <aside className="hidden lg:block lg:sticky lg:top-20 self-start lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden space-y-5">
           <StandingsWidget teams={teams} />
           <NextGameWidget games={games} teams={teams} />
           <LeadersWidget players={players} teams={teams} />

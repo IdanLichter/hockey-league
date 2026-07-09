@@ -1,7 +1,8 @@
-import { LayoutGrid, Trophy, Flame } from "lucide-react"
+import { LayoutGrid, Trophy, Flame, MessageSquare } from "lucide-react"
 
 export const FEED_FILTERS = [
   { key: "all", label: "הכל", icon: LayoutGrid },
+  { key: "posts", label: "פוסטים", icon: MessageSquare },
   { key: "results", label: "תוצאות", icon: Trophy },
   { key: "highlights", label: "שיאים", icon: Flame },
 ]
@@ -9,6 +10,7 @@ export const FEED_FILTERS = [
 // Which post types each filter matches
 export function matchesFilter(post, key) {
   if (key === "all") return true
+  if (key === "posts") return post.type === "post"
   if (key === "results") return post.type === "game_result"
   if (key === "highlights") return ["milestone", "champion", "top_scorer"].includes(post.type)
   return true
