@@ -17,12 +17,13 @@ import {
 } from "lucide-react"
 import { useTheme } from "./lib/ThemeContext"
 import { useAuth } from "./lib/AuthContext"
+import AuthModal from "./components/AuthModal"
 
 export default function Layout({ children }) {
   const location = useLocation()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const { dark, toggle } = useTheme()
-  const { user, isAdmin, signInWithGoogle, signOut } = useAuth()
+  const { user, isAdmin, signOut, openAuth } = useAuth()
 
   const navItems = [
     { title: "בית", url: "/", icon: Home },
@@ -100,7 +101,7 @@ export default function Layout({ children }) {
                 </>
               ) : (
                 <button
-                  onClick={() => signInWithGoogle()}
+                  onClick={openAuth}
                   className="px-4 py-1.5 rounded-lg bg-orange-500 text-white text-sm font-semibold hover:bg-orange-600 transition-colors"
                 >
                   התחבר
@@ -160,7 +161,7 @@ export default function Layout({ children }) {
               </button>
             ) : (
               <button
-                onClick={() => { signInWithGoogle(); setMobileMenuOpen(false) }}
+                onClick={() => { openAuth(); setMobileMenuOpen(false) }}
                 className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-sm font-semibold bg-orange-500 text-white hover:bg-orange-600 transition-colors"
               >
                 התחבר
@@ -181,6 +182,9 @@ export default function Layout({ children }) {
       <main className="min-h-screen">
         {children}
       </main>
+
+      {/* Auth (login / signup) modal */}
+      <AuthModal />
     </div>
   )
 }

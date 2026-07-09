@@ -7,6 +7,7 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [isAdmin, setIsAdmin] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [authOpen, setAuthOpen] = useState(false)
 
   useEffect(() => {
     // Get initial session
@@ -20,6 +21,7 @@ export function AuthProvider({ children }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null)
       if (session?.user) {
+        setAuthOpen(false) // close the auth modal once signed in
         checkAdmin(session.user.email)
       } else {
         setIsAdmin(false)
@@ -54,14 +56,37 @@ export function AuthProvider({ children }) {
     if (error) throw error
   }
 
+  const signUpWithEmail = async (email, password, displayName) => {
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { data: displayName ? { full_name: displayName } : undefined },
+    })
+    if (error) throw error
+    return data // data.session is null when email confirmation is required
+  }
+
+  const signInWithEmail = async (email, password) => {
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password })
+    if (error) throw error
+    return data
+  }
+
   const signOut = async () => {
     await supabase.auth.signOut()
     setUser(null)
     setIsAdmin(false)
   }
 
+  const openAuth = () => setAuthOpen(true)
+  const closeAuth = () => setAuthOpen(false)
+
   return (
-    <AuthContext.Provider value={{ user, isAdmin, loading, signInWithGoogle, signOut }}>
+    <AuthContext.Provider value={{
+      user, isAdmin, loading, authOpen,
+      signInWithGoogle, signUpWithEmail, signInWithEmail, signOut,
+      openAuth, closeAuth,
+    }}>
       {children}
     </AuthContext.Provider>
   )

@@ -2,7 +2,7 @@ import { User } from "lucide-react"
 import { useAuth } from "@/lib/AuthContext"
 
 export default function Composer() {
-  const { user, signInWithGoogle } = useAuth()
+  const { user, openAuth } = useAuth()
 
   const initial = user?.email?.charAt(0)?.toUpperCase() || null
   const placeholder = user
@@ -42,7 +42,7 @@ export default function Composer() {
           <span>רוצים לפרסם? התחברו לחשבון</span>
           <button
             type="button"
-            onClick={() => signInWithGoogle()}
+            onClick={openAuth}
             className="font-semibold text-orange-600 dark:text-orange-400 hover:text-orange-700 dark:hover:text-orange-300 transition-colors"
           >
             התחברות
