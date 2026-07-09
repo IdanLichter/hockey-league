@@ -99,32 +99,45 @@ export default function Admin() {
       {/* Season Mode Toggle */}
       <SeasonModeToggle />
 
-      {/* Tabs */}
-      <div className="tab-bar">
-        {tabs.map(tab => (
-          <button key={tab.id} onClick={() => setActiveTab(tab.id)}
-            className={activeTab === tab.id ? "tab-active" : "tab-inactive"}>
-            <tab.icon className="w-4 h-4" />
-            <span className="hidden sm:inline">{tab.label}</span>
-          </button>
-        ))}
-      </div>
+      {/* Side-nav layout: vertical rail (right in RTL) on desktop, scrollable row on mobile */}
+      <div className="lg:grid lg:grid-cols-[210px_minmax(0,1fr)] lg:gap-6 lg:items-start">
+        <aside className="lg:sticky lg:top-20 self-start mb-4 lg:mb-0">
+          <nav className="card p-2 flex lg:flex-col gap-1 overflow-x-auto lg:overflow-visible [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            {tabs.map(tab => {
+              const active = activeTab === tab.id
+              return (
+                <button key={tab.id} onClick={() => setActiveTab(tab.id)}
+                  className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all whitespace-nowrap shrink-0 lg:w-full ${
+                    active
+                      ? "bg-orange-500 text-white shadow-sm shadow-orange-500/25"
+                      : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white"
+                  }`}>
+                  <tab.icon className="w-4 h-4 shrink-0" />
+                  <span>{tab.label}</span>
+                </button>
+              )
+            })}
+          </nav>
+        </aside>
 
-      {loading ? (
-        <div className="flex items-center justify-center min-h-[200px]">
-          <div className="animate-spin rounded-full h-8 w-8 border-2 border-orange-500 border-t-transparent" />
+        <div className="min-w-0">
+          {loading ? (
+            <div className="flex items-center justify-center min-h-[200px]">
+              <div className="animate-spin rounded-full h-8 w-8 border-2 border-orange-500 border-t-transparent" />
+            </div>
+          ) : (
+            <>
+              {activeTab === "games" && <GamesAdmin games={games} teams={teams} players={players} teamsMap={teamsMap} gameStats={gameStats} reload={loadData} />}
+              {activeTab === "players" && <PlayersAdmin players={players} teams={teams} teamsMap={teamsMap} reload={loadData} />}
+              {activeTab === "teams" && <TeamsAdmin teams={teams} reload={loadData} />}
+              {activeTab === "season" && <SeasonAdmin games={games} teams={teams} players={players} reload={loadData} />}
+              {activeTab === "claims" && <><ClaimsReview teamsMap={teamsMap} /><SuggestionsReview players={players} /></>}
+              {activeTab === "roles" && <RolesAdmin teamsMap={teamsMap} players={players} />}
+              {activeTab === "users" && <UsersAdmin adminUsers={adminUsers} currentUserEmail={user.email} reload={loadData} />}
+            </>
+          )}
         </div>
-      ) : (
-        <>
-          {activeTab === "games" && <GamesAdmin games={games} teams={teams} players={players} teamsMap={teamsMap} gameStats={gameStats} reload={loadData} />}
-          {activeTab === "players" && <PlayersAdmin players={players} teams={teams} teamsMap={teamsMap} reload={loadData} />}
-          {activeTab === "teams" && <TeamsAdmin teams={teams} reload={loadData} />}
-          {activeTab === "season" && <SeasonAdmin games={games} teams={teams} players={players} reload={loadData} />}
-          {activeTab === "claims" && <><ClaimsReview teamsMap={teamsMap} /><SuggestionsReview players={players} /></>}
-          {activeTab === "roles" && <RolesAdmin teamsMap={teamsMap} players={players} />}
-          {activeTab === "users" && <UsersAdmin adminUsers={adminUsers} currentUserEmail={user.email} reload={loadData} />}
-        </>
-      )}
+      </div>
     </div>
   )
 }
