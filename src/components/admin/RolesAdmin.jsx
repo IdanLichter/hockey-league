@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react"
 import { getProfiles, getAllRoles, grantRole, revokeRole, ROLES, ROLE_LABEL, TEAM_SCOPED } from "@/lib/roles"
-import { Award, X, Plus, RefreshCw, Check, Loader2 } from "lucide-react"
+import { Award, X, Plus, RefreshCw, Check, Loader2, Search } from "lucide-react"
 
 /**
  * Admin UI to grant/revoke user roles (player / coach / content_editor / judge),
@@ -15,9 +15,21 @@ export default function RolesAdmin({ teamsMap = {}, players = [] }) {
   const [error, setError] = useState(null)
   const [busy, setBusy] = useState(false)
   const [form, setForm] = useState(null) // { profileId, role, teamId }
+  const [search, setSearch] = useState("")
 
   const playersMap = useMemo(() => Object.fromEntries(players.map(p => [p.id, p])), [players])
   const teams = useMemo(() => Object.values(teamsMap).filter(Boolean), [teamsMap])
+
+  // Filter by display name or the linked player's name.
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase()
+    if (!q) return profiles
+    return profiles.filter(p => {
+      const linked = p.player_id ? playersMap[p.player_id] : null
+      const hay = `${p.display_name || ""} ${linked ? `${linked.first_name} ${linked.last_name}` : ""}`.toLowerCase()
+      return hay.includes(q)
+    })
+  }, [profiles, search, playersMap])
 
   const load = async () => {
     try {
@@ -86,8 +98,23 @@ export default function RolesAdmin({ teamsMap = {}, players = [] }) {
       {profiles.length === 0 ? (
         <div className="card p-10 text-center text-sm text-slate-500 dark:text-slate-400">אין משתמשים רשומים עדיין</div>
       ) : (
+        <>
+          <div className="relative">
+            <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+            <input
+              type="text"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="חיפוש משתמש..."
+              className="filter-input w-full pr-9"
+            />
+          </div>
+
+          {filtered.length === 0 ? (
+            <div className="card p-8 text-center text-sm text-slate-500 dark:text-slate-400">לא נמצאו משתמשים תואמים</div>
+          ) : (
         <div className="space-y-2.5">
-          {profiles.map(p => {
+          {filtered.map(p => {
             const linked = p.player_id ? playersMap[p.player_id] : null
             const initial = (p.display_name || "?").charAt(0).toUpperCase()
             const myRoles = rolesFor(p.id)
@@ -139,6 +166,8 @@ export default function RolesAdmin({ teamsMap = {}, players = [] }) {
             )
           })}
         </div>
+          )}
+        </>
       )}
     </div>
   )
