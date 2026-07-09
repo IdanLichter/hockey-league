@@ -18,9 +18,12 @@ export default function GameScoreboard({ game, home, guest, players }) {
   const engine = useGameEngine(game, home, guest)
   const homeRoster = players.filter(p => p.team_id === game.home_team_id).sort(byJersey)
   const guestRoster = players.filter(p => p.team_id === game.away_team_id).sort(byJersey)
+  const homeScore = engine.home.score
+  const awayScore = engine.guest.score
 
   const [picker, setPicker] = useState(null) // { side, action: 'goal'|'blue'|'red' }
   const [confirmReset, setConfirmReset] = useState(false)
+  const [confirmFinish, setConfirmFinish] = useState(false)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [saveErr, setSaveErr] = useState(null)
@@ -56,8 +59,6 @@ export default function GameScoreboard({ game, home, guest, players }) {
   const doSave = async () => {
     setSaving(true); setSaveErr(null)
     try {
-      const homeScore = engine.home.score
-      const awayScore = engine.guest.score
       const map = new Map(engine.boxScore().map(r => [r.player_id, { clean_sheet: false, ...r }]))
       for (const p of [...homeRoster, ...guestRoster]) {
         if (p.position !== "Goalkeeper") continue
@@ -211,10 +212,22 @@ export default function GameScoreboard({ game, home, guest, players }) {
             <RotateCcw className="w-3.5 h-3.5" /> אפס משחק
           </button>
         )}
-        <button onClick={doSave} disabled={saving}
-          className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-colors disabled:opacity-50 ${over ? "bg-emerald-500 text-white hover:bg-emerald-600 animate-pulse" : "bg-white text-slate-900 hover:bg-slate-200"}`}>
-          {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trophy className="w-4 h-4" />} סיום ושמירת התוצאה
-        </button>
+        {confirmFinish ? (
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-slate-300">לסיים ולשמור? <span className="font-bold tabular-nums">{awayScore}:{homeScore}</span></span>
+            <button onClick={doSave} disabled={saving}
+              className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-emerald-500 text-white text-sm font-bold hover:bg-emerald-600 transition-colors disabled:opacity-50">
+              {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />} כן, סיים ושמור
+            </button>
+            <button onClick={() => setConfirmFinish(false)} disabled={saving}
+              className="px-4 py-2 rounded-lg border border-slate-600 text-slate-300 text-sm font-bold hover:bg-slate-800 transition-colors disabled:opacity-50">ביטול</button>
+          </div>
+        ) : (
+          <button onClick={() => { setSaveErr(null); setConfirmFinish(true) }}
+            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-colors ${over ? "bg-emerald-500 text-white hover:bg-emerald-600 animate-pulse" : "bg-white text-slate-900 hover:bg-slate-200"}`}>
+            <Trophy className="w-4 h-4" /> סיום ושמירת התוצאה
+          </button>
+        )}
       </div>
 
       {/* player picker */}
