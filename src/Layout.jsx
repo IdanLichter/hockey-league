@@ -14,6 +14,7 @@ import {
   Shield,
   Archive,
   Gavel,
+  Camera,
   LogOut
 } from "lucide-react"
 import { useTheme } from "./lib/ThemeContext"
@@ -33,6 +34,7 @@ export default function Layout({ children }) {
     { title: "סטטיסטיקות", url: "/statistics", icon: BarChart3 },
     { title: "קבוצות", url: "/teams", icon: Users },
     { title: "שחקנים", url: "/players", icon: UserCheck },
+    { title: "מדיה", url: "/media", icon: Camera },
     { title: "Final Four", url: "/final-four", icon: Trophy },
     { title: "ארכיון", url: "/archive", icon: Archive },
     ...(hasRole("judge") ? [{ title: "שיפוט", url: "/judge", icon: Gavel }] : []),
@@ -91,9 +93,14 @@ export default function Layout({ children }) {
             <div className="hidden lg:flex items-center gap-2">
               {user ? (
                 <>
-                  <div className="w-8 h-8 rounded-full bg-orange-500 text-white flex items-center justify-center text-sm font-bold shrink-0">
+                  <Link
+                    to="/me"
+                    title="הדף שלי"
+                    aria-label="הדף שלי"
+                    className="w-8 h-8 rounded-full bg-orange-500 text-white flex items-center justify-center text-sm font-bold shrink-0 hover:ring-2 hover:ring-orange-300 dark:hover:ring-orange-500/40 transition-all"
+                  >
                     {initial || <UserCheck className="w-4 h-4" />}
-                  </div>
+                  </Link>
                   <button
                     onClick={() => signOut()}
                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
@@ -155,12 +162,21 @@ export default function Layout({ children }) {
           {/* Footer actions */}
           <div className="p-4 border-t border-slate-100 dark:border-slate-800 space-y-2">
             {user ? (
-              <button
-                onClick={() => { signOut(); setMobileMenuOpen(false) }}
-                className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-sm font-semibold text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 transition-colors"
-              >
-                <LogOut className="w-4 h-4" /> התנתק
-              </button>
+              <>
+                <Link
+                  to="/me"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-sm font-semibold text-white bg-orange-500 hover:bg-orange-600 transition-colors"
+                >
+                  <UserCheck className="w-4 h-4" /> הדף שלי
+                </Link>
+                <button
+                  onClick={() => { signOut(); setMobileMenuOpen(false) }}
+                  className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-sm font-semibold text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 transition-colors"
+                >
+                  <LogOut className="w-4 h-4" /> התנתק
+                </button>
+              </>
             ) : (
               <button
                 onClick={() => { openAuth(); setMobileMenuOpen(false) }}

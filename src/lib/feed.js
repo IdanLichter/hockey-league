@@ -95,6 +95,7 @@ export function buildFeed({
         data: {
           kind: sc.goals >= 5 ? 'big_game' : 'hat_trick',
           name: sc.name,
+          playerId: sc.player?.id || null,
           team: sc.team,
           teamName: sc.teamName,
           goals: sc.goals,

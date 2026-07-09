@@ -14,6 +14,8 @@ import Judge from './pages/Judge'
 import JudgeGame from './pages/JudgeGame'
 import Admin from './pages/Admin'
 import ArchivePage from './pages/Archive'
+import Media from './pages/Media'
+import Profile from './pages/Profile'
 import { getLeagueSetting } from './lib/api'
 
 const SeasonModeContext = createContext()
@@ -51,6 +53,8 @@ function App() {
             <Route path="/teams/:id" element={<TeamDetail />} />
             <Route path="/players" element={<Players />} />
             <Route path="/players/:id" element={<PlayerDetail />} />
+            <Route path="/me" element={<Profile />} />
+            <Route path="/media" element={<Media />} />
             <Route path="/final-four" element={<FinalFour />} />
             <Route path="/judge" element={<Judge />} />
             <Route path="/judge/:id" element={<JudgeGame />} />

@@ -1,9 +1,12 @@
 import { useState, useEffect, useRef } from "react"
 import { getGames, getTeams, getPlayers, getGameStats, getLeagueSetting, getPosts, getMyLikes } from "@/lib/api"
+import { getItemLikes, getItemCommentCounts } from "@/lib/reactions"
 import { Newspaper, RefreshCw } from "lucide-react"
 import { motion } from "framer-motion"
 import { useSeasonMode } from "@/App"
 import { buildFeed } from "@/lib/feed"
+import { attachEventPhotos } from "@/lib/eventPhotos"
+import { getPhotoIndex } from "@/lib/media"
 import FeedPost from "@/components/feed/FeedPost"
 import Composer from "@/components/feed/Composer"
 import FeedFilters, { matchesFilter } from "@/components/feed/FeedFilters"
@@ -19,7 +22,11 @@ export default function Feed() {
   const [players, setPlayers] = useState([])
   const [gameStats, setGameStats] = useState([])
   const [posts, setPosts] = useState([])
+  const [photoIndex, setPhotoIndex] = useState({ photos: [], photoPlayers: [] })
   const [likedPostIds, setLikedPostIds] = useState(() => new Set())
+  const [likedItems, setLikedItems] = useState(() => new Set())
+  const [itemLikeCounts, setItemLikeCounts] = useState({})
+  const [itemCommentCounts, setItemCommentCounts] = useState({})
   const [championId, setChampionId] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -29,13 +36,21 @@ export default function Feed() {
 
   useEffect(() => { loadData() }, [])
 
+  // Likes/comments for synthetic feed items (game results, milestones, …).
+  // Loaded separately from loadData so it stays decoupled from other feed work.
+  useEffect(() => {
+    getItemLikes().then(({ counts, mine }) => { setItemLikeCounts(counts); setLikedItems(mine) }).catch(() => {})
+    getItemCommentCounts().then(setItemCommentCounts).catch(() => {})
+  }, [])
+
   const loadData = async () => {
     try {
       setLoading(true); setError(null)
-      const [g, t, p, s, champ, po, likes] = await Promise.all([
-        getGames(), getTeams(), getPlayers(), getGameStats(), getLeagueSetting('champion_team_id'), getPosts(), getMyLikes()
+      const [g, t, p, s, champ, po, likes, pidx] = await Promise.all([
+        getGames(), getTeams(), getPlayers(), getGameStats(), getLeagueSetting('champion_team_id'), getPosts(), getMyLikes(),
+        getPhotoIndex().catch(() => ({ photos: [], photoPlayers: [] })),
       ])
-      setGames(g); setTeams(t); setPlayers(p); setGameStats(s); setChampionId(champ); setPosts(po); setLikedPostIds(new Set(likes))
+      setGames(g); setTeams(t); setPlayers(p); setGameStats(s); setChampionId(champ); setPosts(po); setLikedPostIds(new Set(likes)); setPhotoIndex(pidx)
     } catch (err) { console.error(err); setError("שגיאה בטעינת הנתונים") }
     finally { setLoading(false) }
   }
@@ -46,10 +61,13 @@ export default function Feed() {
   const teamsMap = Object.fromEntries(teams.map(t => [t.id, t]))
   const playersMap = Object.fromEntries(players.map(p => [p.id, p]))
 
-  const feed = buildFeed({
-    games, teams, players, gameStats, humanPosts: posts,
-    championId, seasonName: SEASON_NAME, seasonMode,
-  })
+  const feed = attachEventPhotos(
+    buildFeed({
+      games, teams, players, gameStats, humanPosts: posts,
+      championId, seasonName: SEASON_NAME, seasonMode,
+    }),
+    { photos: photoIndex.photos, photoPlayers: photoIndex.photoPlayers, players }
+  )
 
   const counts = {
     all: feed.length,
@@ -113,7 +131,7 @@ export default function Feed() {
           {/* Page header */}
           <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
             <h1 className="page-title flex items-center gap-2.5">
-              <Newspaper className="w-7 h-7 text-orange-500" /> עדכונים
+              <Newspaper className="w-7 h-7 text-orange-500" /> המגרש
             </h1>
             <p className="page-subtitle mt-1">כל מה שקורה בליגה</p>
           </motion.div>
@@ -137,7 +155,7 @@ export default function Feed() {
           ) : (
             <div className="space-y-5">
               {visible.map(post => (
-                <FeedPost key={post.id} post={post} playersMap={playersMap} teamsMap={teamsMap} likedPostIds={likedPostIds} />
+                <FeedPost key={post.id} post={post} playersMap={playersMap} teamsMap={teamsMap} likedPostIds={likedPostIds} likedItems={likedItems} itemLikeCounts={itemLikeCounts} itemCommentCounts={itemCommentCounts} />
               ))}
             </div>
           )}

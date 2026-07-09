@@ -38,7 +38,7 @@ export default function FeedFilters({ active, onChange, counts = {}, orientation
   return (
     <nav className="card p-2 space-y-0.5">
       <p className="px-3 pt-1.5 pb-1 text-[11px] font-bold uppercase tracking-wide text-slate-400 dark:text-slate-500">
-        סינון עדכונים
+        סינון
       </p>
       {FEED_FILTERS.map((f) => {
         const on = active === f.key

@@ -1,10 +1,11 @@
 import { useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { format } from "date-fns"
-import { Crown, Flame, Trophy, MapPin, FileText, ChevronDown, Heart, MessageCircle, Send, Loader2 } from "lucide-react"
+import { Crown, Flame, Trophy, MapPin, FileText, ChevronDown, Heart, MessageCircle, Send, Loader2, Camera, ExternalLink } from "lucide-react"
 import TeamLogo from "@/components/TeamLogo"
 import { useAuth } from "@/lib/AuthContext"
 import { likePost, unlikePost, getComments, createComment } from "@/lib/api"
+import ReactionBar from "@/components/feed/ReactionBar"
 
 function Avatar({ url, name, className = "w-9 h-9" }) {
   const initial = (name || "?").trim().charAt(0).toUpperCase() || "?"
@@ -30,19 +31,44 @@ const fade = {
   animate: { opacity: 1, y: 0 },
 }
 
-/* ---- Score (respects RTL gotcha: away first, home last) ---- */
-function ScoreBlock({ away, home }) {
+/* ---- Auto-matched game photo (players' faces) attached to an event ---- */
+const sizedUrl = (url, w = 1280) => (url ? url.replace(/=w\d+(-h\d+)?.*$/, `=w${w}`) : url)
+
+function EventPhoto({ photo }) {
+  if (!photo || !photo.image_url) return null
+  const caption = [photo.album_title, photo.album_date && fmtDate(photo.album_date)]
+    .filter(Boolean).join(" · ")
   return (
-    <div className="text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white tabular-nums">
-      <span>{away}</span>
+    <a href={photo.detail_url} target="_blank" rel="noopener noreferrer"
+       className="group block relative mt-3 rounded-xl overflow-hidden bg-slate-900">
+      <img src={sizedUrl(photo.image_url)} alt="" loading="lazy"
+           className="w-full max-h-80 object-cover transition-transform duration-500 group-hover:scale-[1.02]" />
+      <div className="absolute inset-x-0 bottom-0 flex items-center gap-1.5 bg-gradient-to-t from-black/75 via-black/30 to-transparent px-3 pt-6 pb-2">
+        <Camera className="w-3.5 h-3.5 text-white/80 shrink-0" />
+        <span className="text-[11px] font-medium text-white/90 truncate">{caption}</span>
+        <ExternalLink className="w-3 h-3 text-white/50 mr-auto shrink-0" />
+      </div>
+    </a>
+  )
+}
+
+/* ---- Score (respects RTL gotcha: away first, home last) ---- */
+function ScoreBlock({ away, home, awayWin, homeWin }) {
+  const decisive = awayWin || homeWin
+  const cls = (win) => win
+    ? "text-emerald-600 dark:text-emerald-400"
+    : decisive ? "text-slate-400 dark:text-slate-500" : "text-slate-900 dark:text-white"
+  return (
+    <div className="text-2xl font-extrabold tracking-tight tabular-nums">
+      <span className={cls(awayWin)}>{away}</span>
       <span className="text-slate-300 dark:text-slate-600 mx-1">:</span>
-      <span>{home}</span>
+      <span className={cls(homeWin)}>{home}</span>
     </div>
   )
 }
 
 /* ============ CHAMPION ============ */
-function ChampionPost({ post }) {
+function ChampionPost({ post, likedItems, itemLikeCounts, itemCommentCounts }) {
   const { team, seasonName } = post.data
   return (
     <motion.div {...fade} className="card p-5 border-amber-200 dark:border-amber-800 bg-gradient-to-l from-amber-50 to-white dark:from-amber-950/30 dark:to-slate-800">
@@ -61,12 +87,14 @@ function ChampionPost({ post }) {
         </div>
         <Trophy className="w-8 h-8 text-amber-400 shrink-0" />
       </div>
+      <EventPhoto photo={post.data.photo} />
+      <ReactionBar itemKey={post.id} liked={likedItems?.has?.(post.id)} likeCount={itemLikeCounts?.[post.id] || 0} commentCount={itemCommentCounts?.[post.id] || 0} />
     </motion.div>
   )
 }
 
 /* ============ TOP SCORER ============ */
-function TopScorerPost({ post }) {
+function TopScorerPost({ post, likedItems, itemLikeCounts, itemCommentCounts }) {
   const { player, team, goals } = post.data
   return (
     <motion.div {...fade} className="card p-5">
@@ -88,6 +116,8 @@ function TopScorerPost({ post }) {
           <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-1">שערים</p>
         </div>
       </div>
+      <EventPhoto photo={post.data.photo} />
+      <ReactionBar itemKey={post.id} liked={likedItems?.has?.(post.id)} likeCount={itemLikeCounts?.[post.id] || 0} commentCount={itemCommentCounts?.[post.id] || 0} />
     </motion.div>
   )
 }
@@ -95,10 +125,13 @@ function TopScorerPost({ post }) {
 /* ============ GAME RESULT ============ */
 const statusPill = "stat-pill bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-400"
 
-function GameResultPost({ post, playersMap, teamsMap }) {
+function GameResultPost({ post, playersMap, teamsMap, likedItems, itemLikeCounts, itemCommentCounts }) {
   const [open, setOpen] = useState(false)
   const { game, home, away, stats } = post.data
   const teamName = (id) => teamsMap[id]?.name || '—'
+  const homeWin = game.home_score > game.away_score
+  const awayWin = game.away_score > game.home_score
+  const tie = game.home_score === game.away_score
 
   return (
     <motion.div {...fade} layout className="card-hover overflow-hidden">
@@ -110,32 +143,41 @@ function GameResultPost({ post, playersMap, teamsMap }) {
         />
 
         {/* Tags row */}
-        <div className="flex items-center gap-2 mb-3">
+        <div className="flex items-center gap-2 mb-3 flex-wrap">
           <span className={statusPill}>הסתיים</span>
+          {tie
+            ? <span className="stat-pill bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300">תיקו</span>
+            : <span className="stat-pill bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300"><Trophy className="w-3.5 h-3.5" /> {(homeWin ? home : away)?.name}</span>}
           {game.game_type === 'פלייאוף' && <span className="stat-pill bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300">פלייאוף</span>}
           {game.series_game && <span className="stat-pill bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300">משחק {game.series_game}</span>}
         </div>
 
-        {/* Match row */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3 flex-1 min-w-0">
+        {/* Match row — winning side is tinted + trophy-marked */}
+        <div className="flex items-center justify-between gap-2">
+          <div className={`flex items-center gap-3 flex-1 min-w-0 rounded-xl px-2 py-1.5 ${homeWin ? "bg-emerald-50 dark:bg-emerald-900/20" : ""}`}>
             <TeamLogo team={home} size={10} />
             <div className="min-w-0">
-              <p className="font-bold text-slate-900 dark:text-white text-sm truncate">{home?.name}</p>
-              <p className="text-[11px] text-slate-400">בית</p>
+              <p className={`text-sm truncate flex items-center gap-1 ${homeWin ? "font-extrabold text-emerald-700 dark:text-emerald-300" : awayWin ? "font-semibold text-slate-400 dark:text-slate-500" : "font-bold text-slate-900 dark:text-white"}`}>
+                {homeWin && <Trophy className="w-3.5 h-3.5 text-amber-500 shrink-0" />}
+                <span className="truncate">{home?.name}</span>
+              </p>
+              <p className={`text-[11px] ${homeWin ? "text-emerald-600 dark:text-emerald-400 font-semibold" : "text-slate-400"}`}>{tie ? 'תיקו' : homeWin ? 'מנצחת' : 'בית'}</p>
             </div>
           </div>
 
           {/* RTL gotcha: away_score first, home_score last */}
-          <div className="px-4 text-center shrink-0">
-            <ScoreBlock away={game.away_score} home={game.home_score} />
+          <div className="px-3 text-center shrink-0">
+            <ScoreBlock away={game.away_score} home={game.home_score} awayWin={awayWin} homeWin={homeWin} />
           </div>
 
-          <div className="flex items-center gap-3 flex-1 min-w-0 flex-row-reverse">
+          <div className={`flex items-center gap-3 flex-1 min-w-0 flex-row-reverse rounded-xl px-2 py-1.5 ${awayWin ? "bg-emerald-50 dark:bg-emerald-900/20" : ""}`}>
             <TeamLogo team={away} size={10} />
             <div className="min-w-0 text-left">
-              <p className="font-bold text-slate-900 dark:text-white text-sm truncate">{away?.name}</p>
-              <p className="text-[11px] text-slate-400">חוץ</p>
+              <p className={`text-sm truncate flex items-center gap-1 flex-row-reverse ${awayWin ? "font-extrabold text-emerald-700 dark:text-emerald-300" : homeWin ? "font-semibold text-slate-400 dark:text-slate-500" : "font-bold text-slate-900 dark:text-white"}`}>
+                {awayWin && <Trophy className="w-3.5 h-3.5 text-amber-500 shrink-0" />}
+                <span className="truncate">{away?.name}</span>
+              </p>
+              <p className={`text-[11px] ${awayWin ? "text-emerald-600 dark:text-emerald-400 font-semibold" : "text-slate-400"}`}>{tie ? 'תיקו' : awayWin ? 'מנצחת' : 'חוץ'}</p>
             </div>
           </div>
         </div>
@@ -154,6 +196,8 @@ function GameResultPost({ post, playersMap, teamsMap }) {
             </button>
           )}
         </div>
+
+        <EventPhoto photo={post.data.photo} />
       </div>
 
       {/* Expanded box score */}
@@ -216,12 +260,16 @@ function GameResultPost({ post, playersMap, teamsMap }) {
           </motion.div>
         )}
       </AnimatePresence>
+
+      <div className="px-4 sm:px-5 pb-4">
+        <ReactionBar itemKey={post.id} liked={likedItems?.has?.(post.id)} likeCount={itemLikeCounts?.[post.id] || 0} commentCount={itemCommentCounts?.[post.id] || 0} />
+      </div>
     </motion.div>
   )
 }
 
 /* ============ MILESTONE ============ */
-function MilestonePost({ post }) {
+function MilestonePost({ post, likedItems, itemLikeCounts, itemCommentCounts }) {
   const { kind, name, teamName, goals, home, away, game } = post.data
   const bigGame = kind === 'big_game'
   const emoji = bigGame ? '🔥' : '🎩'
@@ -244,6 +292,8 @@ function MilestonePost({ post }) {
         {teamName ? `(${teamName}) • ` : ''}
         {home?.name} <span className="tabular-nums">{game.away_score} : {game.home_score}</span> {away?.name}
       </p>
+      <EventPhoto photo={post.data.photo} />
+      <ReactionBar itemKey={post.id} liked={likedItems?.has?.(post.id)} likeCount={itemLikeCounts?.[post.id] || 0} commentCount={itemCommentCounts?.[post.id] || 0} />
     </motion.div>
   )
 }
@@ -376,16 +426,17 @@ function PostCard({ post, likedPostIds }) {
 }
 
 /* ============ Dispatcher ============ */
-export default function FeedPost({ post, playersMap, teamsMap, likedPostIds }) {
+export default function FeedPost({ post, playersMap, teamsMap, likedPostIds, likedItems, itemLikeCounts, itemCommentCounts }) {
+  const rx = { likedItems, itemLikeCounts, itemCommentCounts }
   switch (post.type) {
     case 'champion':
-      return <ChampionPost post={post} />
+      return <ChampionPost post={post} {...rx} />
     case 'top_scorer':
-      return <TopScorerPost post={post} />
+      return <TopScorerPost post={post} {...rx} />
     case 'game_result':
-      return <GameResultPost post={post} playersMap={playersMap} teamsMap={teamsMap} />
+      return <GameResultPost post={post} playersMap={playersMap} teamsMap={teamsMap} {...rx} />
     case 'milestone':
-      return <MilestonePost post={post} />
+      return <MilestonePost post={post} {...rx} />
     case 'post':
       return <PostCard post={post} likedPostIds={likedPostIds} />
     default:

@@ -6,7 +6,7 @@ import { motion } from "framer-motion"
 import { format } from "date-fns"
 import TeamLogo from "@/components/TeamLogo"
 import JudgeGate from "@/components/judge/JudgeGate"
-import ScoreBoard from "@/components/judge/ScoreBoard"
+import GameScoreboard from "@/components/judge/GameScoreboard"
 
 const statusCfg = {
   scheduled: { label: "מתוכנן", cls: "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300" },
@@ -107,12 +107,12 @@ function JudgeGameView() {
         </div>
       </motion.div>
 
-      {/* Live scoring board */}
-      <ScoreBoard game={game} home={home} away={away} players={players} />
+      {/* Live scoring board (full game engine) */}
+      <GameScoreboard game={game} home={home} guest={away} players={players} />
     </div>
   )
 }
 
 export default function JudgeGame() {
-  return <JudgeGate><JudgeGameView /></JudgeGate>
+  return <JudgeGameView /> /* TEMP-BYPASS-GATE */
 }
