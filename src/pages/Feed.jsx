@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, useMemo } from "react"
 import { getGames, getTeams, getPlayers, getGameStats, getLeagueSetting, getPosts, getMyLikes } from "@/lib/api"
 import { getItemLikes, getItemCommentCounts } from "@/lib/reactions"
 import { Newspaper, RefreshCw } from "lucide-react"
@@ -43,14 +43,19 @@ export default function Feed() {
     getItemCommentCounts().then(setItemCommentCounts).catch(() => {})
   }, [])
 
+  // The photo index is heavy (thousands of rows) and only decorates cards, so it
+  // loads separately — the feed paints immediately and photos fill in a moment later.
+  useEffect(() => {
+    getPhotoIndex().then(setPhotoIndex).catch(() => {})
+  }, [])
+
   const loadData = async () => {
     try {
       setLoading(true); setError(null)
-      const [g, t, p, s, champ, po, likes, pidx] = await Promise.all([
+      const [g, t, p, s, champ, po, likes] = await Promise.all([
         getGames(), getTeams(), getPlayers(), getGameStats(), getLeagueSetting('champion_team_id'), getPosts(), getMyLikes(),
-        getPhotoIndex().catch(() => ({ photos: [], photoPlayers: [] })),
       ])
-      setGames(g); setTeams(t); setPlayers(p); setGameStats(s); setChampionId(champ); setPosts(po); setLikedPostIds(new Set(likes)); setPhotoIndex(pidx)
+      setGames(g); setTeams(t); setPlayers(p); setGameStats(s); setChampionId(champ); setPosts(po); setLikedPostIds(new Set(likes))
     } catch (err) { console.error(err); setError("שגיאה בטעינת הנתונים") }
     finally { setLoading(false) }
   }
@@ -58,23 +63,24 @@ export default function Feed() {
   // Reset pagination whenever the active filter changes
   useEffect(() => { setVisibleCount(PAGE_SIZE) }, [filter])
 
-  const teamsMap = Object.fromEntries(teams.map(t => [t.id, t]))
-  const playersMap = Object.fromEntries(players.map(p => [p.id, p]))
+  const teamsMap = useMemo(() => Object.fromEntries(teams.map(t => [t.id, t])), [teams])
+  const playersMap = useMemo(() => Object.fromEntries(players.map(p => [p.id, p])), [players])
 
-  const feed = attachEventPhotos(
+  // Rebuilds only when the underlying data changes — not on every scroll/like re-render.
+  const feed = useMemo(() => attachEventPhotos(
     buildFeed({
       games, teams, players, gameStats, humanPosts: posts,
       championId, seasonName: SEASON_NAME, seasonMode,
     }),
     { photos: photoIndex.photos, photoPlayers: photoIndex.photoPlayers, players }
-  )
+  ), [games, teams, players, gameStats, posts, championId, seasonMode, photoIndex])
 
-  const counts = {
+  const counts = useMemo(() => ({
     all: feed.length,
     posts: feed.filter(p => matchesFilter(p, "posts")).length,
     results: feed.filter(p => matchesFilter(p, "results")).length,
     highlights: feed.filter(p => matchesFilter(p, "highlights")).length,
-  }
+  }), [feed])
 
   const handlePosted = (newPost) => {
     if (newPost) setPosts(prev => [newPost, ...prev])

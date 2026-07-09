@@ -1,22 +1,25 @@
 import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom'
-import { useState, useEffect, createContext, useContext } from 'react'
+import { useState, useEffect, createContext, useContext, lazy, Suspense } from 'react'
 import Layout from './Layout'
-import Feed from './pages/Feed'
-import Home from './pages/Home'
-import Games from './pages/Games'
-import Statistics from './pages/Statistics'
-import Teams from './pages/Teams'
-import TeamDetail from './pages/TeamDetail'
-import Players from './pages/Players'
-import PlayerDetail from './pages/PlayerDetail'
-import FinalFour from './pages/FinalFour'
-import Judge from './pages/Judge'
-import JudgeGame from './pages/JudgeGame'
-import Admin from './pages/Admin'
-import ArchivePage from './pages/Archive'
-import Media from './pages/Media'
-import Profile from './pages/Profile'
 import { getLeagueSetting } from './lib/api'
+
+// Route-level code splitting: each page ships as its own chunk, so the home
+// page no longer downloads Admin / Judge / poster generator / etc. up front.
+const Feed = lazy(() => import('./pages/Feed'))
+const Home = lazy(() => import('./pages/Home'))
+const Games = lazy(() => import('./pages/Games'))
+const Statistics = lazy(() => import('./pages/Statistics'))
+const Teams = lazy(() => import('./pages/Teams'))
+const TeamDetail = lazy(() => import('./pages/TeamDetail'))
+const Players = lazy(() => import('./pages/Players'))
+const PlayerDetail = lazy(() => import('./pages/PlayerDetail'))
+const FinalFour = lazy(() => import('./pages/FinalFour'))
+const Judge = lazy(() => import('./pages/Judge'))
+const JudgeGame = lazy(() => import('./pages/JudgeGame'))
+const Admin = lazy(() => import('./pages/Admin'))
+const ArchivePage = lazy(() => import('./pages/Archive'))
+const Media = lazy(() => import('./pages/Media'))
+const Profile = lazy(() => import('./pages/Profile'))
 
 const SeasonModeContext = createContext()
 export const useSeasonMode = () => useContext(SeasonModeContext)
@@ -44,6 +47,11 @@ function App() {
     <SeasonModeContext.Provider value={{ seasonMode, setSeasonMode }}>
       <Router>
         <Layout>
+          <Suspense fallback={
+            <div className="flex items-center justify-center min-h-[60vh]">
+              <div className="animate-spin rounded-full h-10 w-10 border-2 border-orange-500 border-t-transparent" />
+            </div>
+          }>
           <Routes>
             <Route path="/" element={<Feed />} />
             <Route path="/standings" element={<Home />} />
@@ -62,6 +70,7 @@ function App() {
             <Route path="/archive" element={<ArchivePage />} />
             <Route path="/archive/:seasonId" element={<ArchivePage />} />
           </Routes>
+          </Suspense>
         </Layout>
       </Router>
     </SeasonModeContext.Provider>
