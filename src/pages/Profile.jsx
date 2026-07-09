@@ -3,11 +3,13 @@ import { Link } from "react-router-dom"
 import { motion } from "framer-motion"
 import {
   UserCircle, Shield, Gavel, UserCheck, LogIn, LogOut, Sun, Moon,
-  Save, Loader2, Clock, ChevronLeft, UserPlus, Trophy
+  Save, Loader2, Clock, ChevronLeft, UserPlus, Trophy, Unlink, Camera
 } from "lucide-react"
 import { useAuth } from "@/lib/AuthContext"
 import { useTheme } from "@/lib/ThemeContext"
-import { getMyProfile, updateMyProfile } from "@/lib/profile"
+import { getMyProfile, updateMyProfile, getPlayerPhotos, disconnectPairing } from "@/lib/profile"
+
+const sizedUrl = (url, w = 600) => (url ? url.replace(/=w\d+(-h\d+)?.*$/, `=w${w}`) : url)
 
 function Badge({ icon: Icon, label, cls }) {
   return (
@@ -27,6 +29,9 @@ export default function Profile() {
   const [avatar, setAvatar] = useState("")
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [photos, setPhotos] = useState([])
+  const [confirmDisconnect, setConfirmDisconnect] = useState(false)
+  const [disconnecting, setDisconnecting] = useState(false)
 
   useEffect(() => {
     let alive = true
@@ -39,11 +44,27 @@ export default function Profile() {
         setData(d)
         setName(d?.profile?.display_name || "")
         setAvatar(d?.profile?.avatar_url || "")
+        if (d?.player) {
+          getPlayerPhotos(d.player.id).then(ph => alive && setPhotos(ph)).catch(() => {})
+        } else {
+          setPhotos([])
+        }
       })
       .catch(() => alive && setData(null))
       .finally(() => alive && setLoading(false))
     return () => { alive = false }
   }, [user, authLoading])
+
+  const doDisconnect = async () => {
+    setDisconnecting(true)
+    try {
+      await disconnectPairing()
+      setData(prev => ({ ...prev, player: null }))
+      setPhotos([])
+      setConfirmDisconnect(false)
+    } catch (e) { console.error(e) }
+    finally { setDisconnecting(false) }
+  }
 
   const handleSave = async () => {
     setSaving(true); setSaved(false)
@@ -118,18 +139,42 @@ export default function Profile() {
 
       {/* Linked player / claim status / guest pairing CTA */}
       {isPlayer ? (
-        <Link to={`/players/${player.id}`} className="card card-hover p-4 flex items-center justify-between gap-3 group">
-          <div className="flex items-center gap-3 min-w-0">
-            <div className="w-10 h-10 rounded-xl bg-emerald-500 text-white flex items-center justify-center shrink-0">
-              <UserCheck className="w-5 h-5" />
+        <div className="card p-4">
+          <Link to={`/players/${player.id}`} className="flex items-center justify-between gap-3 group">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-10 h-10 rounded-xl bg-emerald-500 text-white flex items-center justify-center shrink-0">
+                <UserCheck className="w-5 h-5" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm font-bold text-slate-900 dark:text-white truncate">{player.first_name} {player.last_name}</p>
+                <p className="text-[11px] text-slate-400 dark:text-slate-500">הדף האישי שלך כשחקן — סטטיסטיקות ויומן משחקים</p>
+              </div>
             </div>
-            <div className="min-w-0">
-              <p className="text-sm font-bold text-slate-900 dark:text-white truncate">{player.first_name} {player.last_name}</p>
-              <p className="text-[11px] text-slate-400 dark:text-slate-500">הדף האישי שלך כשחקן — סטטיסטיקות ויומן משחקים</p>
-            </div>
+            <ChevronLeft className="w-5 h-5 text-slate-300 dark:text-slate-600 group-hover:text-orange-500 transition-colors shrink-0" />
+          </Link>
+          <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-700/50">
+            {confirmDisconnect ? (
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <span className="text-xs text-slate-500 dark:text-slate-400">לנתק את השיוך לשחקן זה?</span>
+                <div className="flex items-center gap-2">
+                  <button onClick={doDisconnect} disabled={disconnecting}
+                    className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg bg-red-500 text-white hover:bg-red-600 transition-colors disabled:opacity-50">
+                    {disconnecting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Unlink className="w-3.5 h-3.5" />} כן, נתק
+                  </button>
+                  <button onClick={() => setConfirmDisconnect(false)} disabled={disconnecting}
+                    className="text-xs font-semibold px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-600 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
+                    ביטול
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button onClick={() => setConfirmDisconnect(true)}
+                className="flex items-center gap-1.5 text-xs font-semibold text-slate-400 dark:text-slate-500 hover:text-red-600 dark:hover:text-red-400 transition-colors">
+                <Unlink className="w-3.5 h-3.5" /> נתק שיוך לשחקן
+              </button>
+            )}
           </div>
-          <ChevronLeft className="w-5 h-5 text-slate-300 dark:text-slate-600 group-hover:text-orange-500 transition-colors shrink-0" />
-        </Link>
+        </div>
       ) : pendingClaim ? (
         <div className="card p-4 flex items-center gap-3 border-amber-200 dark:border-amber-800 bg-amber-50/60 dark:bg-amber-950/20">
           <Clock className="w-5 h-5 text-amber-500 shrink-0" />
@@ -224,6 +269,32 @@ export default function Profile() {
           </button>
         </div>
       </motion.div>
+
+      {/* Photos of the linked player from the game albums */}
+      {player && photos.length > 0 && (
+        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="card p-5 space-y-3">
+          <h2 className="flex items-center gap-2 text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wide">
+            <Camera className="w-4 h-4 text-orange-500" /> תמונות מהמשחקים
+          </h2>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+            {photos.map(ph => (
+              <a key={ph.photo_id} href={ph.detail_url} target="_blank" rel="noopener noreferrer"
+                 className="group relative block aspect-square rounded-lg overflow-hidden bg-slate-900">
+                <img src={sizedUrl(ph.image_url)} alt="" loading="lazy"
+                     className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                {ph.album_title && (
+                  <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent px-2 pt-5 pb-1.5">
+                    <span className="text-[10px] font-medium text-white/90 line-clamp-1">{ph.album_title}</span>
+                  </div>
+                )}
+              </a>
+            ))}
+          </div>
+          <p className="text-[11px] text-slate-400 dark:text-slate-500">
+            תמונות שזוהו בהן הפנים שלך מאלבומי המשחקים · לחיצה פותחת את התמונה המקורית
+          </p>
+        </motion.div>
+      )}
     </div>
   )
 }

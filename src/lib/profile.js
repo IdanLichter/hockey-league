@@ -39,6 +39,33 @@ export async function getMyProfile() {
 }
 
 /**
+ * Game photos in which a linked player was recognized (for the profile gallery).
+ * photo_players is a view (no FK metadata), so we resolve ids then fetch photos.
+ */
+export async function getPlayerPhotos(playerId, limit = 30) {
+  if (!playerId) return []
+  const { data: pp, error } = await supabase
+    .from('photo_players').select('photo_id').eq('player_id', playerId)
+  if (error) throw error
+  const ids = (pp || []).map(x => x.photo_id).slice(0, 150) // cap keeps the filter URL small
+  if (!ids.length) return []
+  const { data: photos, error: e2 } = await supabase
+    .from('photos')
+    .select('photo_id, image_url, detail_url, album_title, album_date')
+    .in('photo_id', ids)
+    .order('album_date', { ascending: false })
+    .limit(limit)
+  if (e2) throw e2
+  return photos || []
+}
+
+/** Self-disconnect the account from its linked player (unlink + drop role + remove claim). */
+export async function disconnectPairing() {
+  const { error } = await supabase.rpc('disconnect_my_pairing')
+  if (error) throw error
+}
+
+/**
  * Update the signed-in user's display name / avatar. Uses upsert so a missing
  * profiles row (older accounts) is created. Never touches player_id (guarded
  * at the DB for non-admins anyway).
