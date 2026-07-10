@@ -18,7 +18,8 @@ export default function Games() {
   const [teamFilter, setTeamFilter] = useState("all")
   const [dateFilter, setDateFilter] = useState("")
   const [expandedGame, setExpandedGame] = useState(null)
-  const [gameStatsData, setGameStatsData] = useState(null)
+  // Keyed by game id: a shared slot lets a slow request for game A land under game B.
+  const [statsByGame, setStatsByGame] = useState({})
 
   useEffect(() => { loadData() }, [])
 
@@ -43,10 +44,12 @@ export default function Games() {
   }
 
   const toggleStats = async (gameId) => {
-    if (expandedGame === gameId) { setExpandedGame(null); setGameStatsData(null); return }
+    if (expandedGame === gameId) { setExpandedGame(null); return }
+    setExpandedGame(gameId)
+    if (statsByGame[gameId]) return
     try {
       const stats = await getGameStatsByGameId(gameId)
-      setGameStatsData(stats); setExpandedGame(gameId)
+      setStatsByGame(prev => ({ ...prev, [gameId]: stats }))
     } catch (err) { console.error(err) }
   }
 
@@ -96,6 +99,7 @@ export default function Games() {
     const status = statusCfg[game.status] || statusCfg.completed
     const ref = refInfo(game)
     const open = expandedGame === game.id
+    const stats = statsByGame[game.id]
     const home = teamsMap[game.home_team_id]
     const away = teamsMap[game.away_team_id]
 
@@ -170,12 +174,16 @@ export default function Games() {
 
         {/* Expanded stats */}
         <AnimatePresence>
-          {open && gameStatsData && (
+          {open && (
             <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
               <div className="px-5 pb-5">
                 <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-700">
                   <h4 className="font-bold text-sm text-slate-900 dark:text-white mb-3">סטטיסטיקות שחקנים</h4>
-                  {gameStatsData.length === 0 ? (
+                  {!stats ? (
+                    <div className="flex justify-center py-4">
+                      <div className="animate-spin rounded-full h-5 w-5 border-2 border-brand border-t-transparent" />
+                    </div>
+                  ) : stats.length === 0 ? (
                     <p className="text-center text-xs text-slate-400 dark:text-slate-500 py-4">לא הוזנו סטטיסטיקות למשחק זה</p>
                   ) : (
                     <>
@@ -184,7 +192,7 @@ export default function Games() {
                           <div key={tid}>
                             <h5 className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-2">{teamName(tid)}</h5>
                             <div className="space-y-1">
-                              {gameStatsData.filter(s => playersMap[s.player_id]?.team_id === tid).map(stat => {
+                              {stats.filter(s => playersMap[s.player_id]?.team_id === tid).map(stat => {
                                 const p = playersMap[stat.player_id]
                                 return (
                                   <div key={stat.id} className="flex items-center justify-between py-1 text-xs">
@@ -201,11 +209,11 @@ export default function Games() {
                           </div>
                         ))}
                       </div>
-                      {gameStatsData.some(s => s.is_guest_player) && (
+                      {stats.some(s => s.is_guest_player) && (
                         <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-700">
                           <h5 className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-2">אורחים</h5>
                           <div className="space-y-1">
-                            {gameStatsData.filter(s => s.is_guest_player).map(stat => (
+                            {stats.filter(s => s.is_guest_player).map(stat => (
                               <div key={stat.id} className="flex items-center justify-between py-1 text-xs">
                                 <span className="text-slate-700 dark:text-slate-300">
                                   {stat.guest_player_name}

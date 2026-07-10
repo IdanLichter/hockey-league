@@ -1,3 +1,4 @@
+import { BRAND_ORANGE } from './brand'
 import { getTeamLogoPath } from './posterTeamLogos'
 import { getAiBackground } from './posterAiBackground'
 import { format } from 'date-fns'
@@ -143,7 +144,7 @@ export async function generateMatchDayPoster(games, teamsMap, options = {}) {
   let usedAi = false
 
   if (options.useAi) {
-    const aiBg = await getAiBackground('#f97316', '#3b82f6', 'matchday')
+    const aiBg = await getAiBackground(BRAND_ORANGE, '#3b82f6', 'matchday')
     if (aiBg) {
       ctx.drawImage(aiBg, 0, 0, W, H)
       ctx.fillStyle = 'rgba(0,0,0,0.35)'
@@ -160,14 +161,14 @@ export async function generateMatchDayPoster(games, teamsMap, options = {}) {
     ctx.fillStyle = bg
     ctx.fillRect(0, 0, W, H)
 
-    drawDiagonalStripes(ctx, W, H, '#f97316', 0.04)
-    drawAngularShape(ctx, [[0, 0], [400, 0], [0, 250]], '#f97316', 0.12)
+    drawDiagonalStripes(ctx, W, H, BRAND_ORANGE, 0.04)
+    drawAngularShape(ctx, [[0, 0], [400, 0], [0, 250]], BRAND_ORANGE, 0.12)
     drawAngularShape(ctx, [[W, H], [W - 400, H], [W, H - 250]], '#e94560', 0.12)
   }
 
   // Top accent bar
   const topBar = ctx.createLinearGradient(0, 0, W, 0)
-  topBar.addColorStop(0, '#f97316')
+  topBar.addColorStop(0, BRAND_ORANGE)
   topBar.addColorStop(1, '#e94560')
   ctx.fillStyle = topBar
   ctx.fillRect(0, 0, W, 6)
@@ -189,7 +190,7 @@ export async function generateMatchDayPoster(games, teamsMap, options = {}) {
   if (games.length > 0) {
     ctx.font = `600 30px ${FONT}`
     const dateGrad = ctx.createLinearGradient(W / 2 - 200, 0, W / 2 + 200, 0)
-    dateGrad.addColorStop(0, '#f97316')
+    dateGrad.addColorStop(0, BRAND_ORANGE)
     dateGrad.addColorStop(1, '#fb923c')
     ctx.fillStyle = dateGrad
     drawTextWithShadow(ctx, formatHebrewDate(games[0].game_date), W / 2, 225)
@@ -264,7 +265,7 @@ export async function generateMatchDayPoster(games, teamsMap, options = {}) {
     ctx.beginPath()
     ctx.arc(W / 2, centerY - 10, 28, 0, Math.PI * 2)
     const vsBg = ctx.createRadialGradient(W / 2, centerY - 10, 0, W / 2, centerY - 10, 28)
-    vsBg.addColorStop(0, '#f97316')
+    vsBg.addColorStop(0, BRAND_ORANGE)
     vsBg.addColorStop(1, '#ea580c')
     ctx.fillStyle = vsBg
     ctx.fill()
@@ -276,7 +277,7 @@ export async function generateMatchDayPoster(games, teamsMap, options = {}) {
 
     // Time
     ctx.font = `700 26px ${FONT}`
-    ctx.fillStyle = '#f97316'
+    ctx.fillStyle = BRAND_ORANGE
     ctx.fillText(formatTime(game.game_date), W / 2, centerY + 30)
 
     // Venue
@@ -296,7 +297,7 @@ export async function generateMatchDayPoster(games, teamsMap, options = {}) {
   ctx.fillText('ליגת הוקי גלגליות ישראל', W / 2, H - 22)
 
   const botBar = ctx.createLinearGradient(0, 0, W, 0)
-  botBar.addColorStop(0, '#f97316')
+  botBar.addColorStop(0, BRAND_ORANGE)
   botBar.addColorStop(1, '#e94560')
   ctx.fillStyle = botBar
   ctx.fillRect(0, H - 6, W, 6)
@@ -316,7 +317,7 @@ export async function generateSingleMatchPoster(game, teamsMap, options = {}) {
 
   const homeTeam = teamsMap[game.home_team_id]
   const awayTeam = teamsMap[game.away_team_id]
-  const homeColor = homeTeam?.primary_color || '#f97316'
+  const homeColor = homeTeam?.primary_color || BRAND_ORANGE
   const awayColor = awayTeam?.primary_color || '#3b82f6'
 
   let usedAi = false
@@ -541,10 +542,10 @@ export async function generateSingleMatchPoster(game, teamsMap, options = {}) {
   ctx.beginPath()
   ctx.roundRect(-vsSize, -vsSize, vsSize * 2, vsSize * 2, 14)
   const vsBg = ctx.createLinearGradient(-vsSize, -vsSize, vsSize, vsSize)
-  vsBg.addColorStop(0, '#f97316')
+  vsBg.addColorStop(0, BRAND_ORANGE)
   vsBg.addColorStop(1, '#dc2626')
   ctx.fillStyle = vsBg
-  ctx.shadowColor = '#f97316'
+  ctx.shadowColor = BRAND_ORANGE
   ctx.shadowBlur = 40
   ctx.fill()
   ctx.restore()
@@ -573,7 +574,7 @@ export async function generateSingleMatchPoster(game, teamsMap, options = {}) {
   ctx.fillRect(70, barY, W - 140, 3)
 
   ctx.font = `700 26px ${FONT}`
-  ctx.fillStyle = '#f97316'
+  ctx.fillStyle = BRAND_ORANGE
   ctx.textAlign = 'center'
   ctx.fillText(formatHebrewDate(game.game_date), W / 2, barY + 34)
 

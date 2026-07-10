@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+
+# Gated tooling — no public content.
+Disallow: /admin
+Disallow: /judge
+Disallow: /me
+
+Sitemap: https://hockey-league-pro.vercel.app/sitemap.xml

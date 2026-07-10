@@ -28,6 +28,7 @@ import SuggestionsReview from "@/components/admin/SuggestionsReview"
 import RolesAdmin from "@/components/admin/RolesAdmin"
 import WhatsNew from "@/components/admin/WhatsNew"
 import { Award } from "lucide-react"
+import { BRAND_ORANGE } from '@/lib/brand'
 
 const tabs = [
   { id: "games", label: "משחקים", icon: Calendar },
@@ -885,7 +886,7 @@ function TeamsAdmin({ teams, reload }) {
       goals_against: team.goals_against || 0,
       own_goals_received: team.own_goals_received || 0,
       home_venue: team.home_venue || '',
-      primary_color: team.primary_color || '#f97316',
+      primary_color: team.primary_color || BRAND_ORANGE,
     })
     setEditingTeam(team.id)
   }

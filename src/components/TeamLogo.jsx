@@ -1,3 +1,4 @@
+import { BRAND_ORANGE } from '@/lib/brand'
 /**
  * Reusable team logo component.
  * Falls back to a colored circle with team initial if no logo_url.
@@ -25,7 +26,7 @@ export default function TeamLogo({ team, size = 8, className = "" }) {
   return (
     <div
       className={`${px} rounded-full shrink-0 flex items-center justify-center text-white font-bold ring-2 ring-white dark:ring-slate-800 ${className}`}
-      style={{ backgroundColor: team?.primary_color || '#f97316' }}
+      style={{ backgroundColor: team?.primary_color || BRAND_ORANGE }}
     >
       {team?.name?.charAt(0) || '?'}
     </div>

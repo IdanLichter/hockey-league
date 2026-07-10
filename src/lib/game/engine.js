@@ -11,8 +11,12 @@ import {
   CardType, cardBaseSeconds, TeamSide, defaultSettings, halfBreakMS,
 } from './rules'
 
+// Event ids must stay unique across page reloads: restore() rehydrates events minted
+// in a previous session, so a bare counter would re-issue ids that already exist and
+// removeCard(id) could delete the wrong card.
 let _uid = 0
-const uid = () => `e${++_uid}`
+const _session = Math.random().toString(36).slice(2, 8)
+const uid = () => `e${_session}-${++_uid}`
 
 const HE = {
   halftime: 'מנוחה',
@@ -95,6 +99,12 @@ export class GameEngine {
   get isRunning() { return this.phase === Phase.running }
   get homeDisplayScore() { return (this.phase === Phase.over && this.settings.format === GameFormat.threeThirds) ? this.home.thirds : this.home.score }
   get guestDisplayScore() { return (this.phase === Phase.over && this.settings.format === GameFormat.threeThirds) ? this.guest.thirds : this.guest.score }
+
+  // Goals over the WHOLE match. In threeThirds, side.score only counts the current
+  // period, so persistence must use these instead — they always agree with boxScore().
+  totalGoals(side) { return this.goals.filter(g => g.side === side).length }
+  get homeFinalScore() { return this.totalGoals(TeamSide.home) }
+  get guestFinalScore() { return this.totalGoals(TeamSide.guest) }
 
   // Active cards for a side, most-recent first, capped at 2 for display.
   activeCards(side) { return this.cards.filter(c => c.side === side).slice(-2).reverse() }

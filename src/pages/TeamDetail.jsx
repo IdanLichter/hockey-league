@@ -6,6 +6,7 @@ import { ArrowRight, Users, Trophy, Target, Shield, Calendar, RefreshCw } from "
 import { motion } from "framer-motion"
 import { format } from "date-fns"
 import TeamLogo from "@/components/TeamLogo"
+import { useSeo } from "@/lib/seo"
 
 export default function TeamDetail() {
   const { id } = useParams()
@@ -14,6 +15,13 @@ export default function TeamDetail() {
   const [games, setGames] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+
+  const teamName = teams.find(t => t.id === id)?.name
+  useSeo({
+    title: teamName || 'קבוצה',
+    description: teamName ? `סגל, תוצאות וסטטיסטיקות של ${teamName} בליגת הרולר הוקי הישראלית` : undefined,
+    path: `/teams/${id}`,
+  })
 
   useEffect(() => { loadData() }, [id])
 

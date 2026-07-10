@@ -1,3 +1,4 @@
+import { BRAND_ORANGE } from '@/lib/brand'
 import { Link, useLocation } from "react-router-dom"
 import { useState } from "react"
 import {
@@ -45,7 +46,7 @@ function NavAvatar({ profile, email, className = "w-8 h-8" }) {
     return (
       <div
         className={`${className} rounded-full shrink-0 flex items-center justify-center text-white text-sm font-bold`}
-        style={{ backgroundColor: profile.teamColor || "#f97316" }}
+        style={{ backgroundColor: profile.teamColor || BRAND_ORANGE }}
       >
         {initial || <UserCircle className="w-1/2 h-1/2" />}
       </div>
@@ -146,7 +147,7 @@ export default function Layout({ children }) {
               ) : (
                 <button
                   onClick={openAuth}
-                  className="px-4 py-1.5 rounded-lg bg-orange-500 text-white text-sm font-semibold hover:bg-orange-600 transition-colors"
+                  className="btn-primary btn-sm"
                 >
                   התחבר
                 </button>
@@ -201,7 +202,7 @@ export default function Layout({ children }) {
                 <Link
                   to="/me"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-sm font-semibold text-white bg-orange-500 hover:bg-orange-600 transition-colors"
+                  className="btn-primary w-full py-2.5"
                 >
                   <NavAvatar profile={profile} email={user.email} className="w-6 h-6 ring-2 ring-white/50" /> הדף שלי
                 </Link>
@@ -215,7 +216,7 @@ export default function Layout({ children }) {
             ) : (
               <button
                 onClick={() => { openAuth(); setMobileMenuOpen(false) }}
-                className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-sm font-semibold bg-orange-500 text-white hover:bg-orange-600 transition-colors"
+                className="btn-primary w-full py-2.5"
               >
                 התחבר
               </button>

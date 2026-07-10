@@ -1,5 +1,10 @@
+import { supabase } from './supabase'
+
 const cache = new Map()
 
+// Poster generation is admin-only and every uncached image is a paid DALL·E call,
+// so the API route demands a Supabase access token. A rejected call degrades to
+// `null` and the poster draws its hand-rolled gradient background instead.
 export async function getAiBackground(homeColor, awayColor, posterType) {
   const key = `${posterType}-${homeColor}-${awayColor}`
 
@@ -8,9 +13,15 @@ export async function getAiBackground(homeColor, awayColor, posterType) {
   }
 
   try {
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session?.access_token) return null
+
     const res = await fetch('/api/generate-poster-bg', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${session.access_token}`,
+      },
       body: JSON.stringify({ homeColor, awayColor, posterType }),
     })
 

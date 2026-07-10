@@ -10,8 +10,18 @@ const COLOR_NAMES = {
   '#2e8e41': 'deep emerald green',
 }
 
-function colorToName(hex) {
-  const normalized = hex?.toLowerCase()
+const POSTER_TYPES = new Set(['matchday', 'single'])
+const FALLBACK_COLOR = 'default'
+
+// Every uncached request is a paid DALL·E-3 HD generation, so the cache key space
+// must be bounded: an unrecognised color collapses to one bucket rather than
+// minting a fresh key (and a fresh bill) per arbitrary hex.
+function normalizeColor(hex) {
+  const normalized = String(hex || '').toLowerCase()
+  return COLOR_NAMES[normalized] ? normalized : FALLBACK_COLOR
+}
+
+function colorToName(normalized) {
   return COLOR_NAMES[normalized] || 'orange'
 }
 
@@ -27,9 +37,40 @@ function buildPrompt(homeColor, awayColor, posterType) {
 }
 
 function getCacheKey(homeColor, awayColor, posterType) {
-  const h = (homeColor || '').replace('#', '')
-  const a = (awayColor || '').replace('#', '')
-  return `${posterType}-${h}-${a}`
+  return `${posterType}-${homeColor.replace('#', '')}-${awayColor.replace('#', '')}`
+}
+
+// Per-warm-instance throttle. Not a hard guarantee across serverless instances —
+// the real gate is the admin check below — but it caps a runaway client.
+const RATE_LIMIT = { max: 10, windowMs: 60 * 60 * 1000 }
+const hits = new Map()
+
+function rateLimited(userId) {
+  const now = Date.now()
+  const recent = (hits.get(userId) || []).filter(t => now - t < RATE_LIMIT.windowMs)
+  if (recent.length >= RATE_LIMIT.max) return true
+  recent.push(now)
+  hits.set(userId, recent)
+  return false
+}
+
+// Rejects anyone who is not a signed-in admin. Returns the admin's user object.
+async function authorize(req, supabase) {
+  const auth = req.headers?.authorization || ''
+  const token = auth.startsWith('Bearer ') ? auth.slice(7) : null
+  if (!token) return { error: 'Unauthorized', status: 401 }
+
+  const { data: { user }, error } = await supabase.auth.getUser(token)
+  if (error || !user?.email) return { error: 'Unauthorized', status: 401 }
+
+  const { data: admin } = await supabase
+    .from('admin_users')
+    .select('email')
+    .eq('email', user.email)
+    .maybeSingle()
+
+  if (!admin) return { error: 'Forbidden', status: 403 }
+  return { user }
 }
 
 export default async function handler(req, res) {
@@ -37,41 +78,54 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' })
   }
 
-  const { homeColor, awayColor, posterType } = req.body || {}
-  if (!posterType) {
-    return res.status(400).json({ error: 'Missing posterType' })
-  }
-
   const openaiKey = process.env.OPENAI_API_KEY
+  const supabaseUrl = process.env.SUPABASE_URL
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+
+  // Fail closed: without Supabase we cannot verify the caller, and this endpoint
+  // spends money. Never fall through to an unauthenticated generation.
+  if (!supabaseUrl || !supabaseServiceKey) {
+    return res.status(503).json({ error: 'Supabase not configured' })
+  }
   if (!openaiKey) {
     return res.status(503).json({ error: 'OPENAI_API_KEY not configured' })
   }
 
-  const supabaseUrl = process.env.SUPABASE_URL
-  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-  const cacheKey = getCacheKey(homeColor, awayColor, posterType)
+  const supabase = createClient(supabaseUrl, supabaseServiceKey)
+
+  const auth = await authorize(req, supabase)
+  if (auth.error) return res.status(auth.status).json({ error: auth.error })
+
+  const { homeColor, awayColor, posterType } = req.body || {}
+  if (!POSTER_TYPES.has(posterType)) {
+    return res.status(400).json({ error: 'Invalid posterType' })
+  }
+
+  const home = normalizeColor(homeColor)
+  const away = normalizeColor(awayColor)
+  const cacheKey = getCacheKey(home, away, posterType)
   const bucketPath = `${cacheKey}.png`
 
-  let supabase = null
-  if (supabaseUrl && supabaseServiceKey) {
-    supabase = createClient(supabaseUrl, supabaseServiceKey)
+  const { data: existing } = supabase.storage
+    .from('poster-backgrounds')
+    .getPublicUrl(bucketPath)
 
-    const { data: existing } = supabase.storage
-      .from('poster-backgrounds')
-      .getPublicUrl(bucketPath)
+  if (existing?.publicUrl) {
+    try {
+      const check = await fetch(existing.publicUrl, { method: 'HEAD' })
+      if (check.ok) {
+        return res.status(200).json({ imageUrl: existing.publicUrl, cached: true })
+      }
+    } catch {}
+  }
 
-    if (existing?.publicUrl) {
-      try {
-        const check = await fetch(existing.publicUrl, { method: 'HEAD' })
-        if (check.ok) {
-          return res.status(200).json({ imageUrl: existing.publicUrl, cached: true })
-        }
-      } catch {}
-    }
+  // Only a cache MISS costs money, so rate-limit here rather than on every request.
+  if (rateLimited(auth.user.id)) {
+    return res.status(429).json({ error: 'Rate limit exceeded' })
   }
 
   try {
-    const prompt = buildPrompt(homeColor, awayColor, posterType)
+    const prompt = buildPrompt(home, away, posterType)
 
     const openaiRes = await fetch('https://api.openai.com/v1/images/generations', {
       method: 'POST',
@@ -103,25 +157,23 @@ export default async function handler(req, res) {
 
     const imageBuffer = Buffer.from(b64, 'base64')
 
-    if (supabase) {
-      try {
-        await supabase.storage
-          .from('poster-backgrounds')
-          .upload(bucketPath, imageBuffer, {
-            contentType: 'image/png',
-            upsert: true,
-          })
+    try {
+      await supabase.storage
+        .from('poster-backgrounds')
+        .upload(bucketPath, imageBuffer, {
+          contentType: 'image/png',
+          upsert: true,
+        })
 
-        const { data: publicUrl } = supabase.storage
-          .from('poster-backgrounds')
-          .getPublicUrl(bucketPath)
+      const { data: publicUrl } = supabase.storage
+        .from('poster-backgrounds')
+        .getPublicUrl(bucketPath)
 
-        if (publicUrl?.publicUrl) {
-          return res.status(200).json({ imageUrl: publicUrl.publicUrl, cached: false })
-        }
-      } catch (storageErr) {
-        console.error('Supabase Storage error:', storageErr)
+      if (publicUrl?.publicUrl) {
+        return res.status(200).json({ imageUrl: publicUrl.publicUrl, cached: false })
       }
+    } catch (storageErr) {
+      console.error('Supabase Storage error:', storageErr)
     }
 
     res.setHeader('Content-Type', 'application/json')

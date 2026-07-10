@@ -8,6 +8,8 @@ import { ArrowRight, Shirt, Shield, Calendar, RefreshCw, UserPlus, Check, Clock,
 import { motion } from "framer-motion"
 import { format } from "date-fns"
 import TeamLogo from "@/components/TeamLogo"
+import { BRAND_ORANGE } from '@/lib/brand'
+import { useSeo } from '@/lib/seo'
 
 export default function PlayerDetail() {
   const { id } = useParams()
@@ -26,6 +28,13 @@ export default function PlayerDetail() {
   const [claimCtx, setClaimCtx] = useState(null)
   const [claimBusy, setClaimBusy] = useState(false)
   const [claimErr, setClaimErr] = useState(null)
+
+  const playerName = player ? `${player.first_name} ${player.last_name}` : null
+  useSeo({
+    title: playerName || 'שחקן',
+    description: playerName ? `סטטיסטיקות, שערים וכרטיסים של ${playerName} בליגת הרולר הוקי הישראלית` : undefined,
+    path: `/players/${id}`,
+  })
 
   useEffect(() => { loadData() }, [id])
 
@@ -195,7 +204,7 @@ export default function PlayerDetail() {
               className="w-20 h-20 rounded-2xl object-cover shrink-0 bg-slate-100 dark:bg-slate-700" />
           ) : (
             <div className="w-20 h-20 rounded-2xl shrink-0 flex items-center justify-center text-white text-2xl font-extrabold"
-              style={{ backgroundColor: team?.primary_color || '#f97316' }}>
+              style={{ backgroundColor: team?.primary_color || BRAND_ORANGE }}>
               {player.first_name?.charAt(0) || '?'}
             </div>
           )}

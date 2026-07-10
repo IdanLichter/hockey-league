@@ -1,9 +1,10 @@
+import { BRAND_ORANGE } from '@/lib/brand'
 // Custom rink-hockey line icons — drop-in compatible with lucide-react usage.
 // Same 24×24 grid, 2px stroke, `currentColor` so `text-*` classes tint them.
 // The orange faceoff accent (ball / dot) is the family signature; pass `mono`
 // to make that accent `currentColor` too (needed on solid-orange backgrounds
 // like the active nav item, where a fixed orange dot would disappear).
-const O = "#f97316"
+const O = BRAND_ORANGE
 
 function Svg({ children, className = "w-6 h-6", strokeWidth = 2, ...props }) {
   return (

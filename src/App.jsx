@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom'
 import { useState, useEffect, createContext, useContext, lazy, Suspense } from 'react'
 import Layout from './Layout'
+import RouteSeo from './components/RouteSeo'
 import { getLeagueSetting } from './lib/api'
 
 // Route-level code splitting: each page ships as its own chunk, so the home
@@ -47,6 +48,7 @@ function App() {
   return (
     <SeasonModeContext.Provider value={{ seasonMode, setSeasonMode }}>
       <Router>
+        <RouteSeo />
         <Layout>
           <Suspense fallback={
             <div className="flex items-center justify-center min-h-[60vh]">
