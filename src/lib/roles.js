@@ -8,6 +8,11 @@ import { supabase } from './supabase'
  */
 
 export const ROLES = ['player', 'coach', 'content_editor', 'judge']
+// Roles the admin can grant from the Roles tab. Excludes 'player': players are
+// defined in the Players tab and linked to an account via claim approval
+// (which sets profiles.player_id) — inserting a bare 'player' user_roles row here
+// does nothing. `ROLES` stays intact for label/badge lookups on existing rows.
+export const GRANTABLE_ROLES = ROLES.filter(r => r !== 'player')
 export const ROLE_LABEL = {
   player: 'שחקן',
   coach: 'מאמן',

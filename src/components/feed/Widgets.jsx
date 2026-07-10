@@ -43,8 +43,10 @@ export function StandingsWidget({ teams = [] }) {
         {top.map((team, i) => (
           <div key={team.id} className="flex items-center gap-2.5 px-1.5 py-1">
             <span className={`w-5 h-5 rounded-md flex items-center justify-center text-[10px] font-bold shrink-0 ${medal(i)}`}>{i + 1}</span>
-            <TeamLogo team={team} size={6} />
-            <span className="flex-1 min-w-0 truncate text-sm font-semibold text-slate-900 dark:text-white">{team.name}</span>
+            <Link to={`/teams/${team.id}`} className="flex items-center gap-2.5 flex-1 min-w-0 group">
+              <TeamLogo team={team} size={6} />
+              <span className="truncate text-sm font-semibold text-slate-900 dark:text-white group-hover:text-orange-500 transition-colors">{team.name}</span>
+            </Link>
             <span className="bg-slate-900 dark:bg-orange-500 text-white text-[11px] font-bold px-2 py-0.5 rounded-md shrink-0">{team.points || 0}</span>
           </div>
         ))}
@@ -57,7 +59,7 @@ export function StandingsWidget({ teams = [] }) {
 export function NextGameWidget({ games = [], teams = [] }) {
   const teamsMap = Object.fromEntries(teams.map(t => [t.id, t]))
   const upcoming = games
-    .filter(g => ['scheduled', 'in_progress', 'waiting_result'].includes(g.status))
+    .filter(g => ['scheduled', 'in_progress', 'waiting_result'].includes(g.status) && new Date(g.game_date) >= new Date())
     .sort((a, b) => new Date(a.game_date) - new Date(b.game_date))
   const next = upcoming[0] || null
   const home = next ? teamsMap[next.home_team_id] : null
@@ -70,15 +72,29 @@ export function NextGameWidget({ games = [], teams = [] }) {
         {next ? (
           <>
             <div className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2 flex-1 min-w-0">
-                <TeamLogo team={home} size={8} />
-                <span className="text-sm font-semibold text-slate-900 dark:text-white truncate">{home?.name}</span>
-              </div>
+              {home ? (
+                <Link to={`/teams/${home.id}`} className="flex items-center gap-2 flex-1 min-w-0 group">
+                  <TeamLogo team={home} size={8} />
+                  <span className="text-sm font-semibold text-slate-900 dark:text-white truncate group-hover:text-orange-500 transition-colors">{home?.name}</span>
+                </Link>
+              ) : (
+                <div className="flex items-center gap-2 flex-1 min-w-0">
+                  <TeamLogo team={home} size={8} />
+                  <span className="text-sm font-semibold text-slate-900 dark:text-white truncate">{home?.name}</span>
+                </div>
+              )}
               <span className="text-[11px] font-extrabold text-slate-400 dark:text-slate-500 shrink-0">VS</span>
-              <div className="flex items-center gap-2 flex-1 min-w-0 flex-row-reverse">
-                <TeamLogo team={away} size={8} />
-                <span className="text-sm font-semibold text-slate-900 dark:text-white truncate text-left">{away?.name}</span>
-              </div>
+              {away ? (
+                <Link to={`/teams/${away.id}`} className="flex items-center gap-2 flex-1 min-w-0 flex-row-reverse group">
+                  <TeamLogo team={away} size={8} />
+                  <span className="text-sm font-semibold text-slate-900 dark:text-white truncate text-left group-hover:text-orange-500 transition-colors">{away?.name}</span>
+                </Link>
+              ) : (
+                <div className="flex items-center gap-2 flex-1 min-w-0 flex-row-reverse">
+                  <TeamLogo team={away} size={8} />
+                  <span className="text-sm font-semibold text-slate-900 dark:text-white truncate text-left">{away?.name}</span>
+                </div>
+              )}
             </div>
             <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-700 flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400 flex-wrap">
               <span className="flex items-center gap-1"><Calendar className="w-3.5 h-3.5" />{format(new Date(next.game_date), "d/M/yyyy HH:mm")}</span>
@@ -112,8 +128,16 @@ export function LeadersWidget({ players = [], teams = [] }) {
           <div key={p.id} className="flex items-center gap-2.5 px-1.5 py-1">
             <span className={`w-5 h-5 rounded-md flex items-center justify-center text-[10px] font-bold shrink-0 ${medal(i)}`}>{i + 1}</span>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-slate-900 dark:text-white truncate">{p.first_name} {p.last_name}</p>
-              <p className="text-[11px] text-slate-400 dark:text-slate-500 truncate">{teamsMap[p.team_id]?.name || '—'}</p>
+              <Link to={`/players/${p.id}`} className="block group">
+                <p className="text-sm font-semibold text-slate-900 dark:text-white truncate group-hover:text-orange-500 transition-colors">{p.first_name} {p.last_name}</p>
+              </Link>
+              {p.team_id ? (
+                <Link to={`/teams/${p.team_id}`} className="block group">
+                  <p className="text-[11px] text-slate-400 dark:text-slate-500 truncate group-hover:text-orange-500 transition-colors">{teamsMap[p.team_id]?.name || '—'}</p>
+                </Link>
+              ) : (
+                <p className="text-[11px] text-slate-400 dark:text-slate-500 truncate">{teamsMap[p.team_id]?.name || '—'}</p>
+              )}
             </div>
             <span className="bg-red-500 text-white text-[11px] font-bold px-2 py-0.5 rounded-md shrink-0">{p.goals || 0}</span>
           </div>

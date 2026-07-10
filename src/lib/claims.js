@@ -69,40 +69,30 @@ export async function getPendingClaims() {
 }
 
 /**
- * Approve a claim: link the profile → player, grant the team-scoped 'player'
- * role, and mark the claim approved. Runs as the logged-in admin (whose JWT
- * satisfies the profiles guard + user_roles admin policy). Throws a friendly
- * error if the player is already linked to another account.
+ * Approve a claim via the SECURITY DEFINER RPC. The function is self-gated on
+ * is_admin() OR is_coach_of(<the claimed player's team>); under definer rights it
+ * links profiles.player_id, upserts the team-scoped 'player' user_roles row, and
+ * marks the claim approved. The caller therefore needs no direct write policies.
+ *
+ * Errors are surfaced as stable codes, translated to Hebrew in ClaimsReview:
+ *  - 23505           → the player is already linked to another account
+ *                      (profiles.player_id is UNIQUE)
+ *  - "not authorized" → the caller may not review this claim (not an admin and
+ *                      not the coach of the player's team)
  */
-export async function approveClaim(claim) {
-  const { data: { user } } = await supabase.auth.getUser()
-
-  const { error: linkErr } = await supabase
-    .from('profiles').update({ player_id: claim.player_id }).eq('id', claim.profile_id)
-  if (linkErr) {
-    if (linkErr.code === '23505') throw new Error('player-already-linked')
-    throw linkErr
+export async function approveClaim(claimId) {
+  const { error } = await supabase.rpc('approve_claim', { p_claim_id: claimId })
+  if (error) {
+    if (error.code === '23505') throw new Error('player-already-linked')
+    if (/not authorized/i.test(error.message || '')) throw new Error('not-authorized')
+    throw error
   }
-
-  const teamId = claim.players?.team_id ?? null
-  const { error: roleErr } = await supabase
-    .from('user_roles')
-    .upsert({ user_id: claim.profile_id, role: 'player', team_id: teamId },
-            { onConflict: 'user_id,role,team_id', ignoreDuplicates: true })
-  if (roleErr) throw roleErr
-
-  const { error: claimErr } = await supabase
-    .from('player_claims')
-    .update({ status: 'approved', reviewed_at: new Date().toISOString(), reviewed_by: user?.id ?? null })
-    .eq('id', claim.id)
-  if (claimErr) throw claimErr
 }
 
 export async function rejectClaim(claimId) {
-  const { data: { user } } = await supabase.auth.getUser()
-  const { error } = await supabase
-    .from('player_claims')
-    .update({ status: 'rejected', reviewed_at: new Date().toISOString(), reviewed_by: user?.id ?? null })
-    .eq('id', claimId)
-  if (error) throw error
+  const { error } = await supabase.rpc('reject_claim', { p_claim_id: claimId })
+  if (error) {
+    if (/not authorized/i.test(error.message || '')) throw new Error('not-authorized')
+    throw error
+  }
 }

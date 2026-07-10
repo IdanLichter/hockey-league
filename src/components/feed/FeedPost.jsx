@@ -1,12 +1,15 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Link } from "react-router-dom"
 import { motion, AnimatePresence } from "framer-motion"
 import { format } from "date-fns"
-import { Crown, Flame, Trophy, MapPin, FileText, ChevronDown, Heart, MessageCircle, Send, Loader2, Camera, ExternalLink, BadgeCheck } from "lucide-react"
+import { Crown, Flame, Trophy, MapPin, FileText, ChevronDown, Heart, MessageCircle, Send, Loader2, Camera, ExternalLink, BadgeCheck, Check, RefreshCw } from "lucide-react"
 import TeamLogo from "@/components/TeamLogo"
 import { useAuth } from "@/lib/AuthContext"
-import { likePost, unlikePost, getComments, createComment } from "@/lib/api"
+import { likePost, unlikePost, getComments, createComment, editPost, deletePost, editComment, deleteComment } from "@/lib/api"
+import { setPhotoOverride } from "@/lib/photoOverrides"
 import ReactionBar from "@/components/feed/ReactionBar"
+import ModerationMenu from "@/components/feed/ModerationMenu"
+import { TARGET_POST, TARGET_COMMENT } from "@/lib/moderation"
 
 function Avatar({ url, name, className = "w-9 h-9" }) {
   const initial = (name || "?").trim().charAt(0).toUpperCase() || "?"
@@ -48,21 +51,74 @@ const fade = {
 /* ---- Auto-matched game photo (players' faces) attached to an event ---- */
 const sizedUrl = (url, w = 1280) => (url ? url.replace(/=w\d+(-h\d+)?.*$/, `=w${w}`) : url)
 
-function EventPhoto({ photo }) {
-  if (!photo || !photo.image_url) return null
-  const caption = [photo.album_title, photo.album_date && fmtDate(photo.album_date)]
+function EventPhoto({ photo, itemKey, candidates = [], onRefreshed }) {
+  const { isAdmin } = useAuth()
+  const [current, setCurrent] = useState(photo)
+  const [busy, setBusy] = useState(false)
+  const [failed, setFailed] = useState(false)
+
+  // Re-sync when the parent re-resolves this card (e.g. after the overrides map updates).
+  useEffect(() => { setCurrent(photo) }, [photo])
+
+  if (!current || !current.image_url) return null
+
+  const caption = [current.album_title, current.album_date && fmtDate(current.album_date)]
     .filter(Boolean).join(" · ")
+  const canCycle = candidates.length >= 2
+
+  // Advance to the NEXT candidate (wrapping to 0 at the end; an unknown current → 0),
+  // pin it for everyone, and update the displayed photo optimistically.
+  const cycle = async () => {
+    if (!canCycle || busy) return
+    const idx = candidates.findIndex(c => c.photo_id === current.photo_id)
+    const next = candidates[(idx + 1) % candidates.length]
+    if (!next || next.photo_id === current.photo_id) return
+    const prev = current
+    setFailed(false); setBusy(true); setCurrent(next)
+    try {
+      await setPhotoOverride(itemKey, next.photo_id)
+      onRefreshed?.(itemKey, next)
+    } catch {
+      setCurrent(prev); setFailed(true)
+    } finally {
+      setBusy(false)
+    }
+  }
+
   return (
-    <a href={photo.detail_url} target="_blank" rel="noopener noreferrer"
-       className="group block relative mt-3 rounded-xl overflow-hidden bg-slate-900">
-      <img src={sizedUrl(photo.image_url)} alt="" loading="lazy"
-           className="w-full max-h-80 object-cover transition-transform duration-500 group-hover:scale-[1.02]" />
-      <div className="absolute inset-x-0 bottom-0 flex items-center gap-1.5 bg-gradient-to-t from-black/75 via-black/30 to-transparent px-3 pt-6 pb-2">
-        <Camera className="w-3.5 h-3.5 text-white/80 shrink-0" />
-        <span className="text-[11px] font-medium text-white/90 truncate">{caption}</span>
-        <ExternalLink className="w-3 h-3 text-white/50 mr-auto shrink-0" />
-      </div>
-    </a>
+    <div className="relative mt-3">
+      <a href={current.detail_url} target="_blank" rel="noopener noreferrer"
+         className="group block relative rounded-xl overflow-hidden bg-slate-900">
+        <img src={sizedUrl(current.image_url)} alt="" loading="lazy"
+             className="w-full max-h-80 object-cover transition-transform duration-500 group-hover:scale-[1.02]" />
+        <div className="absolute inset-x-0 bottom-0 flex items-center gap-1.5 bg-gradient-to-t from-black/75 via-black/30 to-transparent px-3 pt-6 pb-2">
+          <Camera className="w-3.5 h-3.5 text-white/80 shrink-0" />
+          <span className="text-[11px] font-medium text-white/90 truncate">{caption}</span>
+          <ExternalLink className="w-3 h-3 text-white/50 mr-auto shrink-0" />
+        </div>
+      </a>
+
+      {/* Admin-only: swap the auto-matched photo for the next candidate. */}
+      {isAdmin && (
+        <div className="absolute top-2 left-2 flex items-center gap-2">
+          <button
+            type="button"
+            onClick={cycle}
+            disabled={!canCycle || busy}
+            title={canCycle ? "החלף תמונה" : "אין תמונה חלופית"}
+            aria-label="החלף תמונה"
+            className="w-8 h-8 rounded-full bg-black/55 text-white flex items-center justify-center hover:bg-black/75 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            <RefreshCw className={`w-4 h-4 ${busy ? "animate-spin" : ""}`} />
+          </button>
+          {failed && (
+            <span className="text-[11px] font-medium text-white bg-red-600/90 rounded-md px-2 py-1">
+              השמירה נכשלה
+            </span>
+          )}
+        </div>
+      )}
+    </div>
   )
 }
 
@@ -82,7 +138,7 @@ function ScoreBlock({ away, home, awayWin, homeWin }) {
 }
 
 /* ============ CHAMPION ============ */
-function ChampionPost({ post, likedItems, itemLikeCounts, itemCommentCounts }) {
+function ChampionPost({ post, likedItems, itemLikeCounts, itemCommentCounts, blockedIds, onPhotoRefreshed }) {
   const { team, seasonName } = post.data
   return (
     <motion.div {...fade} className="card p-5 border-amber-200 dark:border-amber-800 bg-gradient-to-l from-amber-50 to-white dark:from-amber-950/30 dark:to-slate-800">
@@ -103,14 +159,14 @@ function ChampionPost({ post, likedItems, itemLikeCounts, itemCommentCounts }) {
         </div>
         <Trophy className="w-8 h-8 text-amber-400 shrink-0" />
       </div>
-      <EventPhoto photo={post.data.photo} />
-      <ReactionBar itemKey={post.id} liked={likedItems?.has?.(post.id)} likeCount={itemLikeCounts?.[post.id] || 0} commentCount={itemCommentCounts?.[post.id] || 0} />
+      <EventPhoto photo={post.data.photo} itemKey={post.id} candidates={post.data.photoCandidates} onRefreshed={onPhotoRefreshed} />
+      <ReactionBar itemKey={post.id} liked={likedItems?.has?.(post.id)} likeCount={itemLikeCounts?.[post.id] || 0} commentCount={itemCommentCounts?.[post.id] || 0} blockedIds={blockedIds} />
     </motion.div>
   )
 }
 
 /* ============ TOP SCORER ============ */
-function TopScorerPost({ post, likedItems, itemLikeCounts, itemCommentCounts }) {
+function TopScorerPost({ post, likedItems, itemLikeCounts, itemCommentCounts, blockedIds, onPhotoRefreshed }) {
   const { player, team, goals } = post.data
   return (
     <motion.div {...fade} className="card p-5">
@@ -136,8 +192,8 @@ function TopScorerPost({ post, likedItems, itemLikeCounts, itemCommentCounts }) 
           <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-1">שערים</p>
         </div>
       </div>
-      <EventPhoto photo={post.data.photo} />
-      <ReactionBar itemKey={post.id} liked={likedItems?.has?.(post.id)} likeCount={itemLikeCounts?.[post.id] || 0} commentCount={itemCommentCounts?.[post.id] || 0} />
+      <EventPhoto photo={post.data.photo} itemKey={post.id} candidates={post.data.photoCandidates} onRefreshed={onPhotoRefreshed} />
+      <ReactionBar itemKey={post.id} liked={likedItems?.has?.(post.id)} likeCount={itemLikeCounts?.[post.id] || 0} commentCount={itemCommentCounts?.[post.id] || 0} blockedIds={blockedIds} />
     </motion.div>
   )
 }
@@ -145,7 +201,7 @@ function TopScorerPost({ post, likedItems, itemLikeCounts, itemCommentCounts }) 
 /* ============ GAME RESULT ============ */
 const statusPill = "stat-pill bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-400"
 
-function GameResultPost({ post, playersMap, teamsMap, likedItems, itemLikeCounts, itemCommentCounts }) {
+function GameResultPost({ post, playersMap, teamsMap, likedItems, itemLikeCounts, itemCommentCounts, blockedIds, onPhotoRefreshed }) {
   const [open, setOpen] = useState(false)
   const { game, home, away, stats } = post.data
   const teamName = (id) => teamsMap[id]?.name || '—'
@@ -217,7 +273,7 @@ function GameResultPost({ post, playersMap, teamsMap, likedItems, itemLikeCounts
           )}
         </div>
 
-        <EventPhoto photo={post.data.photo} />
+        <EventPhoto photo={post.data.photo} itemKey={post.id} candidates={post.data.photoCandidates} onRefreshed={onPhotoRefreshed} />
       </div>
 
       {/* Expanded box score */}
@@ -282,14 +338,14 @@ function GameResultPost({ post, playersMap, teamsMap, likedItems, itemLikeCounts
       </AnimatePresence>
 
       <div className="px-4 sm:px-5 pb-4">
-        <ReactionBar itemKey={post.id} liked={likedItems?.has?.(post.id)} likeCount={itemLikeCounts?.[post.id] || 0} commentCount={itemCommentCounts?.[post.id] || 0} />
+        <ReactionBar itemKey={post.id} liked={likedItems?.has?.(post.id)} likeCount={itemLikeCounts?.[post.id] || 0} commentCount={itemCommentCounts?.[post.id] || 0} blockedIds={blockedIds} />
       </div>
     </motion.div>
   )
 }
 
 /* ============ MILESTONE ============ */
-function MilestonePost({ post, likedItems, itemLikeCounts, itemCommentCounts }) {
+function MilestonePost({ post, likedItems, itemLikeCounts, itemCommentCounts, blockedIds, onPhotoRefreshed }) {
   const { kind, name, playerId, teamName, goals, home, away, game } = post.data
   const bigGame = kind === 'big_game'
   const emoji = bigGame ? '🔥' : '🎩'
@@ -316,14 +372,14 @@ function MilestonePost({ post, likedItems, itemLikeCounts, itemCommentCounts }) 
         <span dir="ltr" className="tabular-nums">{game.away_score} : {game.home_score}</span>{' '}
         <TeamLink team={away} className="hover:text-orange-500 transition-colors">{away?.name}</TeamLink>
       </p>
-      <EventPhoto photo={post.data.photo} />
-      <ReactionBar itemKey={post.id} liked={likedItems?.has?.(post.id)} likeCount={itemLikeCounts?.[post.id] || 0} commentCount={itemCommentCounts?.[post.id] || 0} />
+      <EventPhoto photo={post.data.photo} itemKey={post.id} candidates={post.data.photoCandidates} onRefreshed={onPhotoRefreshed} />
+      <ReactionBar itemKey={post.id} liked={likedItems?.has?.(post.id)} likeCount={itemLikeCounts?.[post.id] || 0} commentCount={itemCommentCounts?.[post.id] || 0} blockedIds={blockedIds} />
     </motion.div>
   )
 }
 
 /* ============ HUMAN POST (Stage B2 + likes/comments) ============ */
-function PostCard({ post, likedPostIds }) {
+function PostCard({ post, likedPostIds, blockedIds }) {
   const { user, openAuth } = useAuth()
   const { post: p, author, team } = post.data
   const name = author?.display_name || "חבר/ת הליגה"
@@ -338,6 +394,57 @@ function PostCard({ post, likedPostIds }) {
   const [loadingComments, setLoadingComments] = useState(false)
   const [newComment, setNewComment] = useState("")
   const [posting, setPosting] = useState(false)
+
+  // ---- Moderation (edit / soft-delete) for this post ----
+  const [postBody, setPostBody] = useState(p.body)
+  const [editingPost, setEditingPost] = useState(false)
+  const [postDraft, setPostDraft] = useState(p.body)
+  const [savingPost, setSavingPost] = useState(false)
+  const [removed, setRemoved] = useState(false)   // optimistic delete → hide the whole card
+  const [rowError, setRowError] = useState(null)
+
+  // ---- Moderation for comments ----
+  const [editingCommentId, setEditingCommentId] = useState(null)
+  const [commentDraft, setCommentDraft] = useState("")
+  const [savingComment, setSavingComment] = useState(false)
+
+  const startEditPost = () => { setPostDraft(postBody); setRowError(null); setEditingPost(true) }
+  const saveEditPost = async () => {
+    const text = postDraft.trim()
+    if (!text || savingPost) return
+    setSavingPost(true); setRowError(null)
+    try {
+      await editPost(p.id, text)
+      setPostBody(text); setEditingPost(false)
+    } catch { setRowError("עריכה נכשלה, נסו שוב") }
+    finally { setSavingPost(false) }
+  }
+  const handleDeletePost = async () => {
+    setRemoved(true); setRowError(null)
+    try { await deletePost(p.id) }
+    catch { setRemoved(false); setRowError("מחיקה נכשלה, נסו שוב") }
+  }
+
+  const saveEditComment = async (c) => {
+    const text = commentDraft.trim()
+    if (!text || savingComment) return
+    setSavingComment(true)
+    try {
+      await editComment(c.id, text)
+      setComments(cs => cs.map(x => x.id === c.id ? { ...x, body: text } : x))
+      setEditingCommentId(null)
+    } catch { /* keep the editor open on failure */ }
+    finally { setSavingComment(false) }
+  }
+  const handleDeleteComment = async (c) => {
+    const prev = comments
+    setComments(cs => cs.filter(x => x.id !== c.id))
+    setCommentCount(n => Math.max(0, n - 1))
+    try { await deleteComment(c.id) }
+    catch { setComments(prev); setCommentCount(n => n + 1) }
+  }
+
+  const visibleComments = comments.filter(c => !blockedIds?.has?.(c.author_id))
 
   const toggleLike = async () => {
     if (!user) { openAuth(); return }
@@ -377,6 +484,8 @@ function PostCard({ post, likedPostIds }) {
     finally { setPosting(false) }
   }
 
+  if (removed) return null
+
   return (
     <motion.div {...fade} className="card p-4">
       {/* Author header */}
@@ -402,10 +511,40 @@ function PostCard({ post, likedPostIds }) {
             {team && <>·<TeamLink team={team} className="hover:text-orange-500 transition-colors">{team.name}</TeamLink></>}
           </p>
         </div>
+        <ModerationMenu
+          targetType={TARGET_POST}
+          targetId={p.id}
+          authorId={p.author_id}
+          onEdit={startEditPost}
+          onDelete={handleDeletePost}
+        />
       </div>
 
-      {/* Body */}
-      <p className="text-sm text-slate-700 dark:text-slate-200 whitespace-pre-wrap break-words leading-relaxed">{p.body}</p>
+      {/* Body (inline-editable for the author / admins) */}
+      {editingPost ? (
+        <div>
+          <textarea
+            value={postDraft}
+            onChange={e => setPostDraft(e.target.value.slice(0, 2000))}
+            rows={3}
+            autoFocus
+            className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500 resize-none"
+          />
+          <div className="flex items-center gap-2 mt-2">
+            <button onClick={saveEditPost} disabled={savingPost || !postDraft.trim()}
+              className="flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg bg-orange-500 text-white hover:bg-orange-600 transition-colors disabled:opacity-50">
+              {savingPost ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />} שמירה
+            </button>
+            <button onClick={() => setEditingPost(false)} disabled={savingPost}
+              className="text-xs font-semibold px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-600 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors disabled:opacity-50">
+              ביטול
+            </button>
+          </div>
+        </div>
+      ) : (
+        <p className="text-sm text-slate-700 dark:text-slate-200 whitespace-pre-wrap break-words leading-relaxed">{postBody}</p>
+      )}
+      {rowError && <p className="text-xs text-red-500 mt-2">{rowError}</p>}
 
       {/* Actions */}
       <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-700/50 flex items-center gap-5 text-xs">
@@ -428,7 +567,7 @@ function PostCard({ post, likedPostIds }) {
                 <div className="flex justify-center py-2"><Loader2 className="w-4 h-4 animate-spin text-slate-400" /></div>
               ) : (
                 <>
-                  {comments.map(c => (
+                  {visibleComments.map(c => (
                     <div key={c.id} className="flex items-start gap-2.5">
                       <PlayerLink playerId={c.author?.player_id} className="shrink-0">
                         <Avatar url={c.author?.avatar_url} name={c.author?.display_name} className="w-8 h-8" />
@@ -437,11 +576,40 @@ function PostCard({ post, likedPostIds }) {
                         <PlayerLink playerId={c.author?.player_id} className="w-fit max-w-full">
                           <p className={`text-xs font-bold text-slate-900 dark:text-white truncate ${c.author?.player_id ? "hover:text-orange-500 transition-colors" : ""}`}>{c.author?.display_name || "חבר/ת הליגה"}</p>
                         </PlayerLink>
-                        <p className="text-xs text-slate-700 dark:text-slate-200 whitespace-pre-wrap break-words">{c.body}</p>
+                        {editingCommentId === c.id ? (
+                          <div className="mt-1">
+                            <textarea
+                              value={commentDraft}
+                              onChange={e => setCommentDraft(e.target.value.slice(0, 1000))}
+                              rows={2}
+                              autoFocus
+                              className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1.5 text-xs text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500 resize-none"
+                            />
+                            <div className="flex items-center gap-2 mt-1.5">
+                              <button onClick={() => saveEditComment(c)} disabled={savingComment || !commentDraft.trim()}
+                                className="flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-lg bg-orange-500 text-white hover:bg-orange-600 transition-colors disabled:opacity-50">
+                                {savingComment ? <Loader2 className="w-3 h-3 animate-spin" /> : null} שמירה
+                              </button>
+                              <button onClick={() => setEditingCommentId(null)} disabled={savingComment}
+                                className="text-[11px] font-semibold px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-600 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors disabled:opacity-50">
+                                ביטול
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <p className="text-xs text-slate-700 dark:text-slate-200 whitespace-pre-wrap break-words">{c.body}</p>
+                        )}
                       </div>
+                      <ModerationMenu
+                        targetType={TARGET_COMMENT}
+                        targetId={c.id}
+                        authorId={c.author_id}
+                        onEdit={() => { setEditingCommentId(c.id); setCommentDraft(c.body) }}
+                        onDelete={() => handleDeleteComment(c)}
+                      />
                     </div>
                   ))}
-                  {comments.length === 0 && <p className="text-center text-xs text-slate-400 dark:text-slate-500 py-1">היו הראשונים להגיב</p>}
+                  {visibleComments.length === 0 && <p className="text-center text-xs text-slate-400 dark:text-slate-500 py-1">היו הראשונים להגיב</p>}
 
                   {user ? (
                     <form onSubmit={submitComment} className="flex items-center gap-2 pt-1">
@@ -469,8 +637,8 @@ function PostCard({ post, likedPostIds }) {
 }
 
 /* ============ Dispatcher ============ */
-export default function FeedPost({ post, playersMap, teamsMap, likedPostIds, likedItems, itemLikeCounts, itemCommentCounts }) {
-  const rx = { likedItems, itemLikeCounts, itemCommentCounts }
+export default function FeedPost({ post, playersMap, teamsMap, likedPostIds, likedItems, itemLikeCounts, itemCommentCounts, blockedIds, onPhotoRefreshed }) {
+  const rx = { likedItems, itemLikeCounts, itemCommentCounts, blockedIds, onPhotoRefreshed }
   switch (post.type) {
     case 'champion':
       return <ChampionPost post={post} {...rx} />
@@ -481,7 +649,7 @@ export default function FeedPost({ post, playersMap, teamsMap, likedPostIds, lik
     case 'milestone':
       return <MilestonePost post={post} {...rx} />
     case 'post':
-      return <PostCard post={post} likedPostIds={likedPostIds} />
+      return <PostCard post={post} likedPostIds={likedPostIds} blockedIds={blockedIds} />
     default:
       return null
   }

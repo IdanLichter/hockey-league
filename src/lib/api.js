@@ -96,6 +96,17 @@ export async function deletePost(id) {
   if (error) throw error
 }
 
+export async function editPost(id, body) {
+  // posts.body CHECK: 1..2000 chars. `updated_at` exists (auto-touched by trigger too).
+  const trimmed = (body || '').trim().slice(0, 2000)
+  if (!trimmed) throw new Error('empty body')
+  const { error } = await supabase
+    .from('posts')
+    .update({ body: trimmed, updated_at: new Date().toISOString() })
+    .eq('id', id)
+  if (error) throw error
+}
+
 // --- Likes ---
 export async function getMyLikes() {
   const { data: { user } } = await supabase.auth.getUser()
@@ -145,6 +156,14 @@ export async function createComment(postId, body) {
 
 export async function deleteComment(id) {
   const { error } = await supabase.from('comments').update({ deleted_at: new Date().toISOString() }).eq('id', id)
+  if (error) throw error
+}
+
+export async function editComment(id, body) {
+  // comments.body CHECK: 1..1000 chars. The comments table has NO updated_at column, so set body only.
+  const trimmed = (body || '').trim().slice(0, 1000)
+  if (!trimmed) throw new Error('empty body')
+  const { error } = await supabase.from('comments').update({ body: trimmed }).eq('id', id)
   if (error) throw error
 }
 

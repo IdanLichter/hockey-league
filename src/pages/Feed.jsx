@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef, useMemo } from "react"
 import { getGames, getTeams, getPlayers, getGameStats, getLeagueSetting, getPosts, getMyLikes } from "@/lib/api"
 import { getItemLikes, getItemCommentCounts } from "@/lib/reactions"
+import { getMyBlocks } from "@/lib/moderation"
+import { useAuth } from "@/lib/AuthContext"
 import { RefreshCw } from "lucide-react"
 import { Rink } from "@/components/icons/HockeyIcons"
 import { motion } from "framer-motion"
@@ -8,6 +10,7 @@ import { useSeasonMode } from "@/App"
 import { buildFeed } from "@/lib/feed"
 import { attachEventPhotos } from "@/lib/eventPhotos"
 import { getPhotoIndex } from "@/lib/media"
+import { getPhotoOverrides } from "@/lib/photoOverrides"
 import FeedPost from "@/components/feed/FeedPost"
 import Composer from "@/components/feed/Composer"
 import FeedFilters, { matchesFilter } from "@/components/feed/FeedFilters"
@@ -18,16 +21,19 @@ const PAGE_SIZE = 25
 
 export default function Feed() {
   const { seasonMode } = useSeasonMode()
+  const { user } = useAuth()
   const [games, setGames] = useState([])
   const [teams, setTeams] = useState([])
   const [players, setPlayers] = useState([])
   const [gameStats, setGameStats] = useState([])
   const [posts, setPosts] = useState([])
   const [photoIndex, setPhotoIndex] = useState({ photos: [], photoPlayers: [] })
+  const [photoOverrides, setPhotoOverrides] = useState({})
   const [likedPostIds, setLikedPostIds] = useState(() => new Set())
   const [likedItems, setLikedItems] = useState(() => new Set())
   const [itemLikeCounts, setItemLikeCounts] = useState({})
   const [itemCommentCounts, setItemCommentCounts] = useState({})
+  const [blockedIds, setBlockedIds] = useState(() => new Set())
   const [championId, setChampionId] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -44,10 +50,21 @@ export default function Feed() {
     getItemCommentCounts().then(setItemCommentCounts).catch(() => {})
   }, [])
 
+  // The viewer's block list — loaded only when signed in (skips the round trip for
+  // guests). Used to hide blocked authors' posts + comments across the feed.
+  useEffect(() => {
+    if (!user) { setBlockedIds(new Set()); return }
+    let alive = true
+    getMyBlocks().then(ids => { if (alive) setBlockedIds(new Set(ids)) }).catch(() => {})
+    return () => { alive = false }
+  }, [user])
+
   // The photo index is heavy (thousands of rows) and only decorates cards, so it
   // loads separately — the feed paints immediately and photos fill in a moment later.
+  // The admin photo overrides ride alongside it (a public read → guests get them too).
   useEffect(() => {
     getPhotoIndex().then(setPhotoIndex).catch(() => {})
+    getPhotoOverrides().then(setPhotoOverrides).catch(() => {})
   }, [])
 
   const loadData = async () => {
@@ -70,11 +87,13 @@ export default function Feed() {
   // Rebuilds only when the underlying data changes — not on every scroll/like re-render.
   const feed = useMemo(() => attachEventPhotos(
     buildFeed({
-      games, teams, players, gameStats, humanPosts: posts,
+      games, teams, players, gameStats,
+      humanPosts: posts.filter(p => !blockedIds.has(p.author_id)),
       championId, seasonName: SEASON_NAME, seasonMode,
     }),
-    { photos: photoIndex.photos, photoPlayers: photoIndex.photoPlayers, players }
-  ), [games, teams, players, gameStats, posts, championId, seasonMode, photoIndex])
+    { photos: photoIndex.photos, photoPlayers: photoIndex.photoPlayers, players },
+    photoOverrides
+  ), [games, teams, players, gameStats, posts, championId, seasonMode, photoIndex, blockedIds, photoOverrides])
 
   const counts = useMemo(() => ({
     all: feed.length,
@@ -85,6 +104,12 @@ export default function Feed() {
 
   const handlePosted = (newPost) => {
     if (newPost) setPosts(prev => [newPost, ...prev])
+  }
+
+  // An admin refreshed a card's photo — mirror the new pin into the overrides map so
+  // the memo re-resolves that card in place (no refetch). photo === null → "no photo".
+  const handlePhotoRefreshed = (itemKey, photo) => {
+    setPhotoOverrides(prev => ({ ...prev, [itemKey]: photo?.photo_id ?? null }))
   }
 
   const filtered = feed.filter(p => matchesFilter(p, filter))
@@ -162,7 +187,7 @@ export default function Feed() {
           ) : (
             <div className="space-y-5">
               {visible.map(post => (
-                <FeedPost key={post.id} post={post} playersMap={playersMap} teamsMap={teamsMap} likedPostIds={likedPostIds} likedItems={likedItems} itemLikeCounts={itemLikeCounts} itemCommentCounts={itemCommentCounts} />
+                <FeedPost key={post.id} post={post} playersMap={playersMap} teamsMap={teamsMap} likedPostIds={likedPostIds} likedItems={likedItems} itemLikeCounts={itemLikeCounts} itemCommentCounts={itemCommentCounts} blockedIds={blockedIds} onPhotoRefreshed={handlePhotoRefreshed} />
               ))}
             </div>
           )}

@@ -16,7 +16,7 @@ import {
 import {
   Shield, Calendar, UserCheck, Users, Settings, LogOut, Trash2, Plus,
   Pencil, X, Check, Save, ChevronDown, UserPlus, Crown, Trophy,
-  Archive, AlertTriangle, Image
+  Archive, AlertTriangle, Image, Flag
 } from "lucide-react"
 import { motion } from "framer-motion"
 import TeamLogo from "@/components/TeamLogo"
@@ -26,6 +26,7 @@ import PosterGenerator from "@/components/PosterGenerator"
 import ClaimsReview from "@/components/admin/ClaimsReview"
 import SuggestionsReview from "@/components/admin/SuggestionsReview"
 import RolesAdmin from "@/components/admin/RolesAdmin"
+import ReportsReview from "@/components/admin/ReportsReview"
 import WhatsNew from "@/components/admin/WhatsNew"
 import { Award } from "lucide-react"
 import { BRAND_ORANGE } from '@/lib/brand'
@@ -36,14 +37,27 @@ const tabs = [
   { id: "teams", label: "קבוצות", icon: Users },
   { id: "season", label: "עונה", icon: Archive },
   { id: "claims", label: "בקשות", icon: UserPlus },
+  { id: "reports", label: "דיווחים", icon: Flag },
   { id: "roles", label: "תפקידים", icon: Award },
   { id: "users", label: "מנהלים", icon: Crown },
 ]
 
 export default function Admin() {
-  const { user, isAdmin, loading: authLoading, signOut } = useAuth()
+  const { user, isAdmin, coachTeamIds, loading: authLoading, signOut } = useAuth()
   const navigate = useNavigate()
-  const [activeTab, setActiveTab] = useState("games")
+  // A non-admin coach may enter, but only sees the players + claims tabs (both
+  // scoped to their own team). Admins keep the full, unchanged tab set. Branch
+  // on isAdmin FIRST — an admin has coachTeamIds === [] but full access.
+  const canManage = isAdmin || coachTeamIds.length > 0
+  const isCoachOnly = !isAdmin && coachTeamIds.length > 0
+  const visibleTabs = isCoachOnly ? tabs.filter(t => t.id === "players" || t.id === "claims") : tabs
+  const [activeTab, setActiveTab] = useState(visibleTabs[0].id)
+  // Auth may still be loading when this mounts (e.g. the OAuth redirect lands on
+  // /admin), so coachTeamIds can arrive after the initial render. Derive the tab
+  // actually shown: if the stored one isn't visible for this role, fall back to
+  // the first visible tab — keeps a coach off the (hidden) games tab and an admin
+  // on games.
+  const currentTab = visibleTabs.some(t => t.id === activeTab) ? activeTab : visibleTabs[0].id
   const [teams, setTeams] = useState([])
   const [players, setPlayers] = useState([])
   const [games, setGames] = useState([])
@@ -52,9 +66,9 @@ export default function Admin() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    if (!authLoading && (!user || !isAdmin)) return
+    if (!authLoading && (!user || !canManage)) return
     loadData()
-  }, [authLoading, user, isAdmin])
+  }, [authLoading, user, isAdmin, coachTeamIds.length])
 
   const loadData = async () => {
     try {
@@ -75,7 +89,7 @@ export default function Admin() {
     )
   }
 
-  if (!user || !isAdmin) {
+  if (!user || !canManage) {
     return <AccessDenied />
   }
 
@@ -102,8 +116,8 @@ export default function Admin() {
       <div className="lg:grid lg:grid-cols-[210px_minmax(0,1fr)] lg:gap-6 lg:items-start">
         <aside className="lg:sticky lg:top-20 self-start mb-4 lg:mb-0">
           <nav className="card p-2 flex lg:flex-col gap-1 overflow-x-auto lg:overflow-visible [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            {tabs.map(tab => {
-              const active = activeTab === tab.id
+            {visibleTabs.map(tab => {
+              const active = currentTab === tab.id
               return (
                 <button key={tab.id} onClick={() => setActiveTab(tab.id)}
                   className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all whitespace-nowrap shrink-0 lg:w-full ${
@@ -126,13 +140,14 @@ export default function Admin() {
             </div>
           ) : (
             <>
-              {activeTab === "games" && <GamesAdmin games={games} teams={teams} players={players} teamsMap={teamsMap} gameStats={gameStats} reload={loadData} />}
-              {activeTab === "players" && <PlayersAdmin players={players} teams={teams} teamsMap={teamsMap} reload={loadData} />}
-              {activeTab === "teams" && <TeamsAdmin teams={teams} reload={loadData} />}
-              {activeTab === "season" && <SeasonAdmin games={games} teams={teams} players={players} reload={loadData} />}
-              {activeTab === "claims" && <><ClaimsReview teamsMap={teamsMap} /><SuggestionsReview players={players} /></>}
-              {activeTab === "roles" && <RolesAdmin teamsMap={teamsMap} players={players} />}
-              {activeTab === "users" && <UsersAdmin adminUsers={adminUsers} currentUserEmail={user.email} reload={loadData} />}
+              {currentTab === "games" && <GamesAdmin games={games} teams={teams} players={players} teamsMap={teamsMap} gameStats={gameStats} reload={loadData} />}
+              {currentTab === "players" && <PlayersAdmin players={players} teams={teams} teamsMap={teamsMap} reload={loadData} coachTeamIds={isCoachOnly ? coachTeamIds : null} />}
+              {currentTab === "teams" && <TeamsAdmin teams={teams} reload={loadData} />}
+              {currentTab === "season" && <SeasonAdmin games={games} teams={teams} players={players} reload={loadData} />}
+              {currentTab === "claims" && <><ClaimsReview teamsMap={teamsMap} coachTeamIds={isCoachOnly ? coachTeamIds : null} />{isAdmin && <SuggestionsReview players={players} />}</>}
+              {currentTab === "reports" && <ReportsReview />}
+              {currentTab === "roles" && <RolesAdmin teamsMap={teamsMap} players={players} />}
+              {currentTab === "users" && <UsersAdmin adminUsers={adminUsers} currentUserEmail={user.email} reload={loadData} />}
             </>
           )}
         </div>
@@ -627,7 +642,13 @@ function GameStatsEditor({ game, players, teamsMap, existingStats, reload }) {
 }
 
 // ============ PLAYERS ADMIN ============
-function PlayersAdmin({ players, teams, teamsMap, reload }) {
+function PlayersAdmin({ players, teams, teamsMap, reload, coachTeamIds = null }) {
+  // Non-admin coach: roster is filtered to their team(s) and the team field is
+  // locked to their team. Cosmetic scoping only — the players RLS policies are
+  // the real gate. Admins pass coachTeamIds={null} and see the unchanged UI.
+  const coachScoped = Array.isArray(coachTeamIds) && coachTeamIds.length > 0
+  const teamOptions = coachScoped ? teams.filter(t => coachTeamIds.includes(t.id)) : teams
+  const lockedTeamId = coachScoped && teamOptions.length === 1 ? teamOptions[0].id : ''
   const [showForm, setShowForm] = useState(false)
   const [editingPlayer, setEditingPlayer] = useState(null)
   const [saving, setSaving] = useState(false)
@@ -635,14 +656,14 @@ function PlayersAdmin({ players, teams, teamsMap, reload }) {
   const [feedback, setFeedback] = useState(null) // { type: 'ok' | 'err', text } — makes save success/failure impossible to miss
   const [form, setForm] = useState({
     first_name: '', last_name: '', jersey_number: '', position: 'Field Player',
-    team_id: '', is_referee: false, is_core: false, goals: 0, games_played: 0,
+    team_id: lockedTeamId, is_referee: false, is_core: false, goals: 0, games_played: 0,
     blue_cards: 0, red_cards: 0
   })
 
   const resetForm = () => {
     setForm({
       first_name: '', last_name: '', jersey_number: '', position: 'Field Player',
-      team_id: '', is_referee: false, is_core: false, goals: 0, games_played: 0,
+      team_id: lockedTeamId, is_referee: false, is_core: false, goals: 0, games_played: 0,
       blue_cards: 0, red_cards: 0
     })
     setEditingPlayer(null)
@@ -712,7 +733,8 @@ function PlayersAdmin({ players, teams, teamsMap, reload }) {
   }
 
   const filtered = players.filter(p =>
-    !searchTerm || `${p.first_name} ${p.last_name}`.includes(searchTerm)
+    (!coachScoped || coachTeamIds.includes(p.team_id)) &&
+    (!searchTerm || `${p.first_name} ${p.last_name}`.includes(searchTerm))
   )
 
   return (
@@ -772,9 +794,9 @@ function PlayersAdmin({ players, teams, teamsMap, reload }) {
             </div>
             <div>
               <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1 block">קבוצה</label>
-              <select value={form.team_id} onChange={e => setForm({ ...form, team_id: e.target.value })} className="filter-select w-full">
+              <select value={form.team_id} onChange={e => setForm({ ...form, team_id: e.target.value })} className="filter-select w-full disabled:opacity-60 disabled:cursor-not-allowed" disabled={coachScoped && teamOptions.length === 1}>
                 <option value="">בחר קבוצה</option>
-                {teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                {teamOptions.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
               </select>
             </div>
             <div className="flex items-center gap-4 pt-5">

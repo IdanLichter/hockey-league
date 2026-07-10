@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react"
-import { getProfiles, getAllRoles, grantRole, revokeRole, ROLES, ROLE_LABEL, TEAM_SCOPED } from "@/lib/roles"
+import { getProfiles, getAllRoles, grantRole, revokeRole, GRANTABLE_ROLES, ROLE_LABEL, TEAM_SCOPED } from "@/lib/roles"
 import { Award, X, Plus, RefreshCw, Check, Loader2, Search } from "lucide-react"
 
 /**
@@ -148,7 +148,7 @@ export default function RolesAdmin({ teamsMap = {}, players = [] }) {
                 {form?.profileId === p.id && (
                   <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-700 flex flex-wrap items-center gap-2">
                     <select value={form.role} onChange={e => setForm(f => ({ ...f, role: e.target.value }))} className="filter-select text-xs py-1.5">
-                      {ROLES.map(r => <option key={r} value={r}>{ROLE_LABEL[r]}</option>)}
+                      {GRANTABLE_ROLES.map(r => <option key={r} value={r}>{ROLE_LABEL[r]}</option>)}
                     </select>
                     {TEAM_SCOPED.has(form.role) && (
                       <select value={form.teamId} onChange={e => setForm(f => ({ ...f, teamId: e.target.value }))} className="filter-select text-xs py-1.5">

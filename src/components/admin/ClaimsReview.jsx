@@ -4,12 +4,22 @@ import { Check, X, UserPlus, RefreshCw } from "lucide-react"
 import { format } from "date-fns"
 import TeamLogo from "@/components/TeamLogo"
 
+// Translate claims.js error codes into the Hebrew copy shown in the queue.
+function claimErrorMessage(e, fallback) {
+  if (e?.message === "player-already-linked") return "השחקן כבר משויך לחשבון אחר"
+  if (e?.message === "not-authorized") return "אין לך הרשאה לאשר או לדחות בקשה זו"
+  return fallback
+}
+
 /**
- * Admin review queue for "claim your player" requests (Stage B1).
- * Approve → links the profile to the player + grants the 'player' role.
- * Self-contained: loads its own pending claims. `teamsMap` is only for logos.
+ * Review queue for "claim your player" requests (Stage B1). Approve/reject go
+ * through the approve_claim / reject_claim RPCs (self-gated to admins and the
+ * claimed player's coach). Self-contained: loads its own pending claims.
+ * `teamsMap` is only for logos. A non-admin coach passes `coachTeamIds` so the
+ * queue shows only claims for players on their own team (RLS already scopes the
+ * fetch; this is a matching client-side guard).
  */
-export default function ClaimsReview({ teamsMap = {} }) {
+export default function ClaimsReview({ teamsMap = {}, coachTeamIds = null }) {
   const [claims, setClaims] = useState([])
   const [loading, setLoading] = useState(true)
   const [busyId, setBusyId] = useState(null)
@@ -24,16 +34,22 @@ export default function ClaimsReview({ teamsMap = {} }) {
 
   const doApprove = async (claim) => {
     setBusyId(claim.id); setError(null)
-    try { await approveClaim(claim); await load() }
-    catch (e) { setError(e.message === "player-already-linked" ? "השחקן כבר משויך לחשבון אחר" : "שגיאה באישור הבקשה") }
+    try { await approveClaim(claim.id); await load() }
+    catch (e) { setError(claimErrorMessage(e, "שגיאה באישור הבקשה")) }
     finally { setBusyId(null) }
   }
   const doReject = async (claim) => {
     setBusyId(claim.id); setError(null)
     try { await rejectClaim(claim.id); await load() }
-    catch { setError("שגיאה בדחיית הבקשה") }
+    catch (e) { setError(claimErrorMessage(e, "שגיאה בדחיית הבקשה")) }
     finally { setBusyId(null) }
   }
+
+  // Non-admin coach: show only claims for players on their own team(s).
+  const coachScoped = Array.isArray(coachTeamIds) && coachTeamIds.length > 0
+  const visibleClaims = coachScoped
+    ? claims.filter(c => coachTeamIds.includes(c.players?.team_id))
+    : claims
 
   if (loading) {
     return (
@@ -63,14 +79,14 @@ export default function ClaimsReview({ teamsMap = {} }) {
         <div className="card p-3 border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/30 text-sm text-red-700 dark:text-red-400">{error}</div>
       )}
 
-      {claims.length === 0 ? (
+      {visibleClaims.length === 0 ? (
         <div className="card p-10 text-center">
           <UserPlus className="w-10 h-10 mx-auto text-slate-300 dark:text-slate-600 mb-2" />
           <p className="text-sm font-medium text-slate-500 dark:text-slate-400">אין בקשות בעלות ממתינות</p>
         </div>
       ) : (
         <div className="space-y-2.5">
-          {claims.map(claim => {
+          {visibleClaims.map(claim => {
             const player = claim.players
             const team = teamsMap[player?.team_id]
             const claimant = claim.profiles?.display_name || "משתמש"

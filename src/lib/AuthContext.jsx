@@ -116,6 +116,11 @@ export function AuthProvider({ children }) {
   // Does the signed-in user hold a given role? Admins implicitly pass every gate.
   const hasRole = (role) => isAdmin || roles.some(r => r.role === role)
 
+  // Team ids this user coaches (role='coach' rows carry a team_id). NOTE: an
+  // admin passes hasRole('coach') via the bypass above but has NO coach teams,
+  // so this stays empty for admins — coach-scoped code must branch on isAdmin first.
+  const coachTeamIds = roles.filter(r => r.role === 'coach' && r.team_id).map(r => r.team_id)
+
   const signInWithGoogle = async () => {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
@@ -155,7 +160,7 @@ export function AuthProvider({ children }) {
 
   return (
     <AuthContext.Provider value={{
-      user, isAdmin, roles, hasRole, profile, refreshProfile, loading, authOpen,
+      user, isAdmin, roles, hasRole, coachTeamIds, profile, refreshProfile, loading, authOpen,
       signInWithGoogle, signUpWithEmail, signInWithEmail, signOut,
       openAuth, closeAuth,
     }}>

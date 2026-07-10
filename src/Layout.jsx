@@ -63,7 +63,7 @@ export default function Layout({ children }) {
   const location = useLocation()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const { dark, toggle } = useTheme()
-  const { user, isAdmin, hasRole, profile, signOut, openAuth } = useAuth()
+  const { user, isAdmin, hasRole, coachTeamIds, profile, signOut, openAuth } = useAuth()
 
   const navItems = [
     { title: "בית", url: "/", icon: NavRink },
@@ -76,7 +76,7 @@ export default function Layout({ children }) {
     { title: "Final Four", url: "/final-four", icon: Trophy },
     { title: "ארכיון", url: "/archive", icon: Archive },
     ...(hasRole("judge") ? [{ title: "שיפוט", url: "/judge", icon: NavWhistle }] : []),
-    ...(isAdmin ? [{ title: "ניהול", url: "/admin", icon: Shield }] : []),
+    ...((isAdmin || coachTeamIds.length > 0) ? [{ title: "ניהול", url: "/admin", icon: Shield }] : []),
   ]
 
   const isActivePage = (url) =>

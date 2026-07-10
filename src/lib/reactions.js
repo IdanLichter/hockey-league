@@ -84,3 +84,17 @@ export async function createItemComment(itemKey, body) {
   if (error) throw error
   return data
 }
+
+export async function editItemComment(id, body) {
+  // feed_item_comments.body CHECK: 1..1000 chars. No updated_at column → set body only.
+  const trimmed = (body || '').trim().slice(0, 1000)
+  if (!trimmed) throw new Error('empty body')
+  const { error } = await supabase.from('feed_item_comments').update({ body: trimmed }).eq('id', id)
+  if (error) throw error
+}
+
+export async function deleteItemComment(id) {
+  // soft delete, consistent with deletePost/deleteComment
+  const { error } = await supabase.from('feed_item_comments').update({ deleted_at: new Date().toISOString() }).eq('id', id)
+  if (error) throw error
+}
