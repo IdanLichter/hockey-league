@@ -9,6 +9,7 @@ import { getLeagueSetting } from './lib/api'
 const Feed = lazy(() => import('./pages/Feed'))
 const Home = lazy(() => import('./pages/Home'))
 const Games = lazy(() => import('./pages/Games'))
+const GameDetail = lazy(() => import('./pages/GameDetail'))
 const Statistics = lazy(() => import('./pages/Statistics'))
 const Teams = lazy(() => import('./pages/Teams'))
 const TeamDetail = lazy(() => import('./pages/TeamDetail'))
@@ -59,6 +60,7 @@ function App() {
             <Route path="/" element={<Feed />} />
             <Route path="/standings" element={<Home />} />
             <Route path="/games" element={<Games />} />
+            <Route path="/games/:id" element={<GameDetail />} />
             <Route path="/statistics" element={<Statistics />} />
             <Route path="/teams" element={<Teams />} />
             <Route path="/teams/:id" element={<TeamDetail />} />

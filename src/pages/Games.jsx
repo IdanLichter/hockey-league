@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react"
 import { Link } from "react-router-dom"
 import { getGames, getTeams, getPlayers, getReferees, getGameStatsByGameId } from "@/lib/api"
-import { Calendar, Clock, MapPin, Trophy, Shield, X, FileText, ChevronDown, RefreshCw } from "lucide-react"
+import { Calendar, Clock, MapPin, Trophy, Shield, X, ChevronDown, ArrowLeft, RefreshCw } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import { format } from "date-fns"
 import TeamLogo from "@/components/TeamLogo"
+import { PlayerLink } from "@/components/EntityLinks"
 
 export default function Games() {
   const [games, setGames] = useState([])
@@ -43,13 +44,16 @@ export default function Games() {
     return ref ? `${ref.first_name} ${ref.last_name}` : null
   }
 
-  const toggleStats = async (gameId) => {
-    if (expandedGame === gameId) { setExpandedGame(null); return }
-    setExpandedGame(gameId)
-    if (statsByGame[gameId]) return
+  const toggleStats = async (game) => {
+    if (expandedGame === game.id) { setExpandedGame(null); return }
+    setExpandedGame(game.id)
+    // Only completed games have a box score to lazy-load; upcoming games just
+    // reveal their meta panel, so skip the (empty) fetch for them.
+    if (game.status !== 'completed') return
+    if (statsByGame[game.id]) return
     try {
-      const stats = await getGameStatsByGameId(gameId)
-      setStatsByGame(prev => ({ ...prev, [gameId]: stats }))
+      const stats = await getGameStatsByGameId(game.id)
+      setStatsByGame(prev => ({ ...prev, [game.id]: stats }))
     } catch (err) { console.error(err) }
   }
 
@@ -102,38 +106,47 @@ export default function Games() {
     const stats = statsByGame[game.id]
     const home = teamsMap[game.home_team_id]
     const away = teamsMap[game.away_team_id]
+    const homeWin = done && game.home_score > game.away_score
+    const awayWin = done && game.away_score > game.home_score
+    const tie = done && game.home_score === game.away_score
 
     return (
       <motion.div layout initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="card-hover overflow-hidden">
-        <div className="p-4 sm:p-5">
+        {/* Whole header is the toggle (Teams.jsx pattern). Team names are plain text
+            here — you reach the team pages from the full game page below. */}
+        <button onClick={() => toggleStats(game)} className="w-full text-right p-4 sm:p-5" aria-expanded={open}>
           {/* Tags row */}
           <div className="flex items-center gap-2 mb-3">
             <span className={`stat-pill ${status.cls}`}>{status.label}</span>
             {game.game_type === 'פלייאוף' && <span className="stat-pill bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300">פלייאוף</span>}
             {game.series_game && <span className="stat-pill bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300">משחק {game.series_game}</span>}
+            <ChevronDown className={`w-5 h-5 text-slate-400 transition-transform mr-auto ${open ? 'rotate-180' : ''}`} />
           </div>
 
-          {/* Match row */}
-          <div className="flex items-center justify-between">
-            <Link to={home ? `/teams/${home.id}` : '#'} className="flex items-center gap-3 flex-1 min-w-0 group">
+          {/* Match row — winning side is tinted + trophy-marked */}
+          <div className="flex items-center justify-between gap-2">
+            <div className={`flex items-center gap-3 flex-1 min-w-0 rounded-xl px-2 py-1.5 transition-colors ${homeWin ? 'bg-emerald-50 dark:bg-emerald-900/20' : ''}`}>
               <TeamLogo team={home} size={10} />
               <div className="min-w-0">
-                <p className="font-bold text-slate-900 dark:text-white text-sm truncate group-hover:text-orange-500 transition-colors">{home?.name}</p>
-                <p className="text-[11px] text-slate-400">בית</p>
+                <p className={`text-sm truncate flex items-center gap-1 ${homeWin ? 'font-extrabold text-emerald-700 dark:text-emerald-300' : awayWin ? 'font-semibold text-slate-400 dark:text-slate-500' : 'font-bold text-slate-900 dark:text-white'}`}>
+                  {homeWin && <Trophy className="w-3.5 h-3.5 text-amber-500 shrink-0" />}
+                  <span className="truncate">{home?.name}</span>
+                </p>
+                <p className={`text-[11px] ${homeWin ? 'text-emerald-600 dark:text-emerald-400 font-semibold' : 'text-slate-400'}`}>{tie ? 'תיקו' : homeWin ? 'מנצחת' : 'בית'}</p>
               </div>
-            </Link>
+            </div>
 
             {/* RTL: the flex row visually places the home team on the RIGHT and the
                 away team on the LEFT, but numeric digits always render left-to-right.
                 So the score outputs away_score first (renders on the left, beside the
                 away team) and home_score last (renders on the right, beside the home
                 team). Do NOT reorder to home:away — it looks flipped. */}
-            <div className="px-4 text-center shrink-0">
+            <div className="px-3 text-center shrink-0">
               {done ? (
-                <div className="text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white tabular-nums">
-                  <span>{game.away_score}</span>
+                <div className="text-2xl font-extrabold tracking-tight tabular-nums">
+                  <span className={awayWin ? 'text-emerald-600 dark:text-emerald-400' : homeWin ? 'text-slate-400 dark:text-slate-500' : 'text-slate-900 dark:text-white'}>{game.away_score}</span>
                   <span className="text-slate-300 dark:text-slate-600 mx-1">:</span>
-                  <span>{game.home_score}</span>
+                  <span className={homeWin ? 'text-emerald-600 dark:text-emerald-400' : awayWin ? 'text-slate-400 dark:text-slate-500' : 'text-slate-900 dark:text-white'}>{game.home_score}</span>
                 </div>
               ) : (
                 <div className="text-lg font-bold text-slate-300 dark:text-slate-600">
@@ -142,13 +155,16 @@ export default function Games() {
               )}
             </div>
 
-            <Link to={away ? `/teams/${away.id}` : '#'} className="flex items-center gap-3 flex-1 min-w-0 flex-row-reverse group">
+            <div className={`flex items-center gap-3 flex-1 min-w-0 flex-row-reverse rounded-xl px-2 py-1.5 transition-colors ${awayWin ? 'bg-emerald-50 dark:bg-emerald-900/20' : ''}`}>
               <TeamLogo team={away} size={10} />
               <div className="min-w-0 text-left">
-                <p className="font-bold text-slate-900 dark:text-white text-sm truncate group-hover:text-orange-500 transition-colors">{away?.name}</p>
-                <p className="text-[11px] text-slate-400">חוץ</p>
+                <p className={`text-sm truncate flex items-center gap-1 flex-row-reverse ${awayWin ? 'font-extrabold text-emerald-700 dark:text-emerald-300' : homeWin ? 'font-semibold text-slate-400 dark:text-slate-500' : 'font-bold text-slate-900 dark:text-white'}`}>
+                  {awayWin && <Trophy className="w-3.5 h-3.5 text-amber-500 shrink-0" />}
+                  <span className="truncate">{away?.name}</span>
+                </p>
+                <p className={`text-[11px] ${awayWin ? 'text-emerald-600 dark:text-emerald-400 font-semibold' : 'text-slate-400'}`}>{tie ? 'תיקו' : awayWin ? 'מנצחת' : 'חוץ'}</p>
               </div>
-            </Link>
+            </div>
           </div>
 
           {/* Meta row */}
@@ -156,13 +172,7 @@ export default function Games() {
             <span className="flex items-center gap-1"><Calendar className="w-3.5 h-3.5" />{format(new Date(game.game_date), "d/M/yyyy")}</span>
             <span className="flex items-center gap-1"><MapPin className="w-3.5 h-3.5" />{game.venue || '—'}</span>
             {ref && <span className="flex items-center gap-1"><Shield className="w-3.5 h-3.5" />{ref}</span>}
-            {done && (
-              <button onClick={() => toggleStats(game.id)} className="mr-auto flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg font-medium border border-slate-200 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
-                <FileText className="w-3.5 h-3.5" />
-                {open ? 'סגור' : 'פרטים'}
-                <ChevronDown className={`w-3 h-3 transition-transform ${open ? 'rotate-180' : ''}`} />
-              </button>
-            )}
+            <span className="mr-auto font-semibold text-slate-400 dark:text-slate-500">{open ? 'סגור' : 'פרטים'}</span>
           </div>
 
           {game.notes && (
@@ -170,68 +180,87 @@ export default function Games() {
               {game.notes}
             </div>
           )}
-        </div>
+        </button>
 
-        {/* Expanded stats */}
+        {/* Expanded panel */}
         <AnimatePresence>
           {open && (
             <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
               <div className="px-5 pb-5">
-                <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-700">
-                  <h4 className="font-bold text-sm text-slate-900 dark:text-white mb-3">סטטיסטיקות שחקנים</h4>
-                  {!stats ? (
-                    <div className="flex justify-center py-4">
-                      <div className="animate-spin rounded-full h-5 w-5 border-2 border-brand border-t-transparent" />
-                    </div>
-                  ) : stats.length === 0 ? (
-                    <p className="text-center text-xs text-slate-400 dark:text-slate-500 py-4">לא הוזנו סטטיסטיקות למשחק זה</p>
-                  ) : (
-                    <>
-                      <div className="grid grid-cols-2 gap-6">
-                        {[game.home_team_id, game.away_team_id].map(tid => (
-                          <div key={tid}>
-                            <h5 className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-2">{teamName(tid)}</h5>
-                            <div className="space-y-1">
-                              {stats.filter(s => playersMap[s.player_id]?.team_id === tid).map(stat => {
-                                const p = playersMap[stat.player_id]
-                                return (
-                                  <div key={stat.id} className="flex items-center justify-between py-1 text-xs">
-                                    <Link to={`/players/${stat.player_id}`} className="text-slate-700 dark:text-slate-300 hover:text-orange-500 transition-colors">{p?.first_name} {p?.last_name}</Link>
-                                    <div className="flex gap-1.5">
-                                      {stat.goals > 0 && <span className="stat-pill bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300 !py-0 !px-1.5">⚽ {stat.goals}</span>}
-                                      {stat.blue_cards > 0 && <span className="stat-pill bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300 !py-0 !px-1.5">🟦 {stat.blue_cards}</span>}
-                                      {stat.red_cards > 0 && <span className="stat-pill bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300 !py-0 !px-1.5">🟥 {stat.red_cards}</span>}
+                {done ? (
+                  <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-700">
+                    <h4 className="font-bold text-sm text-slate-900 dark:text-white mb-3">סטטיסטיקות שחקנים</h4>
+                    {!stats ? (
+                      <div className="flex justify-center py-4">
+                        <div className="animate-spin rounded-full h-5 w-5 border-2 border-brand border-t-transparent" />
+                      </div>
+                    ) : stats.length === 0 ? (
+                      <p className="text-center text-xs text-slate-400 dark:text-slate-500 py-4">לא הוזנו סטטיסטיקות למשחק זה</p>
+                    ) : (
+                      <>
+                        <div className="grid grid-cols-2 gap-6">
+                          {[game.home_team_id, game.away_team_id].map(tid => (
+                            <div key={tid}>
+                              <h5 className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-2">{teamName(tid)}</h5>
+                              <div className="space-y-1">
+                                {stats.filter(s => playersMap[s.player_id]?.team_id === tid).map(stat => {
+                                  const p = playersMap[stat.player_id]
+                                  return (
+                                    <div key={stat.id} className="flex items-center justify-between py-1 text-xs">
+                                      <PlayerLink playerId={stat.player_id} className="text-slate-700 dark:text-slate-300 hover:text-orange-500 transition-colors">{p?.first_name} {p?.last_name}</PlayerLink>
+                                      <div className="flex gap-1.5">
+                                        {stat.goals > 0 && <span className="stat-pill bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300 !py-0 !px-1.5">⚽ {stat.goals}</span>}
+                                        {stat.blue_cards > 0 && <span className="stat-pill bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300 !py-0 !px-1.5">🟦 {stat.blue_cards}</span>}
+                                        {stat.red_cards > 0 && <span className="stat-pill bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300 !py-0 !px-1.5">🟥 {stat.red_cards}</span>}
+                                      </div>
                                     </div>
+                                  )
+                                })}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                        {stats.some(s => s.is_guest_player) && (
+                          <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-700">
+                            <h5 className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-2">אורחים</h5>
+                            <div className="space-y-1">
+                              {stats.filter(s => s.is_guest_player).map(stat => (
+                                <div key={stat.id} className="flex items-center justify-between py-1 text-xs">
+                                  {/* Guests have no player_id → PlayerLink degrades to inert text */}
+                                  <PlayerLink playerId={stat.player_id} className="text-slate-700 dark:text-slate-300">
+                                    {stat.guest_player_name}
+                                    {stat.guest_player_original_team && <span className="text-slate-400"> ({stat.guest_player_original_team})</span>}
+                                  </PlayerLink>
+                                  <div className="flex gap-1.5">
+                                    {stat.goals > 0 && <span className="stat-pill bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300 !py-0 !px-1.5">⚽ {stat.goals}</span>}
+                                    {stat.blue_cards > 0 && <span className="stat-pill bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300 !py-0 !px-1.5">🟦 {stat.blue_cards}</span>}
+                                    {stat.red_cards > 0 && <span className="stat-pill bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300 !py-0 !px-1.5">🟥 {stat.red_cards}</span>}
                                   </div>
-                                )
-                              })}
+                                </div>
+                              ))}
                             </div>
                           </div>
-                        ))}
-                      </div>
-                      {stats.some(s => s.is_guest_player) && (
-                        <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-700">
-                          <h5 className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-2">אורחים</h5>
-                          <div className="space-y-1">
-                            {stats.filter(s => s.is_guest_player).map(stat => (
-                              <div key={stat.id} className="flex items-center justify-between py-1 text-xs">
-                                <span className="text-slate-700 dark:text-slate-300">
-                                  {stat.guest_player_name}
-                                  {stat.guest_player_original_team && <span className="text-slate-400"> ({stat.guest_player_original_team})</span>}
-                                </span>
-                                <div className="flex gap-1.5">
-                                  {stat.goals > 0 && <span className="stat-pill bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300 !py-0 !px-1.5">⚽ {stat.goals}</span>}
-                                  {stat.blue_cards > 0 && <span className="stat-pill bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300 !py-0 !px-1.5">🟦 {stat.blue_cards}</span>}
-                                  {stat.red_cards > 0 && <span className="stat-pill bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300 !py-0 !px-1.5">🟥 {stat.red_cards}</span>}
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </>
-                  )}
-                </div>
+                        )}
+                      </>
+                    )}
+                  </div>
+                ) : (
+                  /* Upcoming games have no box score — surface the info they do have. */
+                  <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-700">
+                    <h4 className="font-bold text-sm text-slate-900 dark:text-white mb-3">פרטי המשחק</h4>
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-3 text-xs">
+                      <div className="flex items-center gap-2 text-slate-600 dark:text-slate-300"><Calendar className="w-3.5 h-3.5 text-slate-400" /> {format(new Date(game.game_date), "d/M/yyyy")}</div>
+                      <div className="flex items-center gap-2 text-slate-600 dark:text-slate-300"><Clock className="w-3.5 h-3.5 text-slate-400" /> {format(new Date(game.game_date), "HH:mm")}</div>
+                      <div className="flex items-center gap-2 text-slate-600 dark:text-slate-300"><MapPin className="w-3.5 h-3.5 text-slate-400" /> {game.venue || '—'}</div>
+                      <div className="flex items-center gap-2 text-slate-600 dark:text-slate-300"><Trophy className="w-3.5 h-3.5 text-slate-400" /> {game.game_type}</div>
+                      {ref && <div className="flex items-center gap-2 text-slate-600 dark:text-slate-300"><Shield className="w-3.5 h-3.5 text-slate-400" /> {ref}</div>}
+                    </div>
+                  </div>
+                )}
+
+                <Link to={`/games/${game.id}`} className="mt-4 flex items-center justify-center gap-1.5 text-xs font-semibold text-orange-600 dark:text-orange-400 hover:text-orange-700 dark:hover:text-orange-300 py-2.5 border border-orange-100 dark:border-orange-900/40 rounded-lg transition-colors">
+                  לעמוד המשחק המלא <ArrowLeft className="w-3.5 h-3.5" />
+                </Link>
               </div>
             </motion.div>
           )}
