@@ -452,34 +452,13 @@ export async function archiveAndResetSeason(seasonName) {
  * Points: 3 for win, 1 for tie, 0 for loss.
  */
 export async function recalculateTeamStats() {
-  const [teams, games] = await Promise.all([getTeams(), getGames()])
-  const completed = games.filter(g => g.status === 'completed' && g.home_score != null && g.away_score != null)
-
-  for (const team of teams) {
-    let wins = 0, losses = 0, ties = 0, goals_for = 0, goals_against = 0
-
-    for (const game of completed) {
-      if (game.home_team_id === team.id) {
-        goals_for += game.home_score
-        goals_against += game.away_score
-        if (game.home_score > game.away_score) wins++
-        else if (game.home_score < game.away_score) losses++
-        else ties++
-      } else if (game.away_team_id === team.id) {
-        goals_for += game.away_score
-        goals_against += game.home_score
-        if (game.away_score > game.home_score) wins++
-        else if (game.away_score < game.home_score) losses++
-        else ties++
-      }
-    }
-
-    const points = wins * 3 + ties * 1
-
-    await updateTeam(team.id, {
-      wins, losses, ties, points, goals_for, goals_against
-    })
-  }
+  // Server-side via one SECURITY DEFINER RPC, self-gated on is_admin() OR
+  // is_judge(). Judges manage games but deliberately have NO write policy on
+  // `teams` — otherwise they could rename teams and rewrite the table through
+  // the REST API. The RPC runs the same wins*3 + ties math this used to do in
+  // the browser, and was verified to reproduce all 7 teams' standings exactly.
+  const { error } = await supabase.rpc('recompute_all_team_standings')
+  if (error) throw error
 }
 
 /**

@@ -121,6 +121,10 @@ export function AuthProvider({ children }) {
   // so this stays empty for admins — coach-scoped code must branch on isAdmin first.
   const coachTeamIds = roles.filter(r => r.role === 'coach' && r.team_id).map(r => r.team_id)
 
+  // Holds an actual judge row. Unlike hasRole('judge') this does NOT pass for
+  // admins, so tab-scoping code can tell "judge" apart from "admin".
+  const isJudgeRole = roles.some(r => r.role === 'judge')
+
   const signInWithGoogle = async () => {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
@@ -160,7 +164,7 @@ export function AuthProvider({ children }) {
 
   return (
     <AuthContext.Provider value={{
-      user, isAdmin, roles, hasRole, coachTeamIds, profile, refreshProfile, loading, authOpen,
+      user, isAdmin, roles, hasRole, coachTeamIds, isJudgeRole, profile, refreshProfile, loading, authOpen,
       signInWithGoogle, signUpWithEmail, signInWithEmail, signOut,
       openAuth, closeAuth,
     }}>

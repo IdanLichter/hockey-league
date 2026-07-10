@@ -43,21 +43,28 @@ const tabs = [
 ]
 
 export default function Admin() {
-  const { user, isAdmin, coachTeamIds, loading: authLoading, signOut } = useAuth()
+  const { user, isAdmin, coachTeamIds, isJudgeRole, loading: authLoading, signOut } = useAuth()
   const navigate = useNavigate()
-  // A non-admin coach may enter, but only sees the players + claims tabs (both
-  // scoped to their own team). Admins keep the full, unchanged tab set. Branch
-  // on isAdmin FIRST — an admin has coachTeamIds === [] but full access.
-  const canManage = isAdmin || coachTeamIds.length > 0
-  const isCoachOnly = !isAdmin && coachTeamIds.length > 0
-  const visibleTabs = isCoachOnly ? tabs.filter(t => t.id === "players" || t.id === "claims") : tabs
-  const [activeTab, setActiveTab] = useState(visibleTabs[0].id)
+  // Each non-admin role unlocks a subset of tabs, and one person may hold
+  // several (a coach who is also a judge sees games + players + claims).
+  // Branch on isAdmin FIRST — an admin has coachTeamIds === [] but full access.
+  const isCoach = coachTeamIds.length > 0
+  const canManage = isAdmin || isCoach || isJudgeRole
+  const coachScoped = !isAdmin && isCoach          // team-scope the players/claims tabs
+  const scopedTabIds = new Set([
+    ...(isCoach ? ["players", "claims"] : []),
+    ...(isJudgeRole ? ["games"] : []),
+  ])
+  const visibleTabs = isAdmin ? tabs : tabs.filter(t => scopedTabIds.has(t.id))
+  // A role-less user reaches AccessDenied below, but this runs first — so never
+  // index into an empty array.
+  const firstTabId = visibleTabs[0]?.id ?? tabs[0].id
+  const [activeTab, setActiveTab] = useState(firstTabId)
   // Auth may still be loading when this mounts (e.g. the OAuth redirect lands on
-  // /admin), so coachTeamIds can arrive after the initial render. Derive the tab
-  // actually shown: if the stored one isn't visible for this role, fall back to
-  // the first visible tab — keeps a coach off the (hidden) games tab and an admin
-  // on games.
-  const currentTab = visibleTabs.some(t => t.id === activeTab) ? activeTab : visibleTabs[0].id
+  // /admin), so roles can arrive after the initial render. Derive the tab actually
+  // shown: if the stored one isn't visible for this role, fall back to the first
+  // visible one — keeps a coach off the (hidden) games tab and an admin on games.
+  const currentTab = visibleTabs.some(t => t.id === activeTab) ? activeTab : firstTabId
   const [teams, setTeams] = useState([])
   const [players, setPlayers] = useState([])
   const [games, setGames] = useState([])
@@ -68,7 +75,7 @@ export default function Admin() {
   useEffect(() => {
     if (!authLoading && (!user || !canManage)) return
     loadData()
-  }, [authLoading, user, isAdmin, coachTeamIds.length])
+  }, [authLoading, user, isAdmin, coachTeamIds.length, isJudgeRole])
 
   const loadData = async () => {
     try {
@@ -141,10 +148,10 @@ export default function Admin() {
           ) : (
             <>
               {currentTab === "games" && <GamesAdmin games={games} teams={teams} players={players} teamsMap={teamsMap} gameStats={gameStats} reload={loadData} />}
-              {currentTab === "players" && <PlayersAdmin players={players} teams={teams} teamsMap={teamsMap} reload={loadData} coachTeamIds={isCoachOnly ? coachTeamIds : null} />}
+              {currentTab === "players" && <PlayersAdmin players={players} teams={teams} teamsMap={teamsMap} reload={loadData} coachTeamIds={coachScoped ? coachTeamIds : null} />}
               {currentTab === "teams" && <TeamsAdmin teams={teams} reload={loadData} />}
               {currentTab === "season" && <SeasonAdmin games={games} teams={teams} players={players} reload={loadData} />}
-              {currentTab === "claims" && <><ClaimsReview teamsMap={teamsMap} coachTeamIds={isCoachOnly ? coachTeamIds : null} />{isAdmin && <SuggestionsReview players={players} />}</>}
+              {currentTab === "claims" && <><ClaimsReview teamsMap={teamsMap} coachTeamIds={coachScoped ? coachTeamIds : null} />{isAdmin && <SuggestionsReview players={players} />}</>}
               {currentTab === "reports" && <ReportsReview />}
               {currentTab === "roles" && <RolesAdmin teamsMap={teamsMap} players={players} />}
               {currentTab === "users" && <UsersAdmin adminUsers={adminUsers} currentUserEmail={user.email} reload={loadData} />}
