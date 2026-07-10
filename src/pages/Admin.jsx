@@ -28,7 +28,8 @@ import SuggestionsReview from "@/components/admin/SuggestionsReview"
 import RolesAdmin from "@/components/admin/RolesAdmin"
 import ReportsReview from "@/components/admin/ReportsReview"
 import WhatsNew from "@/components/admin/WhatsNew"
-import { Award } from "lucide-react"
+import ClustersAdmin from "@/components/admin/ClustersAdmin"
+import { Award, Images } from "lucide-react"
 import { BRAND_ORANGE } from '@/lib/brand'
 
 const tabs = [
@@ -38,6 +39,7 @@ const tabs = [
   { id: "season", label: "עונה", icon: Archive },
   { id: "claims", label: "בקשות", icon: UserPlus },
   { id: "reports", label: "דיווחים", icon: Flag },
+  { id: "clusters", label: "קבוצות תמונות", icon: Images },
   { id: "roles", label: "תפקידים", icon: Award },
   { id: "users", label: "מנהלים", icon: Crown },
 ]
@@ -153,6 +155,7 @@ export default function Admin() {
               {currentTab === "season" && <SeasonAdmin games={games} teams={teams} players={players} reload={loadData} />}
               {currentTab === "claims" && <><ClaimsReview teamsMap={teamsMap} coachTeamIds={coachScoped ? coachTeamIds : null} />{isAdmin && <SuggestionsReview players={players} />}</>}
               {currentTab === "reports" && <ReportsReview />}
+              {currentTab === "clusters" && <ClustersAdmin players={players} />}
               {currentTab === "roles" && <RolesAdmin teamsMap={teamsMap} players={players} />}
               {currentTab === "users" && <UsersAdmin adminUsers={adminUsers} currentUserEmail={user.email} reload={loadData} />}
             </>

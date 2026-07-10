@@ -119,6 +119,50 @@ export async function hideCluster(clusterKey) {
   if (error) throw error
 }
 
+// ---- Admin: edit clusters (the "picture clusters" tab) ----
+
+// Every cluster, regardless of status — the admin tab groups them into
+// resolved / hidden / unresolved sub-tabs. Paged so it survives the row cap
+// (there are ~900+ unresolved clusters, over PostgREST's default 1000 someday).
+export async function getAllClusters() {
+  const sel = 'cluster_key, size, status, player_id, player_name, cover_url, source_detail_url, albums, game_date'
+  const out = []; let from = 0; const size = 1000
+  while (true) {
+    const { data, error } = await supabase
+      .from('face_clusters')
+      .select(sel)
+      .order('size', { ascending: false })
+      .range(from, from + size - 1)
+    if (error) throw error
+    out.push(...data)
+    if (data.length < size) break
+    from += size
+  }
+  return out
+}
+
+// Undo a decision: send the cluster back to the Media page for fresh crowd suggestions.
+// The old suggestions are deleted first — otherwise the cluster reappears in the review
+// queue with the same tally and the same (just-rejected) name pre-selected. Delete before
+// the status flip so a failure leaves the cluster decided rather than re-opened with stale
+// suggestions.
+export async function reopenCluster(clusterKey) {
+  const { error: delErr } = await supabase
+    .from('cluster_suggestions')
+    .delete()
+    .eq('cluster_key', clusterKey)
+  if (delErr) throw delErr
+  // RLS blocks an UPDATE by returning zero rows, not an error — select the row back
+  // so a silently-refused write surfaces instead of showing a fake success.
+  const { data, error } = await supabase
+    .from('face_clusters')
+    .update({ player_id: null, player_name: null, status: 'unresolved' })
+    .eq('cluster_key', clusterKey)
+    .select('cluster_key')
+  if (error) throw error
+  if (!data?.length) throw new Error('העדכון נחסם — אין הרשאה')
+}
+
 // Count of clusters already resolved (for the page header).
 export async function getResolvedCount() {
   const { count, error } = await supabase
