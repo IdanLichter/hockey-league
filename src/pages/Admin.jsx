@@ -631,6 +631,7 @@ function PlayersAdmin({ players, teams, teamsMap, reload }) {
   const [editingPlayer, setEditingPlayer] = useState(null)
   const [saving, setSaving] = useState(false)
   const [searchTerm, setSearchTerm] = useState("")
+  const [feedback, setFeedback] = useState(null) // { type: 'ok' | 'err', text } — makes save success/failure impossible to miss
   const [form, setForm] = useState({
     first_name: '', last_name: '', jersey_number: '', position: 'Field Player',
     team_id: '', is_referee: false, is_core: false, goals: 0, games_played: 0,
@@ -667,6 +668,9 @@ function PlayersAdmin({ players, teams, teamsMap, reload }) {
 
   const handleSave = async () => {
     setSaving(true)
+    setFeedback(null)
+    const wasEditing = !!editingPlayer
+    const savedName = `${form.first_name} ${form.last_name}`.trim()
     try {
       const payload = {
         ...form,
@@ -683,8 +687,19 @@ function PlayersAdmin({ players, teams, teamsMap, reload }) {
       }
       resetForm()
       await reload()
-    } catch (err) { alert('שגיאה: ' + err.message) }
-    finally { setSaving(false) }
+      setFeedback({ type: 'ok', text: `✓ ${savedName} ${wasEditing ? 'עודכן/ה' : 'נוסף/ה לליגה'} בהצלחה` })
+    } catch (err) {
+      // Translate the common failure (RLS / wrong account) into an actionable Hebrew message
+      // instead of a raw Postgres string that's easy to dismiss.
+      const msg = String(err?.message || err)
+      const permissionDenied = err?.code === '42501' || /row-level security|permission denied|not authorized|JWT/i.test(msg)
+      setFeedback({
+        type: 'err',
+        text: permissionDenied
+          ? 'השמירה נכשלה — בעיית הרשאות. ודא/י שאת/ה מחובר/ת עם חשבון המנהל (האימייל מוצג בראש דף הניהול) ולא עם חשבון אחר, ונסה/י שוב.'
+          : `השמירה נכשלה: ${msg}`,
+      })
+    } finally { setSaving(false) }
   }
 
   const handleDelete = async (id) => {
@@ -701,6 +716,19 @@ function PlayersAdmin({ players, teams, teamsMap, reload }) {
 
   return (
     <div className="space-y-4">
+      {feedback && (
+        <div className={`flex items-center justify-between gap-3 rounded-xl px-4 py-3 text-sm font-semibold ${
+          feedback.type === 'ok'
+            ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300'
+            : 'bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-300'
+        }`}>
+          <span>{feedback.text}</span>
+          <button onClick={() => setFeedback(null)} className="shrink-0 opacity-70 hover:opacity-100" aria-label="סגור">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
       <div className="flex items-center justify-between gap-3">
         <input type="text" placeholder="חיפוש שחקן..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
           className="filter-input flex-1 max-w-xs" />
@@ -781,7 +809,7 @@ function PlayersAdmin({ players, teams, teamsMap, reload }) {
             </div>
           </div>
 
-          <div className="flex gap-2 pt-1">
+          <div className="flex flex-wrap items-center gap-2 pt-1">
             <button onClick={handleSave} disabled={saving || !form.first_name || !form.last_name || !form.team_id}
               className="flex items-center gap-2 px-5 py-2.5 bg-orange-500 text-white text-sm font-semibold rounded-xl hover:bg-orange-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
               <Save className="w-4 h-4" /> {saving ? 'שומר...' : editingPlayer ? 'עדכן' : 'צור'}
@@ -789,6 +817,11 @@ function PlayersAdmin({ players, teams, teamsMap, reload }) {
             <button onClick={resetForm} className="px-4 py-2.5 text-sm font-semibold text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 transition-colors">
               ביטול
             </button>
+            {(!form.first_name || !form.last_name || !form.team_id) && (
+              <span className="text-xs font-medium text-amber-600 dark:text-amber-400">
+                חסר: {[!form.first_name && 'שם פרטי', !form.last_name && 'שם משפחה', !form.team_id && 'קבוצה'].filter(Boolean).join(', ')}
+              </span>
+            )}
           </div>
         </motion.div>
       )}
