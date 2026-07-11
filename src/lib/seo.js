@@ -8,7 +8,10 @@ import { useEffect } from 'react'
 // per-route tags. Non-rendering scrapers — WhatsApp, Twitter — read the static
 // tags in index.html. Giving them real per-page previews needs prerendering/SSG.
 
-export const SITE_URL = 'https://hockey-league-pro.vercel.app'
+// Host is env-parametrized so the branded domain is one Vercel env var away
+// (VITE_SITE_URL) without touching code — every canonical / OG / JSON-LD URL
+// derives from it. Falls back to the current vercel.app host.
+export const SITE_URL = import.meta.env.VITE_SITE_URL || 'https://hockey-league-pro.vercel.app'
 export const SITE_NAME = 'ליגת הרולר הוקי הישראלית'
 export const DEFAULT_DESCRIPTION = 'ליגת רולר הוקי - טבלה, משחקים, סטטיסטיקות ועוד'
 const DEFAULT_IMAGE = `${SITE_URL}/logos/main-logo.png`
@@ -65,4 +68,75 @@ export function useSeo({ title, description, path, image, noindex = false } = {}
     upsertMeta('meta[name="twitter:description"]', 'name', 'twitter:description', desc)
     upsertMeta('meta[name="twitter:image"]', 'name', 'twitter:image', img)
   }, [fullTitle, desc, canonical, img, noindex])
+}
+
+// ---------------------------------------------------------------------------
+// JSON-LD builders (schema.org). Pure functions: entity in → plain object out.
+// Emitted into <head> by RouteSeo via components/JsonLd.jsx. Kept lightweight —
+// only fields we actually hold, so nothing is fabricated.
+// ---------------------------------------------------------------------------
+
+const SPORT = 'Roller hockey'
+
+/** The league itself. Emitted on the home route. */
+export function organizationJsonLd() {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'SportsOrganization',
+    name: SITE_NAME,
+    sport: SPORT,
+    url: `${SITE_URL}/`,
+    logo: DEFAULT_IMAGE,
+  }
+}
+
+/** A player. `team` optional (their SportsTeam). */
+export function personJsonLd(player, team) {
+  const name = `${player.first_name || ''} ${player.last_name || ''}`.trim()
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'Person',
+    name,
+    url: `${SITE_URL}/players/${player.id}`,
+    ...(player.photo_url ? { image: player.photo_url } : {}),
+    ...(team ? { memberOf: { '@type': 'SportsTeam', name: team.name, url: `${SITE_URL}/teams/${team.id}` } } : {}),
+  }
+}
+
+/** A team. */
+export function teamJsonLd(team) {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'SportsTeam',
+    name: team.name,
+    sport: SPORT,
+    url: `${SITE_URL}/teams/${team.id}`,
+    ...(team.city ? { location: { '@type': 'Place', name: team.city } } : {}),
+    ...(team.founded_year ? { foundingDate: String(team.founded_year) } : {}),
+    memberOf: { '@type': 'SportsOrganization', name: SITE_NAME, url: `${SITE_URL}/` },
+  }
+}
+
+/** A single game. `homeTeam` / `awayTeam` optional. */
+export function sportsEventJsonLd(game, homeTeam, awayTeam) {
+  const home = homeTeam?.name || 'קבוצת הבית'
+  const away = awayTeam?.name || 'קבוצת החוץ'
+  const competitor = [
+    { '@type': 'SportsTeam', name: home, ...(homeTeam ? { url: `${SITE_URL}/teams/${homeTeam.id}` } : {}) },
+    { '@type': 'SportsTeam', name: away, ...(awayTeam ? { url: `${SITE_URL}/teams/${awayTeam.id}` } : {}) },
+  ]
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'SportsEvent',
+    name: `${home} נגד ${away}`,
+    sport: SPORT,
+    url: `${SITE_URL}/games/${game.id}`,
+    eventStatus: game.status === 'cancelled'
+      ? 'https://schema.org/EventCancelled'
+      : 'https://schema.org/EventScheduled',
+    ...(game.game_date ? { startDate: game.game_date } : {}),
+    ...(game.venue ? { location: { '@type': 'Place', name: game.venue } } : {}),
+    competitor,
+    organizer: { '@type': 'SportsOrganization', name: SITE_NAME, url: `${SITE_URL}/` },
+  }
 }

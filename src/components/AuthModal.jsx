@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { X, Mail, Lock, User, Loader2 } from "lucide-react"
+import { X, Mail, Lock, User, Loader2, Clock } from "lucide-react"
 import { useAuth } from "@/lib/AuthContext"
 
 function translateAuthError(msg = "") {
@@ -46,15 +46,20 @@ export default function AuthModal() {
   const [name, setName] = useState("")
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState(null)
-  const [sent, setSent] = useState(false)
+  const [sent, setSent] = useState(null) // null | 'confirm' | 'ratelimit'
 
   if (!authOpen) return null
 
   const close = () => {
     closeAuth()
-    setError(null); setSent(false); setPassword("")
+    setError(null); setSent(null); setPassword("")
   }
-  const switchMode = (m) => { setMode(m); setError(null); setSent(false) }
+  const switchMode = (m) => { setMode(m); setError(null); setSent(null) }
+
+  // Supabase surfaces the built-in mailer's ~2/hr cap as an HTTP 429. Reframe it
+  // as a calm "wait a moment" state instead of a scary red error.
+  const isRateLimit = (err) =>
+    err?.status === 429 || /rate limit|too many|429/i.test(err?.message || "")
 
   const submit = async (e) => {
     e.preventDefault()
@@ -62,13 +67,14 @@ export default function AuthModal() {
     try {
       if (mode === "signup") {
         const data = await signUpWithEmail(email.trim(), password, name.trim())
-        if (!data?.session) { setSent(true) } // confirmation email required
+        if (!data?.session) { setSent('confirm') } // confirmation email required
       } else {
         await signInWithEmail(email.trim(), password)
         // onAuthStateChange closes the modal on success
       }
     } catch (err) {
-      setError(translateAuthError(err?.message))
+      if (isRateLimit(err)) setSent('ratelimit')
+      else setError(translateAuthError(err?.message))
     } finally {
       setBusy(false)
     }
@@ -86,17 +92,36 @@ export default function AuthModal() {
           <X className="w-5 h-5" />
         </button>
 
-        {sent ? (
+        {sent === 'confirm' ? (
           <div className="text-center py-6">
             <div className="w-14 h-14 rounded-full bg-emerald-100 dark:bg-emerald-900/40 flex items-center justify-center mx-auto mb-4">
               <Mail className="w-7 h-7 text-emerald-600 dark:text-emerald-400" />
             </div>
-            <h3 className="text-lg font-extrabold text-slate-900 dark:text-white">בדקו את תיבת המייל</h3>
+            <h3 className="text-lg font-extrabold text-slate-900 dark:text-white">כמעט על הקרח 🏒</h3>
             <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">
-              שלחנו קישור אימות ל־<span className="font-semibold text-slate-700 dark:text-slate-300">{email}</span>. אשרו אותו כדי להשלים את ההרשמה.
+              שלחנו קישור אימות ל־<span className="font-semibold text-slate-700 dark:text-slate-300">{email}</span>. לחצו עליו — ואתם בהרכב.
+            </p>
+            <p className="text-xs text-slate-400 dark:text-slate-500 mt-2">
+              לא הגיע? הציצו בתיקיית הספאם — לפעמים המייל נתקע ליד הבמה.
             </p>
             <button onClick={close} className="mt-5 w-full py-2.5 rounded-xl bg-orange-500 text-white font-semibold hover:bg-orange-600 transition-colors">
-              הבנתי
+              אלופים, הבנתי
+            </button>
+          </div>
+        ) : sent === 'ratelimit' ? (
+          <div className="text-center py-6">
+            <div className="w-14 h-14 rounded-full bg-amber-100 dark:bg-amber-900/40 flex items-center justify-center mx-auto mb-4">
+              <Clock className="w-7 h-7 text-amber-600 dark:text-amber-400" />
+            </div>
+            <h3 className="text-lg font-extrabold text-slate-900 dark:text-white">רגע, טיים־אאוט ⏱️</h3>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">
+              שלחנו כבר כמה מיילים בזמן קצר, והשרת ביקש חילוף. שבו על הספסל דקה־שתיים ונסו שוב.
+            </p>
+            <p className="text-xs text-slate-400 dark:text-slate-500 mt-2">
+              כבר קיבלתם מייל קודם? הקישור עדיין תקף — פשוט אשרו אותו.
+            </p>
+            <button onClick={close} className="mt-5 w-full py-2.5 rounded-xl bg-amber-500 text-white font-semibold hover:bg-amber-600 transition-colors">
+              סבבה, אחכה
             </button>
           </div>
         ) : (
