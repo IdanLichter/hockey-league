@@ -131,6 +131,10 @@ export function AuthProvider({ children }) {
   // admins, so tab-scoping code can tell "judge" apart from "admin".
   const isJudgeRole = roles.some(r => r.role === 'judge')
 
+  // Holds an actual content_editor row. Like isJudgeRole this is the RAW role and
+  // does NOT pass for admins, so content pages gate on `isContentEditor || isAdmin`.
+  const isContentEditor = roles.some(r => r.role === 'content_editor')
+
   const signInWithGoogle = async () => {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
@@ -173,7 +177,7 @@ export function AuthProvider({ children }) {
 
   return (
     <AuthContext.Provider value={{
-      user, isAdmin, roles, hasRole, coachTeamIds, isJudgeRole, profile, refreshProfile, loading, authOpen,
+      user, isAdmin, roles, hasRole, coachTeamIds, isJudgeRole, isContentEditor, profile, refreshProfile, loading, authOpen,
       signInWithGoogle, signUpWithEmail, signInWithEmail, signOut,
       openAuth, closeAuth,
     }}>

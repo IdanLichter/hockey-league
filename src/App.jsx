@@ -21,6 +21,7 @@ const JudgeGame = lazy(() => import('./pages/JudgeGame'))
 const Admin = lazy(() => import('./pages/Admin'))
 const ArchivePage = lazy(() => import('./pages/Archive'))
 const Media = lazy(() => import('./pages/Media'))
+const ContentCreators = lazy(() => import('./pages/ContentCreators'))
 const Profile = lazy(() => import('./pages/Profile'))
 const Privacy = lazy(() => import('./pages/Privacy'))
 
@@ -69,6 +70,7 @@ function App() {
             <Route path="/me" element={<Profile />} />
             <Route path="/privacy" element={<Privacy />} />
             <Route path="/media" element={<Media />} />
+            <Route path="/creators" element={<ContentCreators />} />
             <Route path="/final-four" element={<FinalFour />} />
             <Route path="/judge" element={<Judge />} />
             <Route path="/judge/:id" element={<JudgeGame />} />

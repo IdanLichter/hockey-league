@@ -52,7 +52,7 @@ const fade = {
 const sizedUrl = (url, w = 1280) => (url ? url.replace(/=w\d+(-h\d+)?.*$/, `=w${w}`) : url)
 
 function EventPhoto({ photo, itemKey, candidates = [], onRefreshed }) {
-  const { isAdmin } = useAuth()
+  const { isAdmin, isContentEditor } = useAuth()
   const [current, setCurrent] = useState(photo)
   const [busy, setBusy] = useState(false)
   const [failed, setFailed] = useState(false)
@@ -98,8 +98,8 @@ function EventPhoto({ photo, itemKey, candidates = [], onRefreshed }) {
         </div>
       </a>
 
-      {/* Admin-only: swap the auto-matched photo for the next candidate. */}
-      {isAdmin && (
+      {/* Admins + content editors: swap the auto-matched photo for the next candidate. */}
+      {(isAdmin || isContentEditor) && (
         <div className="absolute top-2 left-2 flex items-center gap-2">
           <button
             type="button"

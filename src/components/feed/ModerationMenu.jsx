@@ -16,7 +16,7 @@ import { reportContent, blockUser, REPORT_REASONS, DETAILS_MAX } from "@/lib/mod
  * Props: { targetType, targetId, authorId, onEdit, onDelete }
  */
 export default function ModerationMenu({ targetType, targetId, authorId, onEdit, onDelete }) {
-  const { user, isAdmin } = useAuth()
+  const { user, isAdmin, isContentEditor } = useAuth()
   const rootRef = useRef(null)
   const [open, setOpen] = useState(false)
   const [confirm, setConfirm] = useState(null) // null | 'delete' | 'block'
@@ -41,7 +41,7 @@ export default function ModerationMenu({ targetType, targetId, authorId, onEdit,
 
   if (!user) return null
   const isAuthor = !!authorId && user.id === authorId
-  const canManage = isAuthor || isAdmin // edit + delete (admins never also get report/block)
+  const canManage = isAuthor || isAdmin || isContentEditor // edit + delete (moderators never also get report/block)
 
   const handleEdit = () => { close(); onEdit?.() }
   // Delete: host owns the optimistic remove + rollback; close first so we never

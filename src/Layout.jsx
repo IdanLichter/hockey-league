@@ -12,6 +12,7 @@ import {
   Shield,
   Archive,
   Camera,
+  Images,
   LogOut,
   UserCircle
 } from "lucide-react"
@@ -65,7 +66,7 @@ export default function Layout({ children }) {
   const location = useLocation()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const { dark, toggle } = useTheme()
-  const { user, isAdmin, hasRole, coachTeamIds, isJudgeRole, profile, signOut, openAuth } = useAuth()
+  const { user, isAdmin, hasRole, coachTeamIds, isJudgeRole, isContentEditor, profile, signOut, openAuth } = useAuth()
 
   const navItems = [
     { title: "בית", url: "/", icon: NavRink },
@@ -74,7 +75,10 @@ export default function Layout({ children }) {
     { title: "סטטיסטיקות", url: "/statistics", icon: BarChart3 },
     { title: "קבוצות", url: "/teams", icon: NavTeams },
     { title: "שחקנים", url: "/players", icon: NavPlayers },
-    { title: "מדיה", url: "/media", icon: Camera },
+    // Media / content-editor entry: plain users & admins keep "מדיה"; content
+    // editors get "יוצרי תוכן" instead; admins see BOTH.
+    ...((!isContentEditor || isAdmin) ? [{ title: "מדיה", url: "/media", icon: Camera }] : []),
+    ...((isContentEditor || isAdmin) ? [{ title: "יוצרי תוכן", url: "/creators", icon: Images }] : []),
     { title: "Final Four", url: "/final-four", icon: Trophy },
     { title: "ארכיון", url: "/archive", icon: Archive },
     ...(hasRole("judge") ? [{ title: "שיפוט", url: "/judge", icon: NavWhistle }] : []),

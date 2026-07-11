@@ -6,7 +6,10 @@ import { useAuth } from "@/lib/AuthContext"
 
 const PAGE = 24
 
-export default function Media() {
+// Core crowd cluster-naming experience (header + info + grid), WITHOUT the
+// standalone-page padding — so it renders both as the /media page (wrapped by
+// Media below) and embedded inside the content-editors' "מדיה" tab.
+export function MediaClusters() {
   const [clusters, setClusters] = useState([])
   const [summary, setSummary] = useState({})
   const [resolved, setResolved] = useState(0)
@@ -43,19 +46,17 @@ export default function Media() {
   }
   if (error) {
     return (
-      <div className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto">
-        <div className="card p-6 border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/30 flex flex-col items-center gap-3 min-h-[240px] justify-center text-center">
-          <span className="text-red-700 dark:text-red-400 text-sm font-medium">{error}</span>
-          <button onClick={load} className="flex items-center gap-1.5 px-3 py-1.5 bg-red-600 text-white rounded-lg text-xs font-semibold hover:bg-red-700 transition-colors">
-            <RefreshCw className="w-3.5 h-3.5" /> נסה שוב
-          </button>
-        </div>
+      <div className="card p-6 border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/30 flex flex-col items-center gap-3 min-h-[240px] justify-center text-center">
+        <span className="text-red-700 dark:text-red-400 text-sm font-medium">{error}</span>
+        <button onClick={load} className="flex items-center gap-1.5 px-3 py-1.5 bg-red-600 text-white rounded-lg text-xs font-semibold hover:bg-red-700 transition-colors">
+          <RefreshCw className="w-3.5 h-3.5" /> נסה שוב
+        </button>
       </div>
     )
   }
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto space-y-5">
+    <div className="space-y-5">
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
         <h1 className="page-title flex items-center gap-2.5">
           <Camera className="w-7 h-7 text-orange-500" /> מדיה — זיהוי שחקנים
@@ -90,6 +91,15 @@ export default function Media() {
           </button>
         </div>
       )}
+    </div>
+  )
+}
+
+// Standalone /media page: wraps the shared core in the usual page chrome.
+export default function Media() {
+  return (
+    <div className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto">
+      <MediaClusters />
     </div>
   )
 }
