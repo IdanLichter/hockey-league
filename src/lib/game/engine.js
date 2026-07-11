@@ -9,6 +9,7 @@ import { CountdownClock, monotonicNow } from './clock'
 import {
   GameRules, GameFormat, Half, isOvertime, Phase, BreakKind,
   CardType, cardBaseSeconds, TeamSide, defaultSettings, halfBreakMS,
+  BuzzKind, isPenaltyFoul, isWarningFoul,
 } from './rules'
 
 // Event ids must stay unique across page reloads: restore() rehydrates events minted
@@ -51,6 +52,7 @@ export class GameEngine {
     this.cardLog = []        // every card ISSUED (never pruned) — source for the box score
     this.ejected = new Set()
     this.buzzSeq = 0
+    this.lastBuzzKind = BuzzKind.manual
 
     this.passiveRemainingMS = GameRules.passiveSeconds * 1000
     this.passiveActive = true
@@ -126,12 +128,16 @@ export class GameEngine {
   }
 
   startBreak(kind, seconds) {
+    // Recompute from the monotonic deadline first: a running clock's cached remainingMS
+    // lags by up to one ~50ms tick, and that stale value is what we resume after the
+    // break — so without this the game clock gains a little time on every timeout.
+    this.clock.refresh()
     this._preBreakRemainingMS = this.clock.remainingMS
     this.breakKind = kind
     this.phase = Phase.breakTime
     this.clock.set(seconds * 1000)
     this.clock.start()
-    this.buzz()
+    this.buzz(BuzzKind.breakStart)
     this._changed()
   }
 
@@ -170,7 +176,7 @@ export class GameEngine {
   addGoal(side, player = null) {
     this.goals.push({ id: uid(), side, player, timeMS: this.clock.remainingMS, half: this.currentHalf })
     this._recomputeDerived()
-    if (this.phase === Phase.running) this.buzz()
+    if (this.phase === Phase.running) this.buzz(BuzzKind.goal)
     this._changed()
   }
   removeGoal(side) {
@@ -181,11 +187,13 @@ export class GameEngine {
   addStrike(side, player = null) {
     this.strikes.push({ id: uid(), side, player, timeMS: this.clock.remainingMS, half: this.currentHalf })
     this._recomputeDerived()
-    const count = this._side(side).strikes
-    if (this.phase === Phase.running && count >= GameRules.teamFoulEvery && count % GameRules.teamFoulEvery === 0) {
-      this.clock.pause()
-      this.phase = Phase.paused
-      this.buzz()
+    // Play usually stops for a foul, so the judge records it as often from a paused
+    // clock as from a running one. Alert whenever the match is under way; only the
+    // setup and post-game phases stay silent.
+    if (this.phase !== Phase.editing && this.phase !== Phase.over) {
+      const count = this._side(side).strikes
+      if (isPenaltyFoul(count)) this.buzz(BuzzKind.teamFoulPenalty)
+      else if (isWarningFoul(count)) this.buzz(BuzzKind.teamFoulWarning)
     }
     this._changed()
   }
@@ -206,7 +214,7 @@ export class GameEngine {
     }
     this.cards.push(card)
     this.cardLog.push(card)
-    this.buzz()
+    this.buzz(BuzzKind.card)
     this._changed()
   }
   // Manual correction of a mistaken card: remove from both active list and the log.
@@ -234,7 +242,12 @@ export class GameEngine {
     this._passiveDeadline = this.now() + GameRules.passiveSeconds
   }
 
-  buzz() { this.buzzSeq++; this.onBuzz && this.onBuzz(); this._changed() }
+  buzz(kind = BuzzKind.manual) {
+    this.buzzSeq++
+    this.lastBuzzKind = kind
+    this.onBuzz && this.onBuzz(kind)
+    this._changed()
+  }
 
   // ---- derivation ----
   _recomputeDerived() {
@@ -255,7 +268,7 @@ export class GameEngine {
     else if (this.phase === Phase.running) this._periodDidEnd()
   }
   _periodDidEnd() {
-    this.buzz()
+    this.buzz(BuzzKind.periodEnd)
     if (this.settings.format === GameFormat.threeThirds) {
       const w = this._winnerOfPeriod()
       if (w === TeamSide.home) this.home.thirds += 1
@@ -269,7 +282,7 @@ export class GameEngine {
     this.startBreak(BreakKind.halftime, halfBreakMS(this.settings) / 1000)
   }
   _breakDidEnd() {
-    this.buzz()
+    this.buzz(BuzzKind.breakEnd)
     if (this.breakKind === BreakKind.halftime) {
       if (this._pendingHalf) { this.currentHalf = this._pendingHalf; this._pendingHalf = null }
       this.clock.set(this.settings.periodMS)
@@ -316,7 +329,7 @@ export class GameEngine {
     } else {
       this.result = this.home.thirds > this.guest.thirds ? 'homeWin' : (this.guest.thirds > this.home.thirds ? 'guestWin' : 'tie')
     }
-    this.buzz()
+    this.buzz(BuzzKind.gameEnd)
     this._changed()
   }
 

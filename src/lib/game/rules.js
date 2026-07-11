@@ -5,16 +5,48 @@
 export const GameRules = {
   blueCardSeconds: 120,          // 2:00
   redCardSeconds: 240,           // 4:00
-  blueCardStackSeconds: [120, 240, 300],
+  // NO additive card stacking (owner decision 2026-07-10) — each card is an independent
+  // concurrent timer, matching real rink hockey; the Android extend-one-timer model was a
+  // UI simplification, not a rule. Do not restore it.
   passiveSeconds: 45,
   passiveFlashAt: 10,
   maxTimeoutsPerPeriod: 2,
   timeoutBreakSeconds: 60,
-  teamFoulEvery: 5,              // auto buzz+pause on every 5th team foul
+  // Team fouls ACCUMULATE for the whole game — never reset per period, and they carry
+  // into overtime. The other team is awarded a penalty (free hit) on the 10th foul and
+  // every 5th foul after it; a warning fires one foul earlier.
+  // The Android original was CORRECT (`strikeCount > 5 && %5 === 0` -> 10, 15, 20, never
+  // 5). The Swift port misread that as an off-by-one bug and regressed to every multiple
+  // of 5. Rule re-confirmed with the product owner 2026-07-10.
+  teamFoulPenaltyStart: 10,
+  teamFoulPenaltyEvery: 5,
   showTenthsBelowMS: 60_000,     // show a tenths digit inside the final minute
   resetDoubleTapWindowMS: 300,
   // League default confirmed with the product owner (2026-07-09): 25:00.
   defaultPeriodMS: 25 * 60 * 1000,
+}
+
+/** True when the n-th foul against a side awards the OTHER side a penalty: 10, 15, 20, 25… */
+export function isPenaltyFoul(n) {
+  return n >= GameRules.teamFoulPenaltyStart &&
+    (n - GameRules.teamFoulPenaltyStart) % GameRules.teamFoulPenaltyEvery === 0
+}
+
+/** True when the n-th foul is the last one before a penalty: 9, 14, 19, 24… */
+export function isWarningFoul(n) { return isPenaltyFoul(n + 1) }
+
+// Why the buzzer sounded. The Watch maps each kind to its own haptic pattern so a judge
+// can tell a foul warning from a penalty without looking (MOBILE-BUILD/WATCH-SPEC.md §6).
+export const BuzzKind = {
+  manual: 'manual',
+  goal: 'goal',
+  card: 'card',
+  teamFoulWarning: 'teamFoulWarning',   // 9, 14, 19…
+  teamFoulPenalty: 'teamFoulPenalty',   // 10, 15, 20…
+  periodEnd: 'periodEnd',
+  breakStart: 'breakStart',
+  breakEnd: 'breakEnd',
+  gameEnd: 'gameEnd',
 }
 
 // Match formats.

@@ -129,7 +129,10 @@ export function AuthProvider({ children }) {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: window.location.origin + '/admin'
+        // Return to the page the user signed in from — the admin login button lands
+        // back on /admin, while a member liking a post from the feed returns to the
+        // feed instead of hitting the admin AccessDenied screen.
+        redirectTo: window.location.origin + window.location.pathname
       }
     })
     if (error) throw error
