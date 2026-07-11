@@ -1,12 +1,13 @@
 import { useState, useRef, useEffect } from "react"
-import { Link } from "react-router-dom"
+import { Link, useNavigate } from "react-router-dom"
 import { useGameEngine, clearEngineDraft } from "@/lib/game/useGameEngine"
 import { saveGameResult } from "@/lib/judge"
+import { broadcastGameState, setGameStatus } from "@/lib/live"
 import { clockString } from "@/lib/game/format"
 import { Phase, TeamSide, CardType, GameRules } from "@/lib/game/rules"
 import {
   Play, Pause, RotateCcw, Maximize, Minimize, X, Check, Trophy, Loader2,
-  ArrowRight, Plus, Clock, ShieldAlert,
+  ArrowRight, Plus, Clock, ShieldAlert, Undo2,
 } from "lucide-react"
 import TeamLogo from "@/components/TeamLogo"
 
@@ -22,9 +23,12 @@ export default function GameScoreboard({ game, home, guest, players }) {
   const homeScore = engine.homeFinalScore
   const awayScore = engine.guestFinalScore
 
+  const navigate = useNavigate()
   const [picker, setPicker] = useState(null) // { side, action: 'goal'|'blue'|'red' }
   const [confirmReset, setConfirmReset] = useState(false)
   const [confirmFinish, setConfirmFinish] = useState(false)
+  const [confirmAbandon, setConfirmAbandon] = useState(false)
+  const [abandoning, setAbandoning] = useState(false)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [saveErr, setSaveErr] = useState(null)
@@ -36,6 +40,43 @@ export default function GameScoreboard({ game, home, guest, players }) {
     document.addEventListener("fullscreenchange", h)
     return () => document.removeEventListener("fullscreenchange", h)
   }, [])
+
+  // Live broadcast to spectators. The engine bumps `version` ~20×/sec while the
+  // clock runs, but we only push a new snapshot when a SIGNIFICANT thing changes
+  // — score, running/paused, phase or period — never per tick (spectators
+  // reconstruct the clock from the broadcast deadline). A completed game is never
+  // re-opened. One broadcast on mount makes the game show live the moment the
+  // judge opens the board.
+  const lastSig = useRef(null)
+  useEffect(() => {
+    if (game.status === "completed") return
+    const sig = () => [
+      engine.homeFinalScore, engine.guestFinalScore,
+      engine.isRunning, engine.phase, engine.periodLabel,
+    ].join("|")
+    lastSig.current = sig()
+    broadcastGameState(engine, game.id)
+    return engine.subscribe(() => {
+      const s = sig()
+      if (s === lastSig.current) return
+      lastSig.current = s
+      broadcastGameState(engine, game.id)
+    })
+  }, [engine, game.id, game.status])
+
+  // Abandon: hand the game back to "not started". Clears the DB live state
+  // (server-side) and the local draft, then returns to the judge list.
+  const doAbandon = async () => {
+    setAbandoning(true); setSaveErr(null)
+    try {
+      await setGameStatus(game.id, "scheduled")
+      clearEngineDraft(game.id)
+      navigate("/judge")
+    } catch {
+      setSaveErr("שגיאה בהחזרת המשחק למצב 'טרם החל'")
+      setAbandoning(false)
+    }
+  }
 
   const toggleFs = async () => {
     try {
@@ -200,19 +241,35 @@ export default function GameScoreboard({ game, home, guest, players }) {
 
       {saveErr && <p className="mt-3 text-center text-sm text-red-400">{saveErr}</p>}
 
-      {/* bottom: reset + finish */}
+      {/* bottom: reset + abandon (left) | finish (right) */}
       <div className="mt-5 flex items-center justify-between gap-3">
-        {confirmReset ? (
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-slate-400">לאפס את המשחק?</span>
-            <button onClick={() => { engine.resetGame(); setConfirmReset(false) }} className="px-3 py-1.5 rounded-lg bg-red-500 text-white text-xs font-bold">כן, אפס</button>
-            <button onClick={() => setConfirmReset(false)} className="px-3 py-1.5 rounded-lg bg-slate-700 text-slate-300 text-xs font-bold">ביטול</button>
-          </div>
-        ) : (
-          <button onClick={() => setConfirmReset(true)} className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold text-slate-400 hover:bg-slate-800 transition-colors">
-            <RotateCcw className="w-3.5 h-3.5" /> אפס משחק
-          </button>
-        )}
+        <div className="flex items-center gap-2 flex-wrap">
+          {confirmReset ? (
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-slate-400">לאפס את המשחק?</span>
+              <button onClick={() => { engine.resetGame(); setConfirmReset(false) }} className="px-3 py-1.5 rounded-lg bg-red-500 text-white text-xs font-bold">כן, אפס</button>
+              <button onClick={() => setConfirmReset(false)} className="px-3 py-1.5 rounded-lg bg-slate-700 text-slate-300 text-xs font-bold">ביטול</button>
+            </div>
+          ) : (
+            <button onClick={() => setConfirmReset(true)} className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold text-slate-400 hover:bg-slate-800 transition-colors">
+              <RotateCcw className="w-3.5 h-3.5" /> אפס משחק
+            </button>
+          )}
+          {confirmAbandon ? (
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-slate-400">להחזיר את המשחק למצב "טרם החל"?</span>
+              <button onClick={doAbandon} disabled={abandoning}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500 text-white text-xs font-bold disabled:opacity-50">
+                {abandoning ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null} כן, החזר
+              </button>
+              <button onClick={() => setConfirmAbandon(false)} disabled={abandoning} className="px-3 py-1.5 rounded-lg bg-slate-700 text-slate-300 text-xs font-bold disabled:opacity-50">ביטול</button>
+            </div>
+          ) : (
+            <button onClick={() => { setSaveErr(null); setConfirmAbandon(true) }} className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold text-slate-400 hover:bg-slate-800 transition-colors">
+              <Undo2 className="w-3.5 h-3.5" /> החזר למצב 'טרם החל'
+            </button>
+          )}
+        </div>
         {confirmFinish ? (
           <div className="flex items-center gap-2">
             <span className="text-xs text-slate-300">לסיים ולשמור? <span className="font-bold tabular-nums">{awayScore}:{homeScore}</span></span>

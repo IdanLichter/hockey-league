@@ -1,10 +1,12 @@
 import { useState, useEffect } from "react"
 import { useParams, Link } from "react-router-dom"
 import { getGameById, getGameStatsByGameId, getTeams, getPlayers, getReferees, getGames } from "@/lib/api"
+import { getLiveGame } from "@/lib/live"
 import { ArrowRight, ArrowLeft, Calendar, Clock, MapPin, Shield, Trophy, Users, Flame, Swords, TrendingUp, RefreshCw } from "lucide-react"
 import { motion } from "framer-motion"
 import { format } from "date-fns"
 import TeamLogo from "@/components/TeamLogo"
+import LiveGame from "@/components/LiveGame"
 import { TeamLink, PlayerLink } from "@/components/EntityLinks"
 import { useSeo } from "@/lib/seo"
 
@@ -41,6 +43,7 @@ export default function GameDetail() {
   const [players, setPlayers] = useState([])
   const [referees, setReferees] = useState([])
   const [games, setGames] = useState([])
+  const [live, setLive] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
@@ -63,10 +66,10 @@ export default function GameDetail() {
   const loadData = async () => {
     try {
       setLoading(true); setError(null)
-      const [g, s, t, p, r, allGames] = await Promise.all([
-        getGameById(id), getGameStatsByGameId(id), getTeams(), getPlayers(), getReferees(), getGames(),
+      const [g, s, t, p, r, allGames, lg] = await Promise.all([
+        getGameById(id), getGameStatsByGameId(id), getTeams(), getPlayers(), getReferees(), getGames(), getLiveGame(id),
       ])
-      setGame(g); setStats(s || []); setTeams(t); setPlayers(p); setReferees(r); setGames(allGames)
+      setGame(g); setStats(s || []); setTeams(t); setPlayers(p); setReferees(r); setGames(allGames); setLive(lg)
     } catch (err) {
       console.error(err)
       setError(err?.code === 'PGRST116' ? 'notfound' : 'error')
@@ -109,6 +112,10 @@ export default function GameDetail() {
   // pre-entered score in the DB, but the whole app (Games list, TeamDetail)
   // gates the score on status === 'completed', so we do the same here.
   const done = game.status === 'completed'
+  // A live game takes over the top of the page: status flips to in_progress when
+  // the judge broadcasts, and a live row is the belt-and-suspenders signal. Never
+  // for a completed game (the finish RPC clears the live row anyway).
+  const showLive = !done && (game.status === 'in_progress' || !!live)
   const played = done && game.home_score != null && game.away_score != null
   const homeWin = played && game.home_score > game.away_score
   const awayWin = played && game.away_score > game.home_score
@@ -166,6 +173,9 @@ export default function GameDetail() {
       <Link to="/games" className="inline-flex items-center gap-1.5 text-sm font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 transition-colors">
         <ArrowRight className="w-4 h-4" /> חזרה למשחקים
       </Link>
+
+      {/* ============ LIVE SCOREBOARD (in-progress only) ============ */}
+      {showLive && <LiveGame gameId={id} home={home} away={away} initial={live} />}
 
       {/* ============ HEADER ============ */}
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="card p-5 sm:p-6">
