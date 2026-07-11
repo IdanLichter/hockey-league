@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react"
 import { motion } from "framer-motion"
 import { Camera, HelpCircle, Check, ExternalLink, RefreshCw, Send, CalendarDays } from "lucide-react"
 import { getMediaClusters, getSuggestionSummary, submitSuggestion, getResolvedCount } from "@/lib/media"
+import { useAuth } from "@/lib/AuthContext"
 
 const PAGE = 24
 
@@ -94,6 +95,7 @@ export default function Media() {
 }
 
 function ClusterCard({ cluster, index, summary, onSubmitted }) {
+  const { user, openAuth } = useAuth()
   const [first, setFirst] = useState("")
   const [last, setLast] = useState("")
   const [state, setState] = useState("idle") // idle | sending | done | error
@@ -101,6 +103,7 @@ function ClusterCard({ cluster, index, summary, onSubmitted }) {
 
   const submit = async (e) => {
     e.preventDefault()
+    if (!user) { openAuth(); return } // suggesting requires login (DB blocks anon)
     if (!first.trim() || !last.trim()) { setMsg("נא למלא שם פרטי ושם משפחה"); return }
     try {
       setState("sending"); setMsg(null)

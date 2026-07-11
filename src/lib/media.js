@@ -32,17 +32,19 @@ export async function getClusterSuggestions(clusterKey) {
   return data
 }
 
-// Submit a name suggestion. Works logged-in or anonymously.
+// Submit a name suggestion. Requires a signed-in user (the DB rejects anonymous
+// inserts — see supabase/foundation-safety.sql); callers should openAuth first.
 export async function submitSuggestion(clusterKey, firstName, lastName) {
   const first = (firstName || '').trim()
   const last = (lastName || '').trim()
   if (!first || !last) throw new Error('נא למלא שם פרטי ושם משפחה')
   const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('יש להתחבר כדי להציע שם')
   const { error } = await supabase.from('cluster_suggestions').insert({
     cluster_key: clusterKey,
-    first_name: first,
-    last_name: last,
-    suggested_by: user?.id ?? null,
+    first_name: first.slice(0, 80),
+    last_name: last.slice(0, 80),
+    suggested_by: user.id,
   })
   if (error) throw error
 }

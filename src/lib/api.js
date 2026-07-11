@@ -1,5 +1,22 @@
 import { supabase } from './supabase'
 
+// Fetch every row, paging past PostgREST's 1000-row cap (a plain select silently
+// truncates at 1000). Used for tables that can grow beyond that within a season.
+async function fetchAllRows(table, select = '*', orderCol = 'id') {
+  const out = []
+  const size = 1000
+  let from = 0
+  while (true) {
+    const { data, error } = await supabase
+      .from(table).select(select).order(orderCol, { ascending: true }).range(from, from + size - 1)
+    if (error) throw error
+    out.push(...(data || []))
+    if (!data || data.length < size) break
+    from += size
+  }
+  return out
+}
+
 export async function getTeams(orderBy = 'points', ascending = false) {
   const { data, error } = await supabase
     .from('teams')
@@ -28,11 +45,8 @@ export async function getGames(orderBy = 'game_date', ascending = false) {
 }
 
 export async function getGameStats() {
-  const { data, error } = await supabase
-    .from('game_stats')
-    .select('*')
-  if (error) throw error
-  return data
+  // game_stats grows ~13 rows/game and will exceed 1000 within a season — page it.
+  return fetchAllRows('game_stats', '*', 'id')
 }
 
 export async function getReferees() {
@@ -317,132 +331,13 @@ export async function getArchivedGames(seasonId) {
  * @param {string} seasonName - e.g. "2024-25"
  */
 export async function archiveAndResetSeason(seasonName) {
-  // 1. Create season record
-  const { data: season, error: sErr } = await supabase
-    .from('archived_seasons')
-    .insert({ name: seasonName })
-    .select()
-    .single()
-  if (sErr) throw sErr
-
-  // 2. Get current data
-  const [teams, players, games, gameStats] = await Promise.all([
-    getTeams(), getPlayers(), getGames(), getGameStats()
-  ])
-  const teamsMap = Object.fromEntries(teams.map(t => [t.id, t]))
-  const sorted = [...teams].sort((a, b) => (b.points || 0) - (a.points || 0))
-
-  // 3. Archive team standings
-  const teamStandings = sorted.map((t, i) => ({
-    season_id: season.id,
-    team_id: t.id,
-    team_name: t.name,
-    wins: t.wins || 0,
-    losses: t.losses || 0,
-    ties: t.ties || 0,
-    points: t.points || 0,
-    goals_for: t.goals_for || 0,
-    goals_against: t.goals_against || 0,
-    own_goals_received: t.own_goals_received || 0,
-    final_rank: i + 1
-  }))
-  if (teamStandings.length > 0) {
-    const { error } = await supabase.from('archived_team_standings').insert(teamStandings)
-    if (error) throw error
-  }
-
-  // 4. Archive player stats
-  const playerStats = players.map(p => ({
-    season_id: season.id,
-    player_id: p.id,
-    player_first_name: p.first_name,
-    player_last_name: p.last_name,
-    team_id: p.team_id,
-    team_name: teamsMap[p.team_id]?.name || '',
-    position: p.position,
-    goals: p.goals || 0,
-    games_played: p.games_played || 0,
-    blue_cards: p.blue_cards || 0,
-    red_cards: p.red_cards || 0,
-    is_core: p.is_core || false,
-    is_referee: p.is_referee || false
-  }))
-  if (playerStats.length > 0) {
-    const { error } = await supabase.from('archived_player_stats').insert(playerStats)
-    if (error) throw error
-  }
-
-  // 5. Archive games
-  for (const game of games) {
-    const { data: archivedGame, error: gErr } = await supabase
-      .from('archived_games')
-      .insert({
-        season_id: season.id,
-        original_game_id: game.id,
-        home_team_name: teamsMap[game.home_team_id]?.name || '',
-        away_team_name: teamsMap[game.away_team_id]?.name || '',
-        home_team_id: game.home_team_id,
-        away_team_id: game.away_team_id,
-        game_date: game.game_date,
-        venue: game.venue,
-        home_score: game.home_score,
-        away_score: game.away_score,
-        status: game.status,
-        game_type: game.game_type,
-        playoff_round: game.playoff_round,
-        series_game: game.series_game
-      })
-      .select()
-      .single()
-    if (gErr) throw gErr
-
-    // Archive game stats for this game
-    const gStats = gameStats.filter(s => s.game_id === game.id)
-    if (gStats.length > 0) {
-      const archivedStats = gStats.map(s => {
-        const player = players.find(p => p.id === s.player_id)
-        return {
-          season_id: season.id,
-          archived_game_id: archivedGame.id,
-          player_first_name: player?.first_name || s.guest_player_name || '',
-          player_last_name: player?.last_name || '',
-          team_name: teamsMap[player?.team_id]?.name || '',
-          goals: s.goals || 0,
-          blue_cards: s.blue_cards || 0,
-          red_cards: s.red_cards || 0,
-          clean_sheet: s.clean_sheet || false
-        }
-      })
-      const { error } = await supabase.from('archived_game_stats').insert(archivedStats)
-      if (error) throw error
-    }
-  }
-
-  // 6. Delete all current game_stats and games
-  const { error: delStats } = await supabase.from('game_stats').delete().neq('id', '00000000-0000-0000-0000-000000000000')
-  if (delStats) throw delStats
-  const { error: delGames } = await supabase.from('games').delete().neq('id', '00000000-0000-0000-0000-000000000000')
-  if (delGames) throw delGames
-
-  // 7. Reset team stats
-  for (const team of teams) {
-    await updateTeam(team.id, {
-      wins: 0, losses: 0, ties: 0, points: 0,
-      goals_for: 0, goals_against: 0, own_goals_received: 0
-    })
-  }
-
-  // 8. Reset player stats
-  for (const player of players) {
-    await updatePlayer(player.id, {
-      goals: 0, games_played: 0, blue_cards: 0, red_cards: 0
-    })
-  }
-
-  // 9. Set season mode back to regular
-  await setLeagueSetting('season_mode', 'regular')
-
-  return season
+  // One atomic, admin-gated RPC (supabase/archive-season-rpc.sql). Replaces the
+  // old ~90-write browser loop that had no transaction — a mid-way failure used
+  // to permanently corrupt the season. The RPC archives standings/players/games/
+  // box-scores, wipes the live season, and resets season_mode, all-or-nothing.
+  const { data, error } = await supabase.rpc('archive_and_reset_season', { p_season_name: seasonName })
+  if (error) throw error
+  return { id: data, name: seasonName }
 }
 
 // ============ STATS RECALCULATION ============

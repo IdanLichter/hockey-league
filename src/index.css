@@ -91,6 +91,20 @@
     @apply text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white;
   }
 
+  /* Muted secondary text — the canonical light/dark pairing. Migrate the ad-hoc
+     `text-slate-500 dark:text-slate-400` (and its inverted variants) onto this
+     screen by screen. Defined here as the target; not yet retrofitted. */
+  .muted {
+    @apply text-slate-500 dark:text-slate-400;
+  }
+
+  /* Standard page content width. Page max-widths are declared ~6 different ways
+     today; migrate onto this per screen (kept unused for now to avoid an
+     unreviewed layout shift). */
+  .page-container {
+    @apply max-w-6xl mx-auto px-4 sm:px-6;
+  }
+
   .page-subtitle {
     @apply text-sm text-slate-500 dark:text-slate-400 font-medium;
   }

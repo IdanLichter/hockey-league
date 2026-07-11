@@ -14,15 +14,21 @@ export function AuthProvider({ children }) {
   const [authOpen, setAuthOpen] = useState(false)
 
   useEffect(() => {
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null)
-      if (session?.user) loadAccount(session.user)
-      else setLoading(false)
-    })
+    let mounted = true
+    // Get initial session. A rejected getSession() must still clear `loading`,
+    // otherwise the whole app is stuck on the spinner forever.
+    supabase.auth.getSession()
+      .then(({ data: { session } }) => {
+        if (!mounted) return
+        setUser(session?.user ?? null)
+        if (session?.user) loadAccount(session.user)
+        else setLoading(false)
+      })
+      .catch(() => { if (mounted) setLoading(false) })
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!mounted) return
       setUser(session?.user ?? null)
       if (session?.user) {
         setAuthOpen(false) // close the auth modal once signed in
@@ -35,7 +41,7 @@ export function AuthProvider({ children }) {
       }
     })
 
-    return () => subscription.unsubscribe()
+    return () => { mounted = false; subscription.unsubscribe() }
   }, [])
 
   // Resolve admin status + granted roles + profile for a signed-in user.
