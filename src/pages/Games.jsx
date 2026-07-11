@@ -98,6 +98,12 @@ export default function Games() {
     )
   }
 
+  // Rendered by INVOKING this function inline (`{GameCard({ game })}`), not as
+  // `<GameCard/>`. It's defined inside Games, so its identity changes every render;
+  // as a JSX element that remounts every card on any state change — tearing down the
+  // DOM (scroll jumps to top) and replaying the entrance animation on each expand.
+  // Invoking it inline keeps the keyed root <motion.div> stable. Safe because it has
+  // no hooks. Keep the `key` on the returned motion.div.
   const GameCard = ({ game }) => {
     const done = game.status === "completed"
     const status = statusCfg[game.status] || statusCfg.completed
@@ -111,7 +117,7 @@ export default function Games() {
     const tie = done && game.home_score === game.away_score
 
     return (
-      <motion.div layout initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="card-hover overflow-hidden">
+      <motion.div key={game.id} layout initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="card-hover overflow-hidden">
         {/* Whole header is the toggle (Teams.jsx pattern). Team names are plain text
             here — you reach the team pages from the full game page below. */}
         <button onClick={() => toggleStats(game)} className="w-full text-right p-4 sm:p-5" aria-expanded={open}>
@@ -313,7 +319,7 @@ export default function Games() {
             <h2 className="text-sm font-bold text-slate-900 dark:text-white mb-3 flex items-center gap-2 uppercase tracking-wide">
               <Clock className="w-4 h-4 text-blue-500" /> משחקים קרובים
             </h2>
-            <div className="grid gap-3">{upcoming.map(g => <GameCard key={g.id} game={g} />)}</div>
+            <div className="grid gap-3">{upcoming.map(g => GameCard({ game: g }))}</div>
           </div>
         )}
         {completed.length > 0 && (
@@ -321,7 +327,7 @@ export default function Games() {
             <h2 className="text-sm font-bold text-slate-900 dark:text-white mb-3 flex items-center gap-2 uppercase tracking-wide">
               <Trophy className="w-4 h-4 text-emerald-500" /> תוצאות
             </h2>
-            <div className="grid gap-3">{completed.map(g => <GameCard key={g.id} game={g} />)}</div>
+            <div className="grid gap-3">{completed.map(g => GameCard({ game: g }))}</div>
           </div>
         )}
         {filtered.length === 0 && (
