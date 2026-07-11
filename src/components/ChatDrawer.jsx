@@ -1,0 +1,251 @@
+import { useState, useEffect, useRef, useCallback } from 'react'
+import { MessageCircle, X, ArrowRight, Send, Plus, Search } from 'lucide-react'
+import { formatDistanceToNow, format } from 'date-fns'
+import { he } from 'date-fns/locale'
+import { useAuth } from '../lib/AuthContext'
+import { BRAND_ORANGE } from '../lib/brand'
+import {
+  listConversations, getThread, sendMessage, markThreadRead,
+  getTotalUnread, getMessageableMembers, subscribeToMessages,
+} from '../lib/chat'
+
+function Avatar({ p, size = 'w-9 h-9' }) {
+  const initial = (p?.display_name || '').trim().charAt(0).toUpperCase()
+  if (p?.avatar_url) return <img src={p.avatar_url} alt="" className={`${size} rounded-full object-cover shrink-0`} />
+  return (
+    <div className={`${size} rounded-full shrink-0 flex items-center justify-center text-white text-sm font-bold`} style={{ backgroundColor: BRAND_ORANGE }}>
+      {initial || '?'}
+    </div>
+  )
+}
+
+const relTime = (iso) => { try { return formatDistanceToNow(new Date(iso), { addSuffix: true, locale: he }) } catch { return '' } }
+const clockTime = (iso) => { try { return format(new Date(iso), 'HH:mm') } catch { return '' } }
+
+export default function ChatDrawer() {
+  const { user, isAdmin, roles, profile } = useAuth()
+  // Members only: linked to a player, OR holding a role, OR admin.
+  const canChat = !!user && (isAdmin || (roles?.length > 0) || !!profile?.player_id)
+
+  const [open, setOpen] = useState(false)
+  const [view, setView] = useState('inbox')   // inbox | thread | new
+  const [convs, setConvs] = useState([])
+  const [members, setMembers] = useState([])
+  const [memberQuery, setMemberQuery] = useState('')
+  const [active, setActive] = useState(null)   // counterpart profile
+  const [messages, setMessages] = useState([])
+  const [draft, setDraft] = useState('')
+  const [unread, setUnread] = useState(0)
+  const [loading, setLoading] = useState(false)
+  const [sending, setSending] = useState(false)
+  const bottomRef = useRef(null)
+  const activeRef = useRef(null); activeRef.current = active?.id || null
+  const openRef = useRef(open);   openRef.current = open
+
+  const loadConvs = useCallback(async () => {
+    setLoading(true)
+    try { setConvs(await listConversations()) } catch { /* best-effort */ } finally { setLoading(false) }
+  }, [])
+
+  // Unread badge + live incoming messages.
+  useEffect(() => {
+    if (!canChat) { setUnread(0); return }
+    getTotalUnread().then(setUnread).catch(() => {})
+    const unsub = subscribeToMessages(user.id, (msg) => {
+      if (openRef.current && activeRef.current === msg.sender_id) {
+        setMessages((prev) => [...prev, msg])
+        markThreadRead(msg.sender_id).catch(() => {})
+      } else {
+        setUnread((n) => n + 1)
+      }
+      if (openRef.current) loadConvs()
+    })
+    const onFocus = () => getTotalUnread().then(setUnread).catch(() => {})
+    window.addEventListener('focus', onFocus)
+    return () => { unsub(); window.removeEventListener('focus', onFocus) }
+  }, [canChat, user, loadConvs])
+
+  useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [messages])
+
+  const openDrawer = () => { setOpen(true); setView('inbox'); loadConvs() }
+  const close = () => setOpen(false)
+
+  const openThread = async (p) => {
+    setActive(p); setView('thread'); setMessages([]); setLoading(true)
+    try {
+      setMessages(await getThread(p.id))
+      const wasUnread = convs.find((c) => c.other_id === p.id)?.unread || 0
+      if (wasUnread) { await markThreadRead(p.id); setUnread((n) => Math.max(0, n - wasUnread)) }
+    } catch { /* best-effort */ } finally { setLoading(false) }
+  }
+
+  const openNew = async () => {
+    setView('new'); setMemberQuery(''); setLoading(true)
+    try { setMembers(await getMessageableMembers()) } catch { /* best-effort */ } finally { setLoading(false) }
+  }
+
+  const send = async () => {
+    const body = draft.trim()
+    if (!body || !active || sending) return
+    setSending(true)
+    try {
+      const msg = await sendMessage(active.id, body)
+      setMessages((prev) => [...prev, msg])
+      setDraft('')
+    } catch (e) {
+      const rl = String(e?.message || '').includes('dm_rate_limit')
+      alert(rl ? 'שליחת הודעות מהירה מדי, נסה שוב בעוד רגע' : 'שליחת ההודעה נכשלה')
+    } finally { setSending(false) }
+  }
+
+  const onKeyDown = (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send() } }
+
+  if (!canChat) return null
+
+  const filteredMembers = members.filter((m) => (m.display_name || '').toLowerCase().includes(memberQuery.toLowerCase()))
+
+  return (
+    <>
+      {/* Launcher */}
+      {!open && (
+        <button
+          onClick={openDrawer}
+          className="fixed bottom-6 left-6 z-40 w-14 h-14 rounded-full bg-orange-500 hover:bg-orange-600 text-white shadow-lg shadow-orange-500/30 flex items-center justify-center transition-colors"
+          aria-label="הודעות"
+        >
+          <MessageCircle className="w-6 h-6" />
+          {unread > 0 && (
+            <span className="absolute -top-1 -right-1 min-w-[20px] h-5 px-1.5 rounded-full bg-red-500 text-white text-xs font-bold flex items-center justify-center border-2 border-white dark:border-slate-900">
+              {unread > 9 ? '9+' : unread}
+            </span>
+          )}
+        </button>
+      )}
+
+      {/* Drawer */}
+      {open && (
+        <div
+          dir="rtl"
+          className="fixed left-0 top-16 bottom-0 z-40 w-full sm:w-[380px] bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 shadow-2xl flex flex-col"
+        >
+          {/* Header */}
+          <div className="flex items-center gap-2 px-3 h-14 border-b border-slate-100 dark:border-slate-800 shrink-0">
+            {view !== 'inbox' && (
+              <button onClick={() => setView('inbox')} className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500" aria-label="חזרה">
+                <ArrowRight className="w-5 h-5" />
+              </button>
+            )}
+            {view === 'thread' && active ? (
+              <div className="flex items-center gap-2 min-w-0 flex-1">
+                <Avatar p={active} size="w-8 h-8" />
+                <span className="font-bold text-slate-900 dark:text-white truncate">{active.display_name || 'משתמש'}</span>
+              </div>
+            ) : (
+              <h3 className="font-bold text-slate-900 dark:text-white flex-1">{view === 'new' ? 'הודעה חדשה' : 'הודעות'}</h3>
+            )}
+            {view === 'inbox' && (
+              <button onClick={openNew} className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-orange-600 dark:text-orange-400" aria-label="שיחה חדשה" title="שיחה חדשה">
+                <Plus className="w-5 h-5" />
+              </button>
+            )}
+            <button onClick={close} className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500" aria-label="סגור">
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+
+          {/* Body */}
+          {loading ? (
+            <div className="flex-1 flex items-center justify-center">
+              <div className="animate-spin rounded-full h-6 w-6 border-2 border-orange-500 border-t-transparent" />
+            </div>
+          ) : view === 'inbox' ? (
+            convs.length === 0 ? (
+              <div className="flex-1 flex flex-col items-center justify-center gap-3 p-8 text-center">
+                <MessageCircle className="w-10 h-10 text-slate-300 dark:text-slate-700" />
+                <p className="text-sm text-slate-400 dark:text-slate-500">אין שיחות עדיין</p>
+                <button onClick={openNew} className="btn-primary btn-sm">התחל שיחה חדשה</button>
+              </div>
+            ) : (
+              <ul className="flex-1 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800">
+                {convs.map((c) => (
+                  <li key={c.other_id}>
+                    <button onClick={() => openThread(c.profile || { id: c.other_id })} className="w-full flex items-center gap-3 px-3 py-3 hover:bg-slate-50 dark:hover:bg-slate-800/60 text-right transition-colors">
+                      <Avatar p={c.profile} />
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="font-semibold text-sm text-slate-900 dark:text-white truncate">{c.profile?.display_name || 'משתמש'}</span>
+                          <span className="text-[11px] text-slate-400 shrink-0">{relTime(c.last.created_at)}</span>
+                        </div>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{c.last.body}</p>
+                      </div>
+                      {c.unread > 0 && <span className="min-w-[18px] h-[18px] px-1 rounded-full bg-orange-500 text-white text-[10px] font-bold flex items-center justify-center shrink-0">{c.unread}</span>}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )
+          ) : view === 'new' ? (
+            <div className="flex-1 flex flex-col min-h-0">
+              <div className="p-3 shrink-0">
+                <div className="relative">
+                  <Search className="w-4 h-4 text-slate-400 absolute top-1/2 -translate-y-1/2 right-3" />
+                  <input
+                    value={memberQuery}
+                    onChange={(e) => setMemberQuery(e.target.value)}
+                    placeholder="חיפוש חבר/ה בליגה"
+                    className="w-full pr-9 pl-3 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500/40"
+                  />
+                </div>
+              </div>
+              <ul className="flex-1 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800">
+                {filteredMembers.length === 0 ? (
+                  <li className="p-6 text-center text-sm text-slate-400">לא נמצאו חברים</li>
+                ) : filteredMembers.map((m) => (
+                  <li key={m.id}>
+                    <button onClick={() => openThread(m)} className="w-full flex items-center gap-3 px-3 py-3 hover:bg-slate-50 dark:hover:bg-slate-800/60 text-right transition-colors">
+                      <Avatar p={m} />
+                      <span className="font-semibold text-sm text-slate-900 dark:text-white truncate">{m.display_name || 'משתמש'}</span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : (
+            /* thread */
+            <>
+              <div className="flex-1 overflow-y-auto p-3 flex flex-col gap-2">
+                {messages.length === 0 ? (
+                  <div className="flex-1 flex items-center justify-center text-sm text-slate-400">אין הודעות עדיין — כתוב/כתבי הודעה ראשונה</div>
+                ) : messages.map((m) => {
+                  const mine = m.sender_id === user.id
+                  return (
+                    <div key={m.id} className={`max-w-[80%] ${mine ? 'self-start' : 'self-end'}`}>
+                      <div className={`px-3 py-2 rounded-2xl text-sm break-words ${mine ? 'bg-orange-500 text-white rounded-bl-sm' : 'bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-100 rounded-br-sm'}`}>
+                        {m.body}
+                      </div>
+                      <div className={`text-[10px] text-slate-400 mt-0.5 ${mine ? 'text-right' : 'text-left'}`}>{clockTime(m.created_at)}</div>
+                    </div>
+                  )
+                })}
+                <div ref={bottomRef} />
+              </div>
+              <div className="p-3 border-t border-slate-100 dark:border-slate-800 shrink-0 flex items-end gap-2">
+                <textarea
+                  value={draft}
+                  onChange={(e) => setDraft(e.target.value)}
+                  onKeyDown={onKeyDown}
+                  rows={1}
+                  placeholder="הקלד/י הודעה…"
+                  className="flex-1 resize-none max-h-28 px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500/40"
+                />
+                <button onClick={send} disabled={sending || !draft.trim()} className="w-10 h-10 rounded-xl bg-orange-500 hover:bg-orange-600 disabled:opacity-40 text-white flex items-center justify-center shrink-0 transition-colors" aria-label="שלח">
+                  <Send className="w-4 h-4" />
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      )}
+    </>
+  )
+}

@@ -19,6 +19,8 @@ import { Rink, Standings, Crossed, Teams, Player, Whistle } from "./components/i
 import { useTheme } from "./lib/ThemeContext"
 import { useAuth } from "./lib/AuthContext"
 import AuthModal from "./components/AuthModal"
+import NotificationBell from "./components/NotificationBell"
+import ChatDrawer from "./components/ChatDrawer"
 
 // Nav uses the hockey icons in `mono`, so their orange accent becomes currentColor
 // and stays visible on the active tab's solid-orange background.
@@ -124,6 +126,9 @@ export default function Layout({ children }) {
             >
               {dark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
             </button>
+
+            {/* Notifications bell — visible on all sizes for signed-in users, next to the avatar */}
+            {user && <NotificationBell />}
 
             {/* Auth (lg+) */}
             <div className="hidden lg:flex items-center gap-2">
@@ -239,6 +244,9 @@ export default function Layout({ children }) {
 
       {/* Auth (login / signup) modal */}
       <AuthModal />
+
+      {/* Members-only chat / mailbox (self-gates to members) */}
+      <ChatDrawer />
     </div>
   )
 }
