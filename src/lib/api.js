@@ -92,6 +92,42 @@ export async function getPosts() {
   }))
 }
 
+// Public role badges for a set of user ids (post authors, a player's linked
+// account). Uses the public_role_badges RPC so viewers can see others' league
+// roles despite the "read own roles" RLS on user_roles.
+// Returns a map: { [userId]: { isAdmin: boolean, roles: [{role, team_id}] } }.
+export async function getRoleBadges(userIds = []) {
+  const ids = [...new Set((userIds || []).filter(Boolean))]
+  if (!ids.length) return {}
+  const { data, error } = await supabase.rpc('public_role_badges', { p_user_ids: ids })
+  if (error) { console.error('getRoleBadges', error); return {} }
+  const map = {}
+  for (const row of data || []) {
+    map[row.user_id] = { isAdmin: !!row.is_admin, roles: row.roles || [] }
+  }
+  return map
+}
+
+// Role badges for the account (if any) linked to a given player — used on the
+// player page. Resolves player → profile(s) (public-readable) → role badges.
+// Returns { isAdmin, roles } or null when the player has no linked account/role.
+export async function getPlayerRoleBadges(playerId) {
+  if (!playerId) return null
+  const { data: profs, error } = await supabase
+    .from('profiles').select('id').eq('player_id', playerId)
+  if (error || !profs?.length) return null
+  const map = await getRoleBadges(profs.map(p => p.id))
+  let isAdmin = false
+  const roles = []
+  for (const p of profs) {
+    const entry = map[p.id]
+    if (!entry) continue
+    if (entry.isAdmin) isAdmin = true
+    for (const r of entry.roles) roles.push(r)
+  }
+  return (isAdmin || roles.length) ? { isAdmin, roles } : null
+}
+
 export async function createPost({ body, teamId = null }) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error('not authenticated')

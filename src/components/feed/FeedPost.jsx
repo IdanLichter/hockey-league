@@ -9,6 +9,7 @@ import { likePost, unlikePost, getComments, createComment, editPost, deletePost,
 import { setPhotoOverride } from "@/lib/photoOverrides"
 import ReactionBar from "@/components/feed/ReactionBar"
 import ModerationMenu from "@/components/feed/ModerationMenu"
+import { RoleBadge, deriveRoleItems } from "@/components/RoleBadges"
 import { TARGET_POST, TARGET_COMMENT } from "@/lib/moderation"
 
 function Avatar({ url, name, className = "w-9 h-9" }) {
@@ -379,11 +380,17 @@ function MilestonePost({ post, likedItems, itemLikeCounts, itemCommentCounts, bl
 }
 
 /* ============ HUMAN POST (Stage B2 + likes/comments) ============ */
-function PostCard({ post, likedPostIds, blockedIds }) {
+function PostCard({ post, likedPostIds, blockedIds, roleBadges }) {
   const { user, openAuth } = useAuth()
   const { post: p, author, team } = post.data
   const name = author?.display_name || "חבר/ת הליגה"
   const linkedPlayerId = author?.player_id || null   // paired → has a player page
+  // Author's public league role(s). No teamsMap here → coach shows as "מאמן"
+  // (compact) rather than "מאמן · team", keeping the inline header short.
+  const authorBadge = roleBadges?.[p.author_id] || null
+  const authorRoleItems = authorBadge
+    ? deriveRoleItems({ isAdmin: authorBadge.isAdmin, roles: authorBadge.roles })
+    : []
 
   const [liked, setLiked] = useState(() => likedPostIds?.has?.(p.id) || false)
   const [likeCount, setLikeCount] = useState(p.like_count || 0)
@@ -494,7 +501,7 @@ function PostCard({ post, likedPostIds, blockedIds }) {
           <Avatar url={author?.avatar_url} name={name} className="w-9 h-9" />
         </PlayerLink>
         <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-1.5 min-w-0">
+          <div className="flex flex-wrap items-center gap-1.5 min-w-0">
             <PlayerLink playerId={linkedPlayerId} className="min-w-0">
               <p className={`text-sm font-bold text-slate-900 dark:text-white truncate ${linkedPlayerId ? "hover:text-orange-500 transition-colors" : ""}`}>{name}</p>
             </PlayerLink>
@@ -505,6 +512,7 @@ function PostCard({ post, likedPostIds, blockedIds }) {
             ) : (
               <span title="חשבון שאינו מקושר לשחקן" className="shrink-0 text-[10px] font-medium text-slate-400 dark:text-slate-500">אורח/ת</span>
             )}
+            {authorRoleItems.map(it => <RoleBadge key={it.role} role={it.role} size="sm" />)}
           </div>
           <p className="text-[11px] text-slate-400 dark:text-slate-500 flex items-center gap-1">
             <span>{fmtDate(post.date)}</span>
@@ -637,7 +645,7 @@ function PostCard({ post, likedPostIds, blockedIds }) {
 }
 
 /* ============ Dispatcher ============ */
-export default function FeedPost({ post, playersMap, teamsMap, likedPostIds, likedItems, itemLikeCounts, itemCommentCounts, blockedIds, onPhotoRefreshed }) {
+export default function FeedPost({ post, playersMap, teamsMap, roleBadges, likedPostIds, likedItems, itemLikeCounts, itemCommentCounts, blockedIds, onPhotoRefreshed }) {
   const rx = { likedItems, itemLikeCounts, itemCommentCounts, blockedIds, onPhotoRefreshed }
   switch (post.type) {
     case 'champion':
@@ -649,7 +657,7 @@ export default function FeedPost({ post, playersMap, teamsMap, likedPostIds, lik
     case 'milestone':
       return <MilestonePost post={post} {...rx} />
     case 'post':
-      return <PostCard post={post} likedPostIds={likedPostIds} blockedIds={blockedIds} />
+      return <PostCard post={post} likedPostIds={likedPostIds} blockedIds={blockedIds} roleBadges={roleBadges} />
     default:
       return null
   }

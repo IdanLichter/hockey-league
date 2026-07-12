@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from "react"
-import { getGames, getTeams, getPlayers, getGameStats, getLeagueSetting, getPosts, getMyLikes } from "@/lib/api"
+import { getGames, getTeams, getPlayers, getGameStats, getLeagueSetting, getPosts, getMyLikes, getRoleBadges } from "@/lib/api"
 import { getItemLikes, getItemCommentCounts } from "@/lib/reactions"
 import { getMyBlocks } from "@/lib/moderation"
 import { useAuth } from "@/lib/AuthContext"
@@ -27,6 +27,7 @@ export default function Feed() {
   const [players, setPlayers] = useState([])
   const [gameStats, setGameStats] = useState([])
   const [posts, setPosts] = useState([])
+  const [roleBadges, setRoleBadges] = useState({}) // { [userId]: { isAdmin, roles } }
   const [photoIndex, setPhotoIndex] = useState({ photos: [], photoPlayers: [] })
   const [photoOverrides, setPhotoOverrides] = useState({})
   const [likedPostIds, setLikedPostIds] = useState(() => new Set())
@@ -66,6 +67,14 @@ export default function Feed() {
     getPhotoIndex().then(setPhotoIndex).catch(() => {})
     getPhotoOverrides().then(setPhotoOverrides).catch(() => {})
   }, [])
+
+  // League-role badges for post authors — fetched once posts are known so a
+  // member's role (מנהל / מאמן / עורך תוכן / שופט) shows next to their name.
+  useEffect(() => {
+    const authorIds = posts.map(p => p.author_id).filter(Boolean)
+    if (!authorIds.length) return
+    getRoleBadges(authorIds).then(setRoleBadges).catch(() => {})
+  }, [posts])
 
   const loadData = async () => {
     try {
@@ -187,7 +196,7 @@ export default function Feed() {
           ) : (
             <div className="space-y-5">
               {visible.map(post => (
-                <FeedPost key={post.id} post={post} playersMap={playersMap} teamsMap={teamsMap} likedPostIds={likedPostIds} likedItems={likedItems} itemLikeCounts={itemLikeCounts} itemCommentCounts={itemCommentCounts} blockedIds={blockedIds} onPhotoRefreshed={handlePhotoRefreshed} />
+                <FeedPost key={post.id} post={post} playersMap={playersMap} teamsMap={teamsMap} roleBadges={roleBadges} likedPostIds={likedPostIds} likedItems={likedItems} itemLikeCounts={itemLikeCounts} itemCommentCounts={itemCommentCounts} blockedIds={blockedIds} onPhotoRefreshed={handlePhotoRefreshed} />
               ))}
             </div>
           )}

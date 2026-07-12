@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react"
 import { useParams, Link } from "react-router-dom"
-import { getPlayers, getTeams, getGames, getGameStats, getLeagueSetting } from "@/lib/api"
+import { getPlayers, getTeams, getGames, getGameStats, getLeagueSetting, getPlayerRoleBadges } from "@/lib/api"
 import { useAuth } from "@/lib/AuthContext"
 import { useSeasonMode } from "@/App"
 import { getClaimContext, createClaim, cancelClaim } from "@/lib/claims"
@@ -8,6 +8,7 @@ import { ArrowRight, Shirt, Shield, Calendar, RefreshCw, UserPlus, Check, Clock,
 import { motion } from "framer-motion"
 import { format } from "date-fns"
 import TeamLogo from "@/components/TeamLogo"
+import { RoleBadge, deriveRoleItems } from "@/components/RoleBadges"
 import { BRAND_ORANGE } from '@/lib/brand'
 import { useSeo } from '@/lib/seo'
 
@@ -28,6 +29,7 @@ export default function PlayerDetail() {
   const [claimCtx, setClaimCtx] = useState(null)
   const [claimBusy, setClaimBusy] = useState(false)
   const [claimErr, setClaimErr] = useState(null)
+  const [accountBadges, setAccountBadges] = useState(null) // { isAdmin, roles } | null
 
   const playerName = player ? `${player.first_name} ${player.last_name}` : null
   useSeo({
@@ -46,6 +48,15 @@ export default function PlayerDetail() {
     getClaimContext(player.id).then(c => alive && setClaimCtx(c)).catch(() => alive && setClaimCtx(null))
     return () => { alive = false }
   }, [player?.id, user])
+
+  // Public league-role badges for the account (if any) linked to this player.
+  useEffect(() => {
+    let alive = true
+    setAccountBadges(null)
+    if (!player?.id) return
+    getPlayerRoleBadges(player.id).then(b => alive && setAccountBadges(b)).catch(() => {})
+    return () => { alive = false }
+  }, [player?.id])
 
   const loadData = async () => {
     try {
@@ -228,6 +239,14 @@ export default function PlayerDetail() {
               )}
               {player.is_core && <span className="stat-pill bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400">ליבה</span>}
               {player.is_referee && <span className="stat-pill bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400">שופט</span>}
+              {accountBadges && deriveRoleItems({
+                isAdmin: accountBadges.isAdmin,
+                roles: accountBadges.roles,
+                teamsMap: Object.fromEntries(teams.map(t => [t.id, t])),
+              })
+                // The referee flag above already covers judge — don't double it.
+                .filter(it => !(it.role === "judge" && player.is_referee))
+                .map(it => <RoleBadge key={it.role} role={it.role} team={it.team} />)}
             </div>
           </div>
         </div>
