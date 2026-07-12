@@ -7,8 +7,6 @@ import {
   BarChart3,
   Menu,
   X,
-  Sun,
-  Moon,
   Shield,
   Archive,
   Camera,
@@ -17,7 +15,6 @@ import {
   UserCircle
 } from "lucide-react"
 import { Rink, Standings, Crossed, Teams, Player, Whistle } from "./components/icons/HockeyIcons"
-import { useTheme } from "./lib/ThemeContext"
 import { useAuth } from "./lib/AuthContext"
 import AuthModal from "./components/AuthModal"
 import NotificationBell from "./components/NotificationBell"
@@ -65,7 +62,6 @@ function NavAvatar({ profile, email, className = "w-8 h-8" }) {
 export default function Layout({ children }) {
   const location = useLocation()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const { dark, toggle } = useTheme()
   const { user, isAdmin, hasRole, coachTeamIds, isJudgeRole, isContentEditor, profile, signOut, openAuth } = useAuth()
 
   const navItems = [
@@ -93,62 +89,63 @@ export default function Layout({ children }) {
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950" dir="rtl">
       {/* Top header bar */}
-      <header className="sticky top-0 z-50 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
+      <header className="sticky top-0 z-50 bg-surface-nav/80 backdrop-blur-lg border-b border-line-header">
         <div className="flex items-center gap-3 px-4 sm:px-6 h-16">
-          {/* RTL start (right): logo + title */}
-          <Link to="/" className="flex items-center gap-3 shrink-0">
-            <img src="/logos/main-logo.png" alt="ליגת הוקי" className="w-10 h-10 rounded-lg object-cover" />
-            <div className="leading-tight">
-              <h1 className="text-lg font-extrabold text-slate-900 dark:text-white tracking-tight">ליגת הוקי</h1>
-              <span className="text-xs sm:text-sm font-bold text-orange-600 dark:text-orange-400">עונת 2025-26</span>
+          {/* RTL start (right): logo + wordmark */}
+          <Link to="/" className="flex items-center gap-2.5 shrink-0">
+            <img src="/logos/main-logo.png" alt="ליגת הוקי" className="size-10 rounded-xl object-cover ring-1 ring-line shadow-sm" />
+            <div className="leading-none">
+              <h1 className="text-xl font-black text-fg-strong tracking-tight">ליגת הוקי</h1>
+              <span className="mt-1 inline-flex items-center rounded-full bg-brand/10 px-2 py-0.5 text-[11px] font-bold text-brand-strong dark:text-brand-light">עונת 2025-26</span>
             </div>
           </Link>
 
-          {/* Inline nav (lg+) */}
-          <nav className="hidden lg:flex items-center gap-1 flex-1 justify-center">
-            {navItems.map((item) => (
-              <Link
-                key={item.title}
-                to={item.url}
-                className={`px-3 py-1.5 rounded-lg text-sm font-semibold transition-all ${
-                  isActivePage(item.url)
-                    ? "bg-orange-500/10 text-orange-600 dark:text-orange-400"
-                    : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white"
-                }`}
-              >
-                {item.title}
-              </Link>
-            ))}
+          {/* Inline nav (xl+). Below xl the icon-rich hamburger menu is used, so
+              the widened icon+text items never crowd the header. `min-w-0` +
+              `overflow-x-auto` lets a long nav (e.g. managers, who get extra
+              ניהול/שיפוט/יוצרי תוכן items) scroll horizontally inside the header
+              instead of overflowing it. `mx-auto` centers the row when it fits
+              and collapses to 0 when it doesn't, so no item is ever clipped. */}
+          <nav className="hidden xl:flex flex-1 min-w-0 overflow-x-auto nav-scroll">
+            <div className="flex items-center gap-1 mx-auto">
+              {navItems.map((item) => (
+                <Link
+                  key={item.title}
+                  to={item.url}
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40 ${
+                    isActivePage(item.url)
+                      ? "bg-brand/10 text-orange-600 dark:text-orange-400"
+                      : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white"
+                  }`}
+                >
+                  <item.icon className="w-4 h-4 shrink-0" aria-hidden="true" />
+                  {item.title}
+                </Link>
+              ))}
+            </div>
           </nav>
 
-          {/* RTL end (left): theme + auth (desktop) / hamburger (mobile) */}
-          <div className="flex items-center gap-1.5 mr-auto lg:mr-0">
-            <button
-              onClick={toggle}
-              className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 transition-colors"
-              aria-label={dark ? "מצב בהיר" : "מצב כהה"}
-            >
-              {dark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-            </button>
-
+          {/* RTL end (left): auth (desktop) / hamburger (mobile).
+              Dark-mode toggle lives on the profile page (/me), not here. */}
+          <div className="flex items-center gap-1.5 ms-auto xl:ms-0">
             {/* Notifications bell — visible on all sizes for signed-in users, next to the avatar */}
             {user && <NotificationBell />}
 
-            {/* Auth (lg+) */}
-            <div className="hidden lg:flex items-center gap-2">
+            {/* Auth (xl+) */}
+            <div className="hidden xl:flex items-center gap-2">
               {user ? (
                 <>
                   <Link
                     to="/me"
                     title="הדף שלי"
                     aria-label="הדף שלי"
-                    className="rounded-full shrink-0 hover:ring-2 hover:ring-orange-300 dark:hover:ring-orange-500/40 transition-all"
+                    className="rounded-full shrink-0 hover:ring-2 hover:ring-orange-300 dark:hover:ring-orange-500/40 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
                   >
                     <NavAvatar profile={profile} email={user.email} className="w-8 h-8" />
                   </Link>
                   <button
                     onClick={() => signOut()}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
                   >
                     <LogOut className="w-3.5 h-3.5" /> התנתק
                   </button>
@@ -163,10 +160,10 @@ export default function Layout({ children }) {
               )}
             </div>
 
-            {/* Hamburger (mobile) */}
+            {/* Hamburger (below xl) */}
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="lg:hidden p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 transition-colors"
+              className="xl:hidden p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
               aria-label="תפריט"
             >
               {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
@@ -177,10 +174,10 @@ export default function Layout({ children }) {
 
       {/* Mobile menu overlay */}
       {mobileMenuOpen && (
-        <div className="lg:hidden fixed inset-0 z-50 bg-white dark:bg-slate-900 pt-16 flex flex-col" dir="rtl">
+        <div className="xl:hidden fixed inset-0 z-50 bg-white dark:bg-slate-900 pt-16 flex flex-col" dir="rtl">
           <button
             onClick={() => setMobileMenuOpen(false)}
-            className="absolute top-4 left-4 p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400"
+            className="absolute top-4 end-4 p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
             aria-label="סגור"
           >
             <X className="w-5 h-5" />
@@ -192,9 +189,9 @@ export default function Layout({ children }) {
                 key={item.title}
                 to={item.url}
                 onClick={() => setMobileMenuOpen(false)}
-                className={`flex items-center gap-3 px-4 py-3.5 rounded-xl transition-all ${
+                className={`flex items-center gap-3 px-4 py-3.5 rounded-xl transition-colors ${
                   isActivePage(item.url)
-                    ? "bg-orange-500 text-white shadow-md shadow-orange-500/25"
+                    ? "bg-brand text-white shadow-md shadow-brand/25"
                     : "text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800"
                 }`}
               >
@@ -230,13 +227,6 @@ export default function Layout({ children }) {
                 התחבר
               </button>
             )}
-            <button
-              onClick={toggle}
-              className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-sm font-semibold bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 transition-colors"
-            >
-              {dark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-              {dark ? "מצב בהיר" : "מצב כהה"}
-            </button>
           </div>
         </div>
       )}

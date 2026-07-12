@@ -5,13 +5,87 @@
 @tailwind utilities;
 
 @layer base {
-  /* Brand tokens as `R G B` triplets so Tailwind can add an alpha channel. */
+  /* ─── Design tokens ──────────────────────────────────────────────────────
+     Every value is an `R G B` triplet so Tailwind can add an alpha channel
+     (bg-surface/60, text-fg-muted, ring-brand/30). They map 1:1 to the CURRENT
+     slate/orange values, so a full restyle later is a one-place edit here.
+     Light values live on :root; dark overrides live in the html.dark block. */
   :root {
+    /* Brand */
     --brand: 249 115 22;        /* orange-500 */
     --brand-hover: 234 88 12;   /* orange-600 */
     --brand-strong: 234 88 12;  /* orange-600 — brand text on light backgrounds */
     --brand-light: 251 146 60;  /* orange-400 — brand text on dark backgrounds */
     --brand-fg: 255 255 255;    /* text on a brand-filled surface */
+
+    /* Surfaces (backgrounds) */
+    --surface: 255 255 255;         /* card fill                    (white) */
+    --surface-page: 248 250 252;    /* page background              (slate-50) */
+    --surface-nav: 255 255 255;     /* sticky header + mobile menu  (white) */
+    --surface-inset: 248 250 252;   /* inputs, comment bubbles      (slate-50) */
+    --surface-sunken: 241 245 249;  /* tab track, ghost hover       (slate-100) */
+    --surface-raised: 255 255 255;  /* active tab                   (white) */
+    --surface-chip: 226 232 240;    /* neutral chip / VS pill       (slate-200) */
+
+    /* Foreground (text) */
+    --fg: 51 65 85;             /* body                 (slate-700) */
+    --fg-strong: 15 23 42;      /* headings / names     (slate-900) */
+    --fg-soft: 51 65 85;        /* body (slate-700, differs in dark) */
+    --fg-muted: 100 116 139;    /* secondary            (slate-500) */
+    --fg-subtle: 148 163 184;   /* meta / timestamps    (slate-400) */
+    --fg-faint: 203 213 225;    /* empty-state hints    (slate-300) */
+    --fg-inverse: 255 255 255;  /* text on colored fills (white, no flip) */
+
+    /* Borders + dividers */
+    --line: 226 232 240;        /* default border       (slate-200) */
+    --line-strong: 226 232 240; /* btn-secondary border (slate-200) */
+    --line-subtle: 241 245 249; /* faint border         (slate-100) */
+    --line-header: 226 232 240; /* header border        (slate-200) */
+    --divider: 241 245 249;     /* divide-y             (slate-100) */
+
+    /* Chrome */
+    --scrollbar: 203 213 225;   /* slate-300 */
+
+    /* Harmonized supporting palette — deliberately few hues, muted to one family
+       so the whole system reads together (not a stock-Tailwind rainbow):
+       pos = wins/positive, neg = losses/negative, gold = champion/leader mark.
+       Everything else (qualification zones, secondary emphasis) reuses the brand
+       accent + neutrals rather than adding new hues. */
+    --pos: 47 133 90;     /* muted green  */
+    --neg: 197 68 58;     /* muted brick red */
+    --gold: 176 137 46;   /* champion gold */
+  }
+
+  html.dark {
+    color-scheme: dark;
+
+    --surface: 30 41 59;            /* slate-800 */
+    --surface-page: 2 6 23;         /* slate-950 */
+    --surface-nav: 15 23 42;        /* slate-900 */
+    --surface-inset: 30 41 59;      /* slate-800 */
+    --surface-sunken: 30 41 59;     /* slate-800 */
+    --surface-raised: 51 65 85;     /* slate-700 */
+    --surface-chip: 51 65 85;       /* slate-700 */
+
+    --fg: 226 232 240;         /* slate-200 */
+    --fg-strong: 255 255 255;  /* white */
+    --fg-soft: 203 213 225;    /* slate-300 */
+    --fg-muted: 148 163 184;   /* slate-400 */
+    --fg-subtle: 100 116 139;  /* slate-500 */
+    --fg-faint: 71 85 105;     /* slate-600 */
+    --fg-inverse: 255 255 255; /* white */
+
+    --line: 51 65 85;          /* slate-700 */
+    --line-strong: 71 85 105;  /* slate-600 */
+    --line-subtle: 30 41 59;   /* slate-800 */
+    --line-header: 30 41 59;   /* slate-800 */
+    --divider: 51 65 85;       /* slate-700 */
+
+    --scrollbar: 51 65 85;     /* slate-700 */
+
+    --pos: 92 191 130;    /* lighter for dark surfaces */
+    --neg: 232 138 128;
+    --gold: 214 178 90;
   }
 
   html {
@@ -22,18 +96,16 @@
 
   body {
     margin: 0;
+    /* Data-forward app: align every figure (scores, points, stats) on a common
+       width so tables and stat rows read like a broadcast graphic. */
+    font-variant-numeric: tabular-nums;
   }
 
   * {
     box-sizing: border-box;
   }
 
-  /* Better dark mode transition */
-  html.dark {
-    color-scheme: dark;
-  }
-
-  /* Scrollbar styling */
+  /* Scrollbar styling — thumb flips light/dark via --scrollbar */
   ::-webkit-scrollbar {
     width: 6px;
     height: 6px;
@@ -42,15 +114,21 @@
     background: transparent;
   }
   ::-webkit-scrollbar-thumb {
-    background: #cbd5e1;
+    background: rgb(var(--scrollbar));
     border-radius: 3px;
-  }
-  .dark ::-webkit-scrollbar-thumb {
-    background: #334155;
   }
 }
 
 @layer components {
+  /* Horizontally-scrollable nav row — hide the scrollbar so a long (e.g. manager)
+     nav can scroll without a visible bar cutting into the header. */
+  .nav-scroll {
+    scrollbar-width: none;            /* Firefox */
+  }
+  .nav-scroll::-webkit-scrollbar {
+    display: none;                    /* Chrome / Safari */
+  }
+
   /* Button system — use these instead of hand-rolling the orange CTA per screen. */
   .btn {
     @apply inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
@@ -61,11 +139,11 @@
   }
 
   .btn-secondary {
-    @apply btn border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700;
+    @apply btn border border-line-strong text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700;
   }
 
   .btn-ghost {
-    @apply btn text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800;
+    @apply btn text-fg-muted hover:bg-surface-sunken;
   }
 
   .btn-sm {
@@ -74,7 +152,7 @@
 
   /* Card system */
   .card {
-    @apply bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-sm;
+    @apply bg-surface border border-line rounded-2xl shadow-sm;
   }
 
   .card-hover {
@@ -86,16 +164,42 @@
     @apply inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold;
   }
 
-  /* Page header */
+  /* Role/status badge color variants — pair with .stat-pill (or standalone).
+     Each maps to the current bg-*-100 text-*-700 dark:bg-*-900/40 dark:text-*-300
+     pattern used across the app. */
+  .badge-neutral { @apply bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-400; }
+  .badge-success { @apply bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300; }
+  .badge-danger  { @apply bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300; }
+  .badge-warning { @apply bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300; }
+  .badge-info    { @apply bg-sky-100 text-sky-700 dark:bg-sky-900/40 dark:text-sky-300; }
+  .badge-accent  { @apply bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300; }
+
+  /* Page header — commanding, broadcast-weight */
   .page-title {
-    @apply text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white;
+    @apply text-3xl sm:text-4xl font-black tracking-tight text-balance text-fg-strong;
   }
 
-  /* Muted secondary text — the canonical light/dark pairing. Migrate the ad-hoc
-     `text-slate-500 dark:text-slate-400` (and its inverted variants) onto this
-     screen by screen. Defined here as the target; not yet retrofitted. */
+  /* Big data figure — scores, points, stat tiles. Tabular + heavy for a
+     scoreboard read. Pair with a size utility (text-2xl/3xl/...). */
+  .stat-num {
+    @apply font-black tabular-nums tracking-tight text-fg-strong;
+  }
+
+  /* Section eyebrow/header used above card groups (e.g. "טבלה", "המשחק הבא").
+     Bold, uppercase-ish weight with the brand accent icon. */
+  .section-head {
+    @apply flex items-center gap-2 text-base font-extrabold text-fg-strong;
+  }
+
+  /* Signature accent bar — a short brand-orange rule used to mark active/featured
+     elements and section starts (a nod to a rink line). */
+  .accent-bar {
+    @apply inline-block h-1 w-8 rounded-full bg-brand;
+  }
+
+  /* Muted secondary text — the canonical light/dark pairing (slate-500/400). */
   .muted {
-    @apply text-slate-500 dark:text-slate-400;
+    @apply text-fg-muted;
   }
 
   /* Standard page content width. Page max-widths are declared ~6 different ways
@@ -106,12 +210,12 @@
   }
 
   .page-subtitle {
-    @apply text-sm text-slate-500 dark:text-slate-400 font-medium;
+    @apply text-sm text-fg-muted font-medium;
   }
 
   /* Tab system */
   .tab-bar {
-    @apply flex bg-slate-100 dark:bg-slate-800 rounded-xl p-1 gap-1;
+    @apply flex bg-surface-sunken rounded-xl p-1 gap-1;
   }
 
   .tab-item {
@@ -119,19 +223,25 @@
   }
 
   .tab-active {
-    @apply tab-item bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm;
+    @apply tab-item bg-surface-raised text-fg-strong shadow-sm;
   }
 
   .tab-inactive {
-    @apply tab-item text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300;
+    @apply tab-item text-fg-muted hover:text-fg-soft;
   }
 
-  /* Filter select */
+  /* Filter / form controls */
   .filter-select {
-    @apply bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500 transition-all appearance-none;
+    @apply bg-surface border border-line rounded-xl px-3 py-2.5 text-sm font-medium text-fg-soft focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand transition-all appearance-none;
   }
 
   .filter-input {
-    @apply bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2.5 text-sm text-slate-700 dark:text-slate-300 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500 transition-all;
+    @apply bg-surface border border-line rounded-xl px-3 py-2.5 text-sm text-fg-soft placeholder:text-fg-subtle focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand transition-all;
+  }
+
+  /* Standard text input (bg-surface-inset variant) — the repeated form-field
+     pattern in /me and the composer. Available for adoption; additive. */
+  .input {
+    @apply w-full bg-surface-inset border border-line rounded-lg px-3 py-2 text-sm text-slate-800 dark:text-slate-100 placeholder:text-fg-subtle focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand;
   }
 }

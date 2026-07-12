@@ -45,20 +45,47 @@ export default function Home() {
     <div className="p-4 sm:p-6 lg:p-8 max-w-5xl mx-auto space-y-5">
       {/* Header */}
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
+        <span className="accent-bar mb-3" />
         <h1 className="page-title flex items-center gap-2.5">
-          <Trophy className="w-7 h-7 text-orange-500" />
+          <Trophy className="size-8 text-brand shrink-0" />
           טבלת הליגה
         </h1>
         <p className="page-subtitle mt-1">דירוג קבוצות עונת 2025-26</p>
       </motion.div>
 
       {error && (
-        <div className="card p-4 border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/30 flex items-center justify-between">
-          <span className="text-red-700 dark:text-red-400 text-sm font-medium">{error}</span>
-          <button onClick={loadTeams} className="flex items-center gap-1.5 px-3 py-1.5 bg-red-600 text-white rounded-lg text-xs font-semibold hover:bg-red-700 transition-colors">
+        <div className="card p-4 border-danger-200 dark:border-danger-800 bg-danger-50 dark:bg-danger-950/30 flex items-center justify-between">
+          <span className="text-danger-700 dark:text-danger-400 text-sm font-medium">{error}</span>
+          <button onClick={loadTeams} className="flex items-center gap-1.5 px-3 py-1.5 bg-danger-600 text-white rounded-lg text-xs font-semibold hover:bg-danger-700 transition-colors">
             <RefreshCw className="w-3.5 h-3.5" /> נסה שוב
           </button>
         </div>
+      )}
+
+      {/* Leader spotlight — the page's focal point */}
+      {first && activeTab === "league" && (
+        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.04 }}
+          className="card overflow-hidden">
+          <div className="flex items-center gap-4 p-5">
+            <div className="relative shrink-0">
+              <TeamLogo team={first} size={16} />
+              <span className="absolute -top-1 -right-1 grid size-5 place-items-center rounded-full bg-brand text-white shadow">
+                <Crown className="size-3" />
+              </span>
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-[11px] font-extrabold uppercase tracking-wider text-brand-strong dark:text-brand-light">מובילת הליגה</p>
+              <h2 className="text-2xl font-black text-fg-strong tracking-tight truncate mt-0.5">{first.name}</h2>
+              <p className="muted text-sm mt-0.5">
+                {played(first)} משחקים · הפרש {diff(first) > 0 ? '+' : ''}{diff(first)}
+              </p>
+            </div>
+            <div className="text-center shrink-0 ps-2">
+              <div className="stat-num text-4xl leading-none text-brand">{first.points || 0}</div>
+              <div className="text-[10px] font-bold uppercase tracking-wide muted mt-1">נקודות</div>
+            </div>
+          </div>
+        </motion.div>
       )}
 
       {/* Tabs */}
@@ -77,77 +104,75 @@ export default function Home() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="bg-slate-900 dark:bg-slate-800 text-white text-xs uppercase tracking-wider">
-                  <th className="px-3 py-3 text-right font-semibold w-10 whitespace-nowrap">#</th>
-                  <th className="px-3 py-3 text-right font-semibold whitespace-nowrap">קבוצה</th>
-                  <th className="px-3 py-3 text-center font-semibold whitespace-nowrap">מש׳</th>
-                  <th className="px-3 py-3 text-center font-semibold whitespace-nowrap">נ</th>
-                  <th className="px-3 py-3 text-center font-semibold whitespace-nowrap">ת</th>
-                  <th className="px-3 py-3 text-center font-semibold whitespace-nowrap">ה</th>
-                  <th className="px-3 py-3 text-center font-semibold whitespace-nowrap">זכות</th>
-                  <th className="px-3 py-3 text-center font-semibold whitespace-nowrap">חובה</th>
-                  <th className="px-3 py-3 text-center font-semibold whitespace-nowrap">הפרש</th>
-                  <th className="px-3 py-3 text-center font-semibold whitespace-nowrap">נק׳</th>
+                <tr className="bg-slate-900 text-white text-[11px] uppercase tracking-wider">
+                  <th scope="col" className="ps-4 pe-2 py-3 text-right font-bold w-12 whitespace-nowrap">#</th>
+                  <th scope="col" className="px-3 py-3 text-right font-bold whitespace-nowrap">קבוצה</th>
+                  <th scope="col" className="px-2 py-3 text-center font-bold whitespace-nowrap">מש׳</th>
+                  <th scope="col" className="px-2 py-3 text-center font-bold whitespace-nowrap">נ</th>
+                  <th scope="col" className="px-2 py-3 text-center font-bold whitespace-nowrap">ת</th>
+                  <th scope="col" className="px-2 py-3 text-center font-bold whitespace-nowrap">ה</th>
+                  <th scope="col" className="px-2 py-3 text-center font-bold whitespace-nowrap">זכות</th>
+                  <th scope="col" className="px-2 py-3 text-center font-bold whitespace-nowrap">חובה</th>
+                  <th scope="col" className="px-2 py-3 text-center font-bold whitespace-nowrap">הפרש</th>
+                  <th scope="col" className="ps-2 pe-4 py-3 text-center font-bold whitespace-nowrap">נק׳</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-700/50">
-                {sorted.map((team, i) => (
+              <tbody className="divide-y divide-divider">
+                {sorted.map((team, i) => {
+                  const zone = i === 0 ? "ff" : i <= 6 ? "po" : "none"
+                  const stripe = zone === "ff" ? "before:bg-gold" : zone === "po" ? "before:bg-brand" : "before:bg-transparent"
+                  const d = diff(team)
+                  return (
                   <motion.tr
                     key={team.id}
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ delay: i * 0.03 }}
-                    className={`transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/50 ${
-                      i === 0 ? 'bg-amber-50/50 dark:bg-amber-950/20' : ''
+                    className={`group relative transition-colors before:absolute before:inset-y-0 before:right-0 before:w-1 ${stripe} ${
+                      i === 0 ? "bg-gold/[0.06] hover:bg-gold/[0.1]" : "hover:bg-surface-inset/70"
                     }`}
                   >
-                    <td className="px-3 py-3">
-                      <div className={`w-6 h-6 rounded-md flex items-center justify-center text-xs font-bold ${
-                        i === 0 ? 'bg-amber-400 text-amber-950' :
-                        i === 1 ? 'bg-slate-300 dark:bg-slate-500 text-slate-800 dark:text-white' :
-                        i === 2 ? 'bg-orange-300 dark:bg-orange-700 text-orange-900 dark:text-white' :
-                        i <= 6 ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300' :
-                        'text-slate-400 dark:text-slate-500'
+                    <td className="ps-4 pe-2 py-3">
+                      <div className={`grid size-7 place-items-center rounded-lg text-xs font-black tabular-nums ${
+                        i === 0 ? "bg-gold text-surface-page" :
+                        i <= 6 ? "bg-brand/[0.12] text-brand-strong dark:text-brand-light" :
+                        "bg-surface-chip text-fg-muted"
                       }`}>
                         {i + 1}
                       </div>
                     </td>
                     <td className="px-3 py-3">
-                      <div className="flex items-center gap-2.5">
+                      <div className="flex items-center gap-2.5 min-w-0">
                         <TeamLogo team={team} size={8} />
-                        <div>
-                          <span className="font-semibold text-slate-900 dark:text-white text-sm">{team.name}</span>
-                          {i === 0 && <span className="mr-2 text-[10px] font-bold text-amber-600 dark:text-amber-400 bg-amber-100 dark:bg-amber-900/40 px-1.5 py-0.5 rounded">FF</span>}
-                          {i >= 1 && i <= 6 && <span className="mr-2 text-[10px] font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-1.5 py-0.5 rounded">PO</span>}
-                        </div>
+                        <span className="font-bold text-fg-strong text-sm truncate">{team.name}</span>
+                        {zone === "ff" && <span className="shrink-0 text-[10px] px-1.5 py-0.5 rounded font-bold bg-gold/[0.15] text-gold">FF</span>}
+                        {zone === "po" && <span className="shrink-0 text-[10px] px-1.5 py-0.5 rounded font-bold bg-brand/[0.12] text-brand-strong dark:text-brand-light">PO</span>}
                       </div>
                     </td>
-                    <td className="px-3 py-3 text-center font-medium text-slate-600 dark:text-slate-400">{played(team)}</td>
-                    <td className="px-3 py-3 text-center font-bold text-emerald-600 dark:text-emerald-400">{team.wins || 0}</td>
-                    <td className="px-3 py-3 text-center text-slate-500 dark:text-slate-400">{team.ties || 0}</td>
-                    <td className="px-3 py-3 text-center font-bold text-red-500 dark:text-red-400">{team.losses || 0}</td>
-                    <td className="px-3 py-3 text-center text-slate-600 dark:text-slate-400">{team.goals_for || 0}</td>
-                    <td className="px-3 py-3 text-center text-slate-600 dark:text-slate-400">{team.goals_against || 0}</td>
-                    <td className="px-3 py-3 text-center">
-                      <span className={`font-bold text-sm ${diff(team) > 0 ? 'text-emerald-600 dark:text-emerald-400' : diff(team) < 0 ? 'text-red-500 dark:text-red-400' : 'text-slate-400'}`}>
-                        {diff(team) > 0 ? '+' : ''}{diff(team)}
+                    <td className="px-2 py-3 text-center tabular-nums text-fg-muted">{played(team)}</td>
+                    <td className="px-2 py-3 text-center tabular-nums font-bold text-pos">{team.wins || 0}</td>
+                    <td className="px-2 py-3 text-center tabular-nums text-fg-subtle">{team.ties || 0}</td>
+                    <td className="px-2 py-3 text-center tabular-nums font-bold text-neg">{team.losses || 0}</td>
+                    <td className="px-2 py-3 text-center tabular-nums text-fg-muted">{team.goals_for || 0}</td>
+                    <td className="px-2 py-3 text-center tabular-nums text-fg-muted">{team.goals_against || 0}</td>
+                    <td className="px-2 py-3 text-center">
+                      <span className={`font-bold text-sm tabular-nums ${d > 0 ? "text-pos" : d < 0 ? "text-neg" : "text-fg-subtle"}`}>
+                        {d > 0 ? "+" : ""}{d}
                       </span>
                     </td>
-                    <td className="px-3 py-3 text-center">
-                      <span className="bg-slate-900 dark:bg-orange-500 text-white font-bold text-xs px-2.5 py-1 rounded-md min-w-[28px] inline-block">
-                        {team.points || 0}
-                      </span>
+                    <td className="ps-2 pe-4 py-3 text-center">
+                      <span className="stat-num text-lg text-brand">{team.points || 0}</span>
                     </td>
                   </motion.tr>
-                ))}
+                )})}
               </tbody>
             </table>
           </div>
 
           {/* Legend */}
-          <div className="px-4 py-3 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-100 dark:border-slate-700 flex gap-4 text-[11px] text-slate-500 dark:text-slate-400">
-            <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-sm bg-amber-400" /> Final Four ישיר</span>
-            <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-sm bg-blue-400" /> פלייאוף</span>
+          <div className="px-4 py-3 bg-surface-inset border-t border-line-subtle flex gap-4 text-[11px] font-medium text-fg-muted">
+            <span className="flex items-center gap-1.5"><span className="size-2 rounded-sm bg-gold" /> Final Four ישיר</span>
+            <span className="flex items-center gap-1.5"><span className="size-2 rounded-sm bg-brand" /> פלייאוף</span>
           </div>
         </motion.div>
       )}

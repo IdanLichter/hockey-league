@@ -3,16 +3,20 @@
 -- The large 70-policy rewrite is deliberately DEFERRED (see the note at the end).
 -- ============================================================================
 
--- 1) admin_users roster leak (High, security). The old SELECT policy was
---    `auth.role() = 'authenticated'`, so ANY signed-in user could read the full
---    admin email list. Now only admins can read the table. checkAdmin() still
---    works: a non-admin's own-email query returns [] (→ isAdmin false); an admin
---    sees all rows (management UI intact). Uses SECURITY DEFINER is_admin() to
---    avoid RLS self-recursion with the existing write policies.
-drop policy if exists "Auth users check admin status" on public.admin_users;
-create policy "Admins read admin_users" on public.admin_users
-  for select to authenticated
-  using ((select public.is_admin()));
+-- 1) admin_users roster leak (High, security) — ⚠️ REVERTED 2026-07-12.
+--    The attempted lockdown below set the SELECT policy to `is_admin()`. But
+--    is_admin() ITSELF reads admin_users (`... in (select email from admin_users)`),
+--    so through PostgREST (role `authenticated`, no RLS bypass) it caused
+--    `infinite recursion detected in policy for relation "admin_users"` → 500 on
+--    EVERY admin_users query, including the write policies' subqueries → the admin
+--    console broke (couldn't list or add admins). A direct MCP test masked it
+--    (that connection bypasses RLS). REVERTED to the original non-recursive policy:
+--        create policy "Auth users check admin status" on public.admin_users
+--          for select to authenticated using (auth.role() = 'authenticated');
+--    TO CLOSE THE LEAK NON-RECURSIVELY (future): SELECT policy = own row only
+--    (`email = (auth.jwt()->>'email')`) + a SECURITY DEFINER `list_admins()` RPC
+--    for the management list (frontend getAdminUsers → rpc). Do NOT put a
+--    self-referential read (is_admin / select from admin_users) in the SELECT policy.
 
 -- 2) Missing FK indexes (perf, additive/zero-risk) — speeds joins + cascade deletes.
 create index if not exists idx_archived_game_stats_archived_game_id on public.archived_game_stats(archived_game_id);

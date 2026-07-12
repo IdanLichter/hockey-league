@@ -2,6 +2,19 @@
 <html lang="he" dir="rtl">
   <head>
     <meta charset="UTF-8" />
+    <!-- Pre-paint theme: apply the saved/system dark class before the bundle loads
+         so dark-mode users don't get a white flash on every load. ThemeContext
+         (key 'hockey-theme') remains the source of truth once React mounts. -->
+    <script>
+      (function () {
+        try {
+          var saved = localStorage.getItem('hockey-theme');
+          var dark = saved ? saved === 'dark'
+            : window.matchMedia('(prefers-color-scheme: dark)').matches;
+          if (dark) document.documentElement.classList.add('dark');
+        } catch (e) {}
+      })();
+    </script>
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png" />
     <link rel="icon" type="image/png" href="/logos/main-logo.png" />
