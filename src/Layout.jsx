@@ -8,7 +8,6 @@ import {
   Menu,
   X,
   Shield,
-  Archive,
   Camera,
   Images,
   LogOut,
@@ -76,7 +75,7 @@ export default function Layout({ children }) {
     ...((!isContentEditor || isAdmin) ? [{ title: "מדיה", url: "/media", icon: Camera }] : []),
     ...((isContentEditor || isAdmin) ? [{ title: "יוצרי תוכן", url: "/creators", icon: Images }] : []),
     { title: "Final Four", url: "/final-four", icon: Trophy },
-    { title: "ארכיון", url: "/archive", icon: Archive },
+    // Archive lives in the management screen's season tab (/admin), not the main nav.
     ...(hasRole("judge") ? [{ title: "שיפוט", url: "/judge", icon: NavWhistle }] : []),
     ...((isAdmin || coachTeamIds.length > 0 || isJudgeRole) ? [{ title: "ניהול", url: "/admin", icon: Shield }] : []),
   ]

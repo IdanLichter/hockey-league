@@ -1126,6 +1126,23 @@ function SeasonAdmin({ games, teams, players, reload }) {
 
   return (
     <div className="space-y-4">
+      {/* Entry to the public archive page — moved here from the main navbar. */}
+      <a href="/archive"
+        className="card p-4 flex items-center justify-between hover:border-slate-300 dark:hover:border-slate-600 transition-colors group">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center shrink-0">
+            <Archive className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+          </div>
+          <div>
+            <p className="font-semibold text-sm text-slate-900 dark:text-white">ארכיון העונות</p>
+            <p className="text-[11px] text-slate-400">צפייה בכל העונות שהסתיימו ובאלופות</p>
+          </div>
+        </div>
+        <span className="text-xs font-semibold text-blue-600 dark:text-blue-400 group-hover:text-blue-700 transition-colors">
+          צפייה →
+        </span>
+      </a>
+
       {/* Current season summary */}
       <div className="card p-5">
         <h3 className="font-bold text-sm text-slate-900 dark:text-white mb-4 flex items-center gap-2">
