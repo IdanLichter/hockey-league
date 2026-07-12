@@ -80,7 +80,17 @@ function soloRanked(pools, playerId) {
     (a.others - b.others)      // then the most "solo"
   )
 }
-const finalizeSolo = (c) => ({ ...c.photo, box: c.box, mode: "solo" })
+// Face center as a 0–1 fraction of the image, from the player's box + the photo's
+// original (download-space) dimensions — drives the feed spotlight beam. Null-safe:
+// omitted when the box or dims are missing so the renderer falls back to no beam.
+function faceCenter(box, w, h) {
+  if (!box || !w || !h) return {}
+  const cx = ((box.x_min + box.x_max) / 2) / w
+  const cy = ((box.y_min + box.y_max) / 2) / h
+  if (!(cx >= 0 && cx <= 1) || !(cy >= 0 && cy <= 1)) return {}
+  return { faceCx: cx, faceCy: cy }
+}
+const finalizeSolo = (c) => ({ ...c.photo, box: c.box, mode: "solo", ...faceCenter(c.box, c.photo.width, c.photo.height) })
 
 // One or two teams: rank photos by (no faces from OTHER teams) → (most faces from
 // the given teams). Excludes photos with players who weren't in the match.

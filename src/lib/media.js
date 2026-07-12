@@ -65,7 +65,7 @@ async function fetchAll(table, select) {
 
 export async function getPhotoIndex() {
   const [photos, photoPlayers] = await Promise.all([
-    fetchAll('photos', 'photo_id,album_idx,album_title,album_date,image_url,detail_url,n_faces'),
+    fetchAll('photos', 'photo_id,album_idx,album_title,album_date,image_url,detail_url,n_faces,width,height'),
     fetchAll('photo_players', 'photo_id,player_id,name,box,face_h'),
   ])
   return { photos, photoPlayers }

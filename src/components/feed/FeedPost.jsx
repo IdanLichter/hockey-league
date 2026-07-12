@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Link } from "react-router-dom"
 import { motion, AnimatePresence } from "framer-motion"
 import { format } from "date-fns"
@@ -57,15 +57,44 @@ function EventPhoto({ photo, itemKey, candidates = [], onRefreshed }) {
   const [current, setCurrent] = useState(photo)
   const [busy, setBusy] = useState(false)
   const [failed, setFailed] = useState(false)
+  const imgRef = useRef(null)
+  const [beamLeft, setBeamLeft] = useState(null)   // 0–1 horizontal center of the spotlight in the displayed image
 
   // Re-sync when the parent re-resolves this card (e.g. after the overrides map updates).
   useEffect(() => { setCurrent(photo) }, [photo])
+
+  // Only single-player achievement photos get the spotlight, and only when we know where
+  // the player's face is (faceCx is a 0–1 fraction of the original image width).
+  const faceCx = current?.mode === "solo" && typeof current?.faceCx === "number" ? current.faceCx : null
+
+  // Map the face's horizontal position from image space into the displayed (object-cover
+  // cropped) box, so the beam lands on the player even when the sides are cropped away.
+  useEffect(() => {
+    if (faceCx == null) { setBeamLeft(null); return }
+    const el = imgRef.current
+    if (!el) return
+    const measure = () => {
+      const cW = el.clientWidth, cH = el.clientHeight
+      const nW = el.naturalWidth, nH = el.naturalHeight
+      if (!cW || !cH || !nW || !nH) return
+      const scale = Math.max(cW / nW, cH / nH)   // object-cover fills the box
+      const dW = nW * scale                       // displayed image width (may exceed cW)
+      const offX = (cW - dW) / 2                   // object-position: center (50%)
+      setBeamLeft(Math.max(0, Math.min(1, (offX + faceCx * dW) / cW)))
+    }
+    if (el.complete) measure()
+    el.addEventListener("load", measure)
+    window.addEventListener("resize", measure)
+    return () => { el.removeEventListener("load", measure); window.removeEventListener("resize", measure) }
+  }, [faceCx, current?.photo_id])
 
   if (!current || !current.image_url) return null
 
   const caption = [current.album_title, current.album_date && fmtDate(current.album_date)]
     .filter(Boolean).join(" · ")
   const canCycle = candidates.length >= 2
+  const cx100 = beamLeft == null ? null : beamLeft * 100
+  const beamId = `beam-${String(itemKey || current.photo_id || "x").replace(/[^a-zA-Z0-9_-]/g, "")}`
 
   // Advance to the NEXT candidate (wrapping to 0 at the end; an unknown current → 0),
   // pin it for everyone, and update the displayed photo optimistically.
@@ -90,8 +119,24 @@ function EventPhoto({ photo, itemKey, candidates = [], onRefreshed }) {
     <div className="relative mt-3">
       <a href={current.detail_url} target="_blank" rel="noopener noreferrer"
          className="group block relative rounded-xl overflow-hidden bg-slate-900">
-        <img src={sizedUrl(current.image_url)} alt="" loading="lazy"
+        <img ref={imgRef} src={sizedUrl(current.image_url)} alt="" loading="lazy"
              className="w-full max-h-80 object-cover transition-transform duration-500 group-hover:scale-[1.02]" />
+        {cx100 != null && (
+          <svg className="pointer-events-none absolute inset-0 h-full w-full" viewBox="0 0 100 100"
+               preserveAspectRatio="none" aria-hidden="true">
+            <defs>
+              <filter id={`${beamId}-soft`} x="-30%" y="-30%" width="160%" height="160%">
+                <feGaussianBlur stdDeviation="2.4" />
+              </filter>
+              <mask id={beamId}>
+                <rect width="100" height="100" fill="white" />
+                <polygon points={`${cx100 - 8},0 ${cx100 + 8},0 ${cx100 + 18},100 ${cx100 - 18},100`}
+                         fill="black" filter={`url(#${beamId}-soft)`} />
+              </mask>
+            </defs>
+            <rect width="100" height="100" fill="rgba(8,12,22,0.5)" mask={`url(#${beamId})`} />
+          </svg>
+        )}
         <div className="absolute inset-x-0 bottom-0 flex items-center gap-1.5 bg-gradient-to-t from-black/75 via-black/30 to-transparent px-3 pt-6 pb-2">
           <Camera className="w-3.5 h-3.5 text-white/80 shrink-0" />
           <span className="text-[11px] font-medium text-white/90 truncate">{caption}</span>
