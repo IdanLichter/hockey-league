@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react"
 import { motion } from "framer-motion"
 import { Camera, HelpCircle, Check, ExternalLink, RefreshCw, Send, CalendarDays } from "lucide-react"
+import { Camera as CameraIcon } from "@/components/icons/HockeyIcons"
 import { getMediaClusters, getSuggestionSummary, submitSuggestion, getResolvedCount } from "@/lib/media"
 import { useAuth } from "@/lib/AuthContext"
 
@@ -59,7 +60,7 @@ export function MediaClusters() {
     <div className="space-y-5">
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
         <h1 className="page-title flex items-center gap-2.5">
-          <Camera className="w-7 h-7 text-orange-500" /> מדיה — זיהוי שחקנים
+          <CameraIcon className="w-7 h-7 text-orange-500" /> מדיה — זיהוי שחקנים
         </h1>
         <p className="page-subtitle mt-1">
           {clusters.length} שחקנים עדיין לא זוהו · {resolved} כבר זוהו

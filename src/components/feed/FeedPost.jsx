@@ -11,6 +11,7 @@ import ReactionBar from "@/components/feed/ReactionBar"
 import ModerationMenu from "@/components/feed/ModerationMenu"
 import { RoleBadge, deriveRoleItems } from "@/components/RoleBadges"
 import { TARGET_POST, TARGET_COMMENT } from "@/lib/moderation"
+import { FRIENDLY_GAME_TYPE } from "@/lib/leagueStats"
 
 function Avatar({ url, name, className = "w-9 h-9" }) {
   const initial = (name || "?").trim().charAt(0).toUpperCase() || "?"
@@ -271,6 +272,7 @@ function GameResultPost({ post, playersMap, teamsMap, likedItems, itemLikeCounts
             ? <span className="stat-pill bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300">תיקו</span>
             : <span className="stat-pill bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300"><Trophy className="w-3.5 h-3.5" /> {(homeWin ? home : away)?.name}</span>}
           {game.game_type === 'פלייאוף' && <span className="stat-pill bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300">פלייאוף</span>}
+          {game.game_type === FRIENDLY_GAME_TYPE && <span className="stat-pill bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300">ידידותי</span>}
           {game.series_game && <span className="stat-pill bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300">משחק {game.series_game}</span>}
         </div>
 

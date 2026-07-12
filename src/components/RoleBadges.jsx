@@ -4,10 +4,13 @@ import { Shield, Gavel, PenSquare, ClipboardList, BadgeCheck, UserCircle } from 
 // player page and feed post authors all show the same label/icon/color per role.
 // Labels mirror ROLE_LABEL in src/lib/roles.js (kept human here for the UI).
 export const ROLE_BADGE = {
+  // admin=blue / coach=gold / player=green come from the palette remap (orange→blue,
+  // amber→gold, emerald→green). judge + content_editor use tuned indigo/teal so the
+  // whole role set harmonizes with the navy+blue+gold system (no stray purple/sky).
   admin:          { label: "מנהל",      icon: Shield,        cls: "bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400" },
-  judge:          { label: "שופט",      icon: Gavel,         cls: "bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400" },
+  judge:          { label: "שופט",      icon: Gavel,         cls: "bg-indigo-100 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-300" },
   coach:          { label: "מאמן",      icon: ClipboardList, cls: "bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400" },
-  content_editor: { label: "עורך תוכן", icon: PenSquare,     cls: "bg-sky-100 text-sky-600 dark:bg-sky-900/30 dark:text-sky-400" },
+  content_editor: { label: "עורך תוכן", icon: PenSquare,     cls: "bg-teal-100 text-teal-600 dark:bg-teal-900/30 dark:text-teal-300" },
   player:         { label: "שחקן/ית",   icon: BadgeCheck,    cls: "bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400" },
   guest:          { label: "אורח/ת",    icon: UserCircle,    cls: "bg-slate-100 text-slate-500 dark:bg-slate-700 dark:text-slate-400" },
 }

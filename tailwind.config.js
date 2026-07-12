@@ -1,25 +1,61 @@
 import colors from 'tailwindcss/colors'
 
+// ─── "Rink" reskin ─────────────────────────────────────────────────────────
+// The whole app was built on raw Tailwind scales (slate/orange/emerald/red/amber).
+// Rather than hand-migrate ~3,000 call-sites, we REMAP those five scales to the
+// new palette here — so every existing utility (bg-slate-800, text-orange-500,
+// text-emerald-600 …) instantly renders in the new colors and stays in sync with
+// the CSS-var tokens in index.css. A future retune is a one-place edit here.
+const navy = {   // was slate — navy-ink neutrals
+  50: '246 247 251', 100: '236 238 245', 200: '223 227 238', 300: '200 205 222',
+  400: '148 156 182', 500: '100 110 140', 600: '71 82 112', 700: '45 55 82',
+  800: '20 27 46', 900: '15 23 41', 950: '13 19 34',
+}
+const blue = {   // was orange — royal-blue primary
+  50: '236 240 252', 100: '223 230 250', 200: '197 209 247', 300: '150 172 250',
+  400: '124 147 255', 500: '59 79 196', 600: '46 62 168', 700: '38 52 140',
+  800: '30 42 120', 900: '26 36 100', 950: '20 28 78',
+}
+const green = {  // was emerald — win green
+  50: '236 247 240', 100: '214 238 222', 200: '178 222 191', 300: '130 200 152',
+  400: '92 186 118', 500: '76 160 90', 600: '62 140 78', 700: '48 112 64',
+  800: '38 88 52', 900: '28 64 40', 950: '16 40 26',
+}
+const red = {    // danger red
+  50: '252 236 235', 100: '250 222 220', 200: '245 193 190', 300: '238 150 145',
+  400: '232 116 110', 500: '215 84 80', 600: '196 62 58', 700: '160 44 42',
+  800: '128 36 34', 900: '96 30 28', 950: '60 20 19',
+}
+const gold = {   // was amber — champion gold
+  50: '251 245 228', 100: '247 236 200', 200: '240 220 150', 300: '232 200 100',
+  400: '235 190 80', 500: '229 184 67', 600: '196 154 46', 700: '150 116 32',
+  800: '110 84 24', 900: '74 56 18', 950: '48 36 14',
+}
+const ramp = (m) => Object.fromEntries(Object.entries(m).map(([k, v]) => [k, `rgb(${v})`]))
+
 /** @type {import('tailwindcss').Config} */
 export default {
   content: ["./index.html", "./src/**/*.{js,jsx}"],
   darkMode: 'class',
   theme: {
     extend: {
-      // ─── Semantic design tokens ──────────────────────────────────────────
-      // Every value is a CSS var (`R G B` triplet, see index.css) so Tailwind can
-      // still apply an alpha channel: bg-surface/60, text-fg-muted, ring-brand/30.
-      // These map 1:1 to the CURRENT slate/orange values, so adopting them changes
-      // nothing visually — a future restyle then edits the ~20 vars in index.css once.
-      // Use these instead of raw slate-*/orange-* utilities.
+      // Remap the five raw scales to the Rink palette (see note above).
       colors: {
-        // Brand accent (already wired; kept here as the canonical entry).
+        slate: ramp(navy),
+        orange: ramp(blue),
+        emerald: ramp(green),
+        red: ramp(red),
+        amber: ramp(gold),
+        // ─── Semantic design tokens (CSS vars, see index.css) ───────────────
+        // Alpha-capable: bg-surface/60, text-fg-muted, ring-brand/30.
+        // Brand accent (canonical entry).
         brand: {
           DEFAULT: 'rgb(var(--brand) / <alpha-value>)',
           hover: 'rgb(var(--brand-hover) / <alpha-value>)',
           fg: 'rgb(var(--brand-fg) / <alpha-value>)',
           strong: 'rgb(var(--brand-strong) / <alpha-value>)',
           light: 'rgb(var(--brand-light) / <alpha-value>)',
+          deep: 'rgb(var(--brand-deep) / <alpha-value>)',
         },
         // Surfaces (backgrounds). Three distinct dark values — page/nav/card — must
         // stay separate (collapsing them changes the look).
@@ -55,9 +91,9 @@ export default {
         // State / semantic hues — aliased to full Tailwind scales so every shade
         // (bg-success-100, text-success-600, …) keeps working. A restyle repoints
         // the alias. These do NOT flip shade by mode, so keep any `dark:` variant.
-        success: colors.emerald,
-        danger: colors.red,
-        warning: colors.amber,
+        success: ramp(green),
+        danger: ramp(red),
+        warning: ramp(gold),
         info: colors.blue,
         accent: colors.purple,
         // Harmonized supporting tokens (few hues, one family — see index.css).

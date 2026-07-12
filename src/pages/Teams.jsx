@@ -3,6 +3,7 @@ import { Link } from "react-router-dom"
 import { getTeams, getPlayers } from "@/lib/api"
 import { standingsComparator } from "@/lib/utils"
 import { Users, Trophy, Target, Shield, ChevronDown, ChevronUp, Star, RefreshCw, ArrowLeft } from "lucide-react"
+import { Teams as TeamsIcon } from "@/components/icons/HockeyIcons"
 import { motion } from "framer-motion"
 import TeamLogo from "@/components/TeamLogo"
 
@@ -49,7 +50,7 @@ export default function Teams() {
     <div className="p-4 sm:p-6 lg:p-8 max-w-5xl mx-auto space-y-5">
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
         <h1 className="page-title flex items-center gap-2.5">
-          <Users className="w-7 h-7 text-orange-500" /> קבוצות
+          <TeamsIcon className="w-7 h-7 text-orange-500" /> קבוצות
         </h1>
         <p className="page-subtitle mt-1">{teams.length} קבוצות בליגה • עונת 2025-26</p>
       </motion.div>

@@ -9,6 +9,7 @@ import TeamLogo from "@/components/TeamLogo"
 import LiveGame from "@/components/LiveGame"
 import { TeamLink, PlayerLink } from "@/components/EntityLinks"
 import { useSeo } from "@/lib/seo"
+import { countsForStats, FRIENDLY_GAME_TYPE } from "@/lib/leagueStats"
 
 const statusCfg = {
   scheduled: { label: "מתוכנן", cls: "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300" },
@@ -122,6 +123,7 @@ export default function GameDetail() {
   const tie = played && game.home_score === game.away_score
   const st = statusCfg[game.status] || statusCfg.completed
   const isPlayoff = game.game_type === 'פלייאוף'
+  const isFriendly = game.game_type === FRIENDLY_GAME_TYPE
 
   const refName = (() => {
     if (!game.referee_id) return null
@@ -146,15 +148,16 @@ export default function GameDetail() {
   ] : []
 
   // ---- Head-to-head: other completed meetings between the two teams ----
+  // Friendlies are excluded — this reflects the competitive record only.
   const h2h = games
-    .filter(g => g.id !== game.id && g.status === 'completed' && g.home_score != null && g.away_score != null &&
+    .filter(g => g.id !== game.id && g.status === 'completed' && countsForStats(g) && g.home_score != null && g.away_score != null &&
       ((g.home_team_id === game.home_team_id && g.away_team_id === game.away_team_id) ||
        (g.home_team_id === game.away_team_id && g.away_team_id === game.home_team_id)))
     .sort((a, b) => new Date(b.game_date) - new Date(a.game_date))
 
   // ---- Pre-match form: each team's last 5 completed results BEFORE this game ----
   const formBefore = (teamId) => games
-    .filter(g => g.status === 'completed' && g.home_score != null && g.away_score != null &&
+    .filter(g => g.status === 'completed' && countsForStats(g) && g.home_score != null && g.away_score != null &&
       new Date(g.game_date) < new Date(game.game_date) &&
       (g.home_team_id === teamId || g.away_team_id === teamId))
     .sort((a, b) => new Date(b.game_date) - new Date(a.game_date))
@@ -181,7 +184,7 @@ export default function GameDetail() {
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="card p-5 sm:p-6">
         <div className="flex items-center gap-2 mb-5 flex-wrap">
           <span className={`stat-pill ${st.cls}`}>{st.label}</span>
-          <span className={`stat-pill ${isPlayoff ? 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300' : 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300'}`}>{game.game_type}</span>
+          <span className={`stat-pill ${isPlayoff ? 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300' : isFriendly ? 'bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300' : 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300'}`}>{game.game_type}</span>
           {isPlayoff && game.series_game && <span className="stat-pill bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300">משחק {game.series_game}</span>}
         </div>
 

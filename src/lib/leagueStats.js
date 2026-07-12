@@ -22,6 +22,18 @@
  *    never read them. Clean sheets are derived from game scores.
  */
 
+/**
+ * The "friendly" (ידידותי) game type. Friendly games are content-only: they
+ * appear in the feed, run live, and show on the judge list, but they are NEVER
+ * counted toward the competitive record — not standings, not player/team totals,
+ * not any chart or award on the Statistics page. The DB mirror of this rule is
+ * `recompute_team_standings`, which excludes the same type server-side.
+ */
+export const FRIENDLY_GAME_TYPE = 'ידידותי'
+
+/** True for games that count toward standings and all aggregate statistics. */
+export const countsForStats = (g) => g?.game_type !== FRIENDLY_GAME_TYPE
+
 const HE_MONTHS_SHORT = [
   'ינו׳', 'פבר׳', 'מרץ', 'אפר׳', 'מאי', 'יוני',
   'יולי', 'אוג׳', 'ספט׳', 'אוק׳', 'נוב׳', 'דצמ׳',
@@ -141,6 +153,86 @@ export function cumulativeTeamGoals(games = [], teams = []) {
     })
     return { teamId: team.id, name: team.name, team, total: cum, points }
   })
+}
+
+/**
+ * The goal race, per PLAYER: cumulative goals each player scored over the season,
+ * in date order. Sourced from `game_stats` (40 of 45 games — caller must show the
+ * caveat), joined to game dates. Each series starts at (seasonStart, 0) so every
+ * line rises from a shared baseline, exactly like cumulativeTeamGoals.
+ * → [{ playerId, name, first_name, last_name, team_id, total, points:[{x,y}] }]
+ *   sorted by total desc (caller slices the top N).
+ */
+export function cumulativePlayerGoals(gameStats = [], games = [], players = []) {
+  const byId = new Map(players.map((p) => [p.id, p]))
+  const done = games
+    .filter(isCompleted)
+    .filter((g) => g.game_date)
+    .slice()
+    .sort((a, b) => (a.game_date < b.game_date ? -1 : a.game_date > b.game_date ? 1 : 0))
+  if (done.length === 0) return []
+  const startMs = dateMs(done[0].game_date)
+  const dateOf = new Map()
+  done.forEach((g) => dateOf.set(g.id, g.game_date))
+
+  // Sum goals per (player, game) first — defensive against duplicate stat rows.
+  const perPG = new Map()
+  gameStats.forEach((s) => {
+    if (!s.player_id || !byId.has(s.player_id)) return
+    const d = dateOf.get(s.game_id)
+    if (!d) return
+    const key = `${s.player_id}|${s.game_id}`
+    if (!perPG.has(key)) perPG.set(key, { pid: s.player_id, ms: dateMs(d), goals: 0 })
+    perPG.get(key).goals += s.goals || 0
+  })
+
+  const events = new Map()
+  perPG.forEach((e) => {
+    if (e.goals <= 0) return
+    if (!events.has(e.pid)) events.set(e.pid, [])
+    events.get(e.pid).push({ ms: e.ms, goals: e.goals })
+  })
+
+  const series = []
+  events.forEach((evs, pid) => {
+    const p = byId.get(pid)
+    evs.sort((a, b) => a.ms - b.ms)
+    let cum = 0
+    const points = [{ x: startMs, y: 0 }]
+    evs.forEach((e) => { cum += e.goals; points.push({ x: e.ms, y: cum }) })
+    series.push({
+      playerId: pid,
+      name: `${p.first_name} ${p.last_name}`,
+      first_name: p.first_name,
+      last_name: p.last_name,
+      team_id: p.team_id,
+      total: cum,
+      points,
+    })
+  })
+  return series.sort((a, b) => b.total - a.total)
+}
+
+/**
+ * Braces / hat-tricks / big games aggregated per TEAM, from `game_stats` joined
+ * to each scorer's team (40 of 45 games — caller must show the caveat).
+ * → [{ teamId, name, team, braces, hatTricks, bigGames }] sorted by hatTricks desc.
+ */
+export function teamAchievements(gameStats = [], players = [], teams = []) {
+  const teamOf = new Map(players.map((p) => [p.id, p.team_id]))
+  const agg = new Map(
+    teams.map((t) => [t.id, { teamId: t.id, name: t.name, team: t, braces: 0, hatTricks: 0, bigGames: 0 }])
+  )
+  gameStats.forEach((s) => {
+    if (!s.player_id) return
+    const tid = teamOf.get(s.player_id)
+    if (tid == null || !agg.has(tid)) return
+    const goals = s.goals || 0
+    if (goals === 2) agg.get(tid).braces += 1
+    else if (goals >= 3 && goals <= 4) agg.get(tid).hatTricks += 1
+    else if (goals >= 5) agg.get(tid).bigGames += 1
+  })
+  return Array.from(agg.values()).sort((a, b) => b.hatTricks - a.hatTricks || b.bigGames - a.bigGames)
 }
 
 /**

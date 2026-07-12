@@ -1,4 +1,5 @@
 import { supabase } from './supabase'
+import { countsForStats } from './leagueStats'
 
 // Fetch every row, paging past PostgREST's 1000-row cap (a plain select silently
 // truncates at 1000). Used for tables that can grow beyond that within a season.
@@ -403,13 +404,18 @@ export async function recalculateTeamStats() {
  * goals/blue_cards/red_cards/games_played.
  */
 export async function recalculatePlayerStats() {
-  const [players, allStats] = await Promise.all([getPlayers(), getGameStats()])
+  const [players, rawStats, games] = await Promise.all([getPlayers(), getGameStats(), getGames()])
 
   // Safety guard: never wipe player stats from an empty game_stats table.
-  if (!allStats || allStats.length === 0) {
+  if (!rawStats || rawStats.length === 0) {
     console.warn('recalculatePlayerStats: game_stats is empty — skipping to avoid zeroing all player totals.')
     return
   }
+
+  // Friendly (ידידותי) games never count toward player totals — drop their box
+  // scores before aggregating (mirrors recompute_team_standings on the DB side).
+  const competitiveGameIds = new Set(games.filter(countsForStats).map(g => g.id))
+  const allStats = rawStats.filter(s => competitiveGameIds.has(s.game_id))
 
   for (const player of players) {
     const pStats = allStats.filter(s => s.player_id === player.id)

@@ -2,6 +2,7 @@ import { useState, useEffect } from "react"
 import { useParams, Link } from "react-router-dom"
 import { getTeams, getPlayers, getGames } from "@/lib/api"
 import { standingsComparator } from "@/lib/utils"
+import { FRIENDLY_GAME_TYPE } from "@/lib/leagueStats"
 import { ArrowRight, Users, Trophy, Target, Shield, Calendar, RefreshCw } from "lucide-react"
 import { motion } from "framer-motion"
 import { format } from "date-fns"
@@ -177,6 +178,9 @@ export default function TeamDetail() {
                     <p className="font-semibold text-sm text-slate-900 dark:text-white truncate group-hover:text-orange-500 transition-colors">{opp?.name || '—'}</p>
                     <p className="text-[11px] text-slate-400 dark:text-slate-500">
                       {format(new Date(game.game_date), "d/M/yyyy")} · {isHome ? 'בית' : 'חוץ'}
+                      {game.game_type === FRIENDLY_GAME_TYPE && (
+                        <span className="text-violet-500 dark:text-violet-400 font-medium"> · ידידותי</span>
+                      )}
                     </p>
                   </div>
                 </Link>

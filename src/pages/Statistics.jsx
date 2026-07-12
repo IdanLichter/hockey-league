@@ -1,23 +1,23 @@
 import { useState, useEffect, useMemo } from "react"
 import { Link } from "react-router-dom"
 import { getTeams, getPlayers, getGames, getReferees, getGameStats } from "@/lib/api"
-import { BarChart3, Shield, Crown, ChevronDown, ChevronUp, RefreshCw, Trophy, TrendingUp, CalendarDays, Flame, Zap, Target } from "lucide-react"
-import { Player, Glove, Cards, Whistle, StickBall, BlueCard, RedCard, Goal, Crossed } from "@/components/icons/HockeyIcons"
+import { BarChart3, Shield, Crown, ChevronDown, ChevronUp, RefreshCw, Trophy, TrendingUp, Flame, Zap, Target } from "lucide-react"
+import { Player, Glove, Cards, Whistle, StickBall, BlueCard, RedCard, Goal, Crossed, Stats } from "@/components/icons/HockeyIcons"
 import { motion } from "framer-motion"
 import TeamLogo from "@/components/TeamLogo"
 import { PlayerLink } from "@/components/EntityLinks"
 import { useTheme } from "@/lib/ThemeContext"
-import { seriesColors, teamColorIndex } from "@/lib/chartPalette"
+import { seriesColors, teamColorIndex, diverging } from "@/lib/chartPalette"
 import {
-  leagueSummary, monthlyGoals, cumulativeTeamGoals, teamGoalDiff,
-  playerAchievements, achievementsOverTime, goalkeeperCleanSheets,
-  seasonMonths, monthStartMs, shortMonthLabel,
+  leagueSummary, monthlyGoals, cumulativeTeamGoals, cumulativePlayerGoals,
+  teamGoalDiff, teamAchievements, playerAchievements, goalkeeperCleanSheets,
+  seasonMonths, monthStartMs, shortMonthLabel, countsForStats,
 } from "@/lib/leagueStats"
-import { valueAt } from "@/components/charts/chartUtils"
-import ChartCard from "@/components/charts/ChartCard"
-import BarChart from "@/components/charts/BarChart"
+import { axisTicks } from "@/components/charts/chartUtils"
+import ChartCard, { SegToggle } from "@/components/charts/ChartCard"
 import LineChart from "@/components/charts/LineChart"
-import DivergingBar from "@/components/charts/DivergingBar"
+import ScatterChart from "@/components/charts/ScatterChart"
+import RadarChart from "@/components/charts/RadarChart"
 import StatTile from "@/components/charts/StatTile"
 import Legend from "@/components/charts/Legend"
 
@@ -36,6 +36,10 @@ export default function Statistics() {
   const [error, setError] = useState(null)
   const [activeTab, setActiveTab] = useState("scorers")
   const [expanded, setExpanded] = useState({})
+  const [raceMode, setRaceMode] = useState("team")   // מרוץ השערים: קבוצה / שחקן
+  const [gdView, setGdView] = useState("scatter")    // הפרש שערים: פיזור / מכ״ם
+  const [hatMode, setHatMode] = useState("player")    // שלישיות: שחקן / קבוצה
+  const [hatView, setHatView] = useState("scatter")   // שלישיות: פיזור / מכ״ם
 
   useEffect(() => { loadData() }, [])
 
@@ -51,6 +55,15 @@ export default function Statistics() {
   const toggle = (key) => setExpanded(prev => ({ ...prev, [key]: !prev[key] }))
   const teamName = (id) => teams.find(t => t.id === id)?.name || '—'
 
+  // Friendly (ידידותי) games are content-only — never part of the competitive
+  // record. Exclude them, and their box scores, before every derivation on this
+  // page (charts, awards, races, clean sheets, referee counts).
+  const statGames = useMemo(() => games.filter(countsForStats), [games])
+  const statGameStats = useMemo(() => {
+    const ok = new Set(statGames.map(g => g.id))
+    return gameStats.filter(s => ok.has(s.game_id))
+  }, [gameStats, statGames])
+
   // ---- Tab data (unchanged behaviour) ----
   const topScorers = players.filter(p => p.position === 'Field Player').sort((a, b) => (b.goals || 0) - (a.goals || 0))
 
@@ -61,14 +74,14 @@ export default function Statistics() {
   }).filter(Boolean).sort((a, b) => (b.goals || 0) - (a.goals || 0))
 
   // Canonical clean-sheet computation, now shared from leagueStats.
-  const goalkeepers = useMemo(() => goalkeeperCleanSheets(players, games), [players, games])
+  const goalkeepers = useMemo(() => goalkeeperCleanSheets(players, statGames), [players, statGames])
 
   const bluePlayers = players.filter(p => (p.blue_cards || 0) > 0).sort((a, b) => b.blue_cards - a.blue_cards)
   const redPlayers = players.filter(p => (p.red_cards || 0) > 0).sort((a, b) => b.red_cards - a.red_cards)
   const blueTeams = teams.map(t => ({ ...t, total_blue: players.filter(p => p.team_id === t.id).reduce((s, p) => s + (p.blue_cards || 0), 0) })).filter(t => t.total_blue > 0).sort((a, b) => b.total_blue - a.total_blue)
 
   const refStats = useMemo(() => {
-    const rel = games.filter(g => g.referee_id && ['completed', 'scheduled'].includes(g.status))
+    const rel = statGames.filter(g => g.referee_id && ['completed', 'scheduled'].includes(g.status))
     const m = new Map()
     rel.forEach(g => {
       const k = `${g.referee_type}-${g.referee_id}`
@@ -79,50 +92,50 @@ export default function Statistics() {
       if (m.has(k)) { const r = m.get(k); g.status === 'completed' ? r.completed++ : r.scheduled++; r.total++ }
     })
     return Array.from(m.values()).sort((a, b) => b.total - a.total)
-  }, [games, players, referees])
+  }, [statGames, players, referees])
 
-  // ---- Overview + charts (all sourced from `games`, complete) ----
-  const summary = useMemo(() => leagueSummary(games), [games])
-  const monthly = useMemo(() => monthlyGoals(games), [games])
-  const goalDiff = useMemo(() => teamGoalDiff(games, teams), [games, teams])
-  const achTime = useMemo(() => achievementsOverTime(gameStats, games), [gameStats, games])
-  const achievements = useMemo(() => playerAchievements(gameStats, players), [gameStats, players])
+  // ---- Overview + charts (sourced from `statGames`/`statGameStats`, friendlies excluded) ----
+  const summary = useMemo(() => leagueSummary(statGames), [statGames])
+  const monthly = useMemo(() => monthlyGoals(statGames), [statGames])
+  const goalDiff = useMemo(() => teamGoalDiff(statGames, teams), [statGames, teams])
+  const achievements = useMemo(() => playerAchievements(statGameStats, players), [statGameStats, players])
+  const teamAch = useMemo(() => teamAchievements(statGameStats, players, teams), [statGameStats, players, teams])
 
   const xTicks = useMemo(
-    () => seasonMonths(games).map(k => ({ x: monthStartMs(k), label: shortMonthLabel(k) })),
-    [games]
+    () => seasonMonths(statGames).map(k => ({ x: monthStartMs(k), label: shortMonthLabel(k) })),
+    [statGames]
   )
 
-  // Race series — colour follows the ENTITY via the fixed team→slot map, never rank.
+  // Team race series — colour follows the ENTITY via the fixed team→slot map, never rank.
   const { raceSeries, legendItems } = useMemo(() => {
     const idx = teamColorIndex(teams)
     const palette = seriesColors(dark)
-    const series = cumulativeTeamGoals(games, teams)
+    const series = cumulativeTeamGoals(statGames, teams)
       .map(s => ({ ...s, id: s.teamId, color: palette[idx[s.teamId]] }))
       .sort((a, b) => b.total - a.total)
     return {
       raceSeries: series,
       legendItems: series.map(s => ({ id: s.teamId, name: s.name, color: s.color, team: s.team })),
     }
-  }, [games, teams, dark])
+  }, [statGames, teams, dark])
 
-  // Cumulative-at-end-of-month matrix for the race chart's table view.
-  const raceMonths = useMemo(() => seasonMonths(games), [games])
-  const raceTable = useMemo(() => ({
-    head: ['קבוצה', ...raceMonths.map(shortMonthLabel), 'סה״כ'],
-    align: ['right', ...raceMonths.map(() => 'center'), 'center'],
-    rows: raceSeries.map(s => {
-      const cells = raceMonths.map((m, i) => {
-        const end = i + 1 < raceMonths.length ? monthStartMs(raceMonths[i + 1]) - 1 : Infinity
-        return valueAt(s.points, end)
-      })
-      return [
-        <span className="inline-flex items-center gap-1.5"><TeamLogo team={s.team} size={5} />{s.name}</span>,
-        ...cells,
-        <span className="font-bold">{s.total}</span>,
-      ]
-    }),
-  }), [raceSeries, raceMonths])
+  // Player race — top 8 scorers' cumulative goals (from game_stats, 40/45 games).
+  // No crest on the series so each end-label shows the player's initial, which
+  // distinguishes team-mates; the legend carries the team crest for context.
+  const { playerRaceSeries, playerLegend } = useMemo(() => {
+    const palette = seriesColors(dark)
+    const top = cumulativePlayerGoals(statGameStats, statGames, players).slice(0, 8)
+    return {
+      playerRaceSeries: top.map((p, i) => ({
+        id: p.playerId, name: p.name, total: p.total, points: p.points,
+        color: palette[i % palette.length],
+      })),
+      playerLegend: top.map((p, i) => ({
+        id: p.playerId, name: p.name, color: palette[i % palette.length],
+        team: teams.find(t => t.id === p.team_id),
+      })),
+    }
+  }, [statGameStats, statGames, players, teams, dark])
 
   // ---- Awards (derived) ----
   const awardHat = achievements.players.filter(p => p.hatTricks > 0).sort((a, b) => b.hatTricks - a.hatTricks || b.gamesWithGoal - a.gamesWithGoal)
@@ -131,12 +144,141 @@ export default function Statistics() {
   const awardClean = goalkeepers.filter(g => g.clean_sheets > 0)
   const awardBlue = bluePlayers
 
+  // Entity colour follows the fixed team→slot map (same hues as the goal race).
+  const teamColor = useMemo(() => {
+    const idx = teamColorIndex(teams)
+    const pal = seriesColors(dark)
+    return (id) => pal[idx[id]] || pal[0]
+  }, [teams, dark])
+
+  const playersById = useMemo(() => new Map(players.map(p => [p.id, p])), [players])
+
+  // Radar spoke labels for teams — abbreviate the long compound names so they
+  // don't collide around the circle.
+  const shortTeam = (nm = '') => nm.replace('גבעת עדה', 'גב״ע').replace('קריית', 'ק״')
+  const intTicks = (m) => Array.from({ length: Math.max(1, m) }, (_, i) => i + 1)
+  const radarScale = (vals) => {
+    const { yMax, ticks } = axisTicks(Math.max(1, ...vals))
+    return { max: yMax, rings: ticks.filter(v => v > 0) }
+  }
+
+  // ---- הפרש שערים: scatter (GF×GA quadrants) + radar (GF/GA over teams) ----
+  const gdCharts = useMemo(() => {
+    const comb = Math.max(1, ...goalDiff.flatMap(d => [d.gf, d.ga]))
+    const { yMax, ticks } = axisTicks(comb)
+    const t = ticks.filter(v => v > 0)
+    const n = goalDiff.length || 1
+    const meanGf = goalDiff.reduce((s, d) => s + d.gf, 0) / n
+    const meanGa = goalDiff.reduce((s, d) => s + d.ga, 0) / n
+    const div = diverging(dark)
+    return {
+      scatter: {
+        points: goalDiff.map(d => ({
+          id: d.teamId, x: d.gf, y: d.ga, name: d.name, label: shortTeam(d.name),
+          color: teamColor(d.teamId), team: d.team,
+          tip: [{ k: 'זכות', v: d.gf }, { k: 'חובה', v: d.ga }, { k: 'הפרש', v: (d.gd > 0 ? '+' : '') + d.gd }],
+        })),
+        xMax: yMax, yMax, xTicks: t, yTicks: t, xThreshold: meanGf, yThreshold: meanGa,
+      },
+      radar: {
+        axes: goalDiff.map(d => shortTeam(d.name)),
+        series: [
+          { id: 'gf', name: 'זכות (הבקיעו)', color: div.pos, values: goalDiff.map(d => d.gf) },
+          { id: 'ga', name: 'חובה (ספגו)', color: div.neg, values: goalDiff.map(d => d.ga) },
+        ],
+        max: yMax, rings: t,
+      },
+    }
+  }, [goalDiff, dark, teamColor])
+
+  // ---- שלישיות: scatter (scoring map) + radar (scoring profile), player/team ----
+  const hatCharts = useMemo(() => {
+    const enriched = achievements.players
+      .map(a => { const p = playersById.get(a.id); return p ? { ...a, goals: p.goals || 0, team: teams.find(t => t.id === a.team_id) } : null })
+      .filter(Boolean)
+
+    // scatter — players: season goals × hat-tricks. Only hat-trick scorers, so
+    // the zero-band crowd doesn't pile on the axis. Jitter within each band so
+    // same-count dots spread out instead of stacking; the tooltip keeps the
+    // true value, and only the standouts are labelled.
+    const cloud = enriched.filter(a => a.hatTricks >= 1).sort((x, y) => y.goals - x.goals)
+    const cn = cloud.length || 1
+    const gAx = axisTicks(Math.max(1, ...cloud.map(a => a.goals)))
+    const pHmax = Math.max(1, ...cloud.map(a => a.hatTricks))
+    const band = {}
+    cloud.forEach(a => { (band[a.hatTricks] ||= []).push(a) })
+    const jitterY = new Map()
+    Object.values(band).forEach(grp => {
+      grp.sort((x, y) => x.goals - y.goals)
+      const n = grp.length
+      grp.forEach((a, k) => jitterY.set(a.id, a.hatTricks + (n > 1 ? (k / (n - 1) - 0.5) * 0.62 : 0)))
+    })
+    const scatterPlayers = {
+      points: cloud.map(a => ({
+        id: a.id, x: a.goals, y: jitterY.get(a.id), name: `${a.first_name} ${a.last_name}`,
+        label: (a.hatTricks >= 3 || a.goals >= 20) ? a.first_name : '',
+        color: teamColor(a.team_id), team: a.team,
+        tip: [{ k: 'שערים', v: a.goals }, { k: 'שלישיות', v: a.hatTricks }, { k: 'משחקי-על', v: a.bigGames }],
+      })),
+      xMax: gAx.yMax, yMax: pHmax + 0.45, xTicks: gAx.ticks.filter(v => v > 0), yTicks: intTicks(pHmax),
+      xThreshold: cloud.reduce((s, a) => s + a.goals, 0) / cn,
+      yThreshold: Math.max(1.5, cloud.reduce((s, a) => s + a.hatTricks, 0) / cn),
+    }
+
+    // scatter — teams: team goals × hat-tricks
+    const gfById = new Map(goalDiff.map(d => [d.teamId, d.gf]))
+    const trows = teamAch.map(t => ({ ...t, gf: gfById.get(t.teamId) || 0 }))
+    const tn = trows.length || 1
+    const tGax = axisTicks(Math.max(1, ...trows.map(t => t.gf)))
+    const tHmax = Math.max(1, ...trows.map(t => t.hatTricks))
+    const scatterTeams = {
+      points: trows.map(t => ({
+        id: t.teamId, x: t.gf, y: t.hatTricks, name: t.name, label: shortTeam(t.name),
+        color: teamColor(t.teamId), team: t.team,
+        tip: [{ k: 'שערים', v: t.gf }, { k: 'שלישיות', v: t.hatTricks }, { k: 'משחקי-על', v: t.bigGames }],
+      })),
+      xMax: tGax.yMax, yMax: tHmax, xTicks: tGax.ticks.filter(v => v > 0), yTicks: intTicks(tHmax),
+      xThreshold: trows.reduce((s, t) => s + t.gf, 0) / tn,
+      yThreshold: trows.reduce((s, t) => s + t.hatTricks, 0) / tn,
+    }
+
+    // radar — scoring profile (doubles / hat-tricks / 5+)
+    const pal = seriesColors(dark)
+    const AXES = ['דאבלים (2)', 'שלישיות (3–4)', 'משחקי-על (5+)']
+    const topPlayers = [...enriched].sort((x, y) => y.goals - x.goals).slice(0, 4)
+    const radarPlayers = {
+      axes: AXES,
+      series: topPlayers.map((a, i) => ({ id: a.id, name: `${a.first_name} ${a.last_name}`, color: pal[i % pal.length], values: [a.braces, a.hatTricks, a.bigGames] })),
+      ...radarScale(topPlayers.flatMap(a => [a.braces, a.hatTricks, a.bigGames])),
+    }
+    const topTeams = [...teamAch].sort((x, y) => y.hatTricks - x.hatTricks).slice(0, 4)
+    const radarTeams = {
+      axes: AXES,
+      series: topTeams.map((t, i) => ({ id: t.teamId, name: t.name, color: pal[i % pal.length], values: [t.braces, t.hatTricks, t.bigGames] })),
+      ...radarScale(topTeams.flatMap(t => [t.braces, t.hatTricks, t.bigGames])),
+    }
+
+    return { scatterPlayers, scatterTeams, radarPlayers, radarTeams }
+  }, [achievements, playersById, teams, teamAch, goalDiff, dark, teamColor])
+
   const tabs = [
     { id: "scorers", label: "מבקיעים", icon: Player },
     { id: "goalkeepers", label: "שוערים", icon: Glove },
     { id: "cards", label: "כרטיסים", icon: Cards },
     { id: "referees", label: "שופטים", icon: Whistle },
   ]
+
+  // Swatch+name legend for the radar views (series aren't teams, so no crest).
+  const MiniLegend = ({ items = [] }) => (
+    <div className="flex flex-wrap gap-x-3 gap-y-1.5 mt-3">
+      {items.map(it => (
+        <span key={it.id} className="inline-flex items-center gap-1.5 text-[11px] text-slate-600 dark:text-slate-300">
+          <span className="w-3.5 h-1.5 rounded-full shrink-0" style={{ background: it.color }} aria-hidden="true" />
+          <span className="whitespace-nowrap">{it.name}</span>
+        </span>
+      ))}
+    </div>
+  )
 
   const medal = (i) =>
     i === 0 ? 'bg-amber-400 text-amber-950' :
@@ -228,7 +370,7 @@ export default function Statistics() {
     <div className="p-4 sm:p-6 lg:p-8 max-w-5xl mx-auto space-y-6">
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
         <h1 className="page-title flex items-center gap-2.5">
-          <BarChart3 className="w-7 h-7 text-orange-500" /> סטטיסטיקות
+          <Stats className="w-7 h-7 text-orange-500" /> סטטיסטיקות
         </h1>
         <p className="page-subtitle mt-1">נתוני ביצועים עונת 2025-26</p>
       </motion.div>
@@ -252,58 +394,108 @@ export default function Statistics() {
 
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* Main chart — the goal race, full width, with a לפי קבוצה / לפי שחקן toggle. */}
         <ChartCard
-          title="שערים לאורך העונה"
-          subtitle="סך שערי הליגה בכל חודש"
-          icon={<CalendarDays className="w-4 h-4 text-orange-500" />}
-          footnote="מבוסס על כל 45 המשחקים שהסתיימו · אפריל ללא משחקים"
-          table={{
-            head: ['חודש', 'משחקים', 'שערים', 'ממוצע'],
-            align: ['right', 'center', 'center', 'center'],
-            rows: monthly.map(m => [m.label, m.games, m.goals, m.games ? m.avg.toFixed(1) : '—']),
-          }}
-        >
-          <BarChart data={monthly.map(m => ({ label: m.label, value: m.goals, lines: m.games ? [`${m.games} משחקים · ${m.avg.toFixed(1)} לממוצע`] : ['ללא משחקים'] }))} unit="שערים" />
-        </ChartCard>
-
-        <ChartCard
+          className="lg:col-span-2"
           title="מרוץ השערים"
-          subtitle="שערים מצטברים לאורך העונה, לפי קבוצה"
+          subtitle={raceMode === 'team'
+            ? 'שערים מצטברים לאורך העונה, לפי קבוצה'
+            : 'שערים מצטברים לאורך העונה · 8 המבקיעים המובילים'}
           icon={<TrendingUp className="w-4 h-4 text-orange-500" />}
-          legend={<Legend items={legendItems} />}
-          table={raceTable}
+          footnote={raceMode === 'player' ? STATS_NOTE : undefined}
+          toolbar={
+            <SegToggle
+              value={raceMode}
+              onChange={setRaceMode}
+              options={[
+                { id: 'team', label: 'קבוצה', icon: <Shield className="w-3 h-3" /> },
+                { id: 'player', label: 'שחקן', icon: <Player className="w-3 h-3" /> },
+              ]}
+            />
+          }
+          legend={<Legend items={raceMode === 'team' ? legendItems : playerLegend} />}
         >
-          <LineChart series={raceSeries} xTicks={xTicks} />
+          <LineChart series={raceMode === 'team' ? raceSeries : playerRaceSeries} xTicks={xTicks} vbH={200} />
         </ChartCard>
 
         <ChartCard
           title="הפרש שערים"
-          subtitle="זכות פחות חובה, לפי קבוצה"
+          subtitle={gdView === 'scatter'
+            ? 'מתקפה מול הגנה — כל קבוצה על המפה'
+            : 'זכות מול חובה — מכ״ם קבוצתי'}
           icon={<Target className="w-4 h-4 text-orange-500" />}
-          table={{
-            head: ['קבוצה', 'זכות', 'חובה', 'הפרש'],
-            align: ['right', 'center', 'center', 'center'],
-            rows: goalDiff.map(d => [
-              <span className="inline-flex items-center gap-1.5"><TeamLogo team={d.team} size={5} />{d.name}</span>,
-              d.gf, d.ga, d.gd > 0 ? `+${d.gd}` : d.gd,
-            ]),
-          }}
+          toolbar={
+            <SegToggle
+              value={gdView}
+              onChange={setGdView}
+              options={[
+                { id: 'scatter', label: 'פיזור' },
+                { id: 'radar', label: 'מכ״ם' },
+              ]}
+            />
+          }
+          legend={gdView === 'radar' ? <MiniLegend items={gdCharts.radar.series} /> : undefined}
         >
-          <DivergingBar data={goalDiff} />
+          {gdView === 'scatter' ? (
+            <ScatterChart
+              {...gdCharts.scatter}
+              yUp={false}
+              diagonal
+              quadrants={{ tr: 'שולטות', tl: 'מגננתיות', br: 'התקפיות', bl: 'נאבקות' }}
+              xLabel="זכות (מתקפה) ◄"
+              yLabel="חובה (הגנה) ►"
+            />
+          ) : (
+            <RadarChart {...gdCharts.radar} />
+          )}
         </ChartCard>
 
         <ChartCard
-          title="שלישיות לפי חודש"
-          subtitle="שלישיות (3–4 שערים) בכל חודש"
+          title="שלישיות"
+          subtitle={hatView === 'radar'
+            ? 'פרופיל הבקעה: דאבלים · שלישיות · משחקי-על'
+            : hatMode === 'player'
+              ? 'נפח מול נפיצות — שערים מול שלישיות'
+              : 'שערי קבוצה מול שלישיות'}
           icon={<Flame className="w-4 h-4 text-orange-500" />}
           footnote={STATS_NOTE}
-          table={{
-            head: ['חודש', 'שלישיות', 'משחקי-על'],
-            align: ['right', 'center', 'center'],
-            rows: achTime.map(a => [a.label, a.hatTricks, a.bigGames]),
-          }}
+          toolbar={
+            <div className="flex flex-wrap items-center gap-1.5">
+              <SegToggle
+                value={hatMode}
+                onChange={setHatMode}
+                options={[
+                  { id: 'player', label: 'שחקן', icon: <Player className="w-3 h-3" /> },
+                  { id: 'team', label: 'קבוצה', icon: <Shield className="w-3 h-3" /> },
+                ]}
+              />
+              <SegToggle
+                value={hatView}
+                onChange={setHatView}
+                options={[
+                  { id: 'scatter', label: 'פיזור' },
+                  { id: 'radar', label: 'מכ״ם' },
+                ]}
+              />
+            </div>
+          }
+          legend={hatView === 'radar'
+            ? <MiniLegend items={(hatMode === 'player' ? hatCharts.radarPlayers : hatCharts.radarTeams).series} />
+            : undefined}
         >
-          <BarChart data={achTime.map(a => ({ label: a.label, value: a.hatTricks, lines: a.bigGames ? [`${a.bigGames} משחקי-על (5+)`] : [] }))} unit="שלישיות" />
+          {hatView === 'scatter' ? (
+            <ScatterChart
+              {...(hatMode === 'player' ? hatCharts.scatterPlayers : hatCharts.scatterTeams)}
+              yUp
+              quadrants={hatMode === 'player'
+                ? { tr: 'כוכבי-על', tl: 'נפיצים', br: 'עקביים', bl: 'מזדמנים' }
+                : { tr: 'דומיננטיות', tl: 'נפיצות', br: 'עקביות', bl: 'מזדמנות' }}
+              xLabel={hatMode === 'player' ? 'סך שערים ◄' : 'שערי הקבוצה ◄'}
+              yLabel="שלישיות ►"
+            />
+          ) : (
+            <RadarChart {...(hatMode === 'player' ? hatCharts.radarPlayers : hatCharts.radarTeams)} />
+          )}
         </ChartCard>
       </div>
 

@@ -29,7 +29,7 @@ export default function BarChart({ data = [], unit = '', color }) {
 
   const c = chrome(dark)
   const barColor = color || singleColor(dark)
-  const ink = dark ? '#e2e8f0' : '#334155'
+  const ink = dark ? '#d2d8e8' : '#2d3752'
 
   const plotW = VB_W - M.left - M.right
   const plotH = VB_H - M.top - M.bottom

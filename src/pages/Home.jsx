@@ -2,6 +2,7 @@ import { useState, useEffect } from "react"
 import { getTeams } from "@/lib/api"
 import { standingsComparator } from "@/lib/utils"
 import { Trophy, Users, Crown, Swords, RefreshCw } from "lucide-react"
+import { Standings } from "@/components/icons/HockeyIcons"
 import { motion } from "framer-motion"
 import TeamLogo from "@/components/TeamLogo"
 
@@ -47,7 +48,7 @@ export default function Home() {
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
         <span className="accent-bar mb-3" />
         <h1 className="page-title flex items-center gap-2.5">
-          <Trophy className="size-8 text-brand shrink-0" />
+          <Standings className="size-8 text-brand shrink-0" />
           טבלת הליגה
         </h1>
         <p className="page-subtitle mt-1">דירוג קבוצות עונת 2025-26</p>

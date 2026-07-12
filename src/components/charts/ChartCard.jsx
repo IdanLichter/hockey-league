@@ -22,6 +22,7 @@ export default function ChartCard({
   table,
   legend,
   children,
+  toolbar,
   defaultView = 'chart',
   className = '',
 }) {
@@ -40,12 +41,17 @@ export default function ChartCard({
           )}
         </div>
 
-        {table && (
+        {/* A caller-supplied toolbar (e.g. a per-team/per-player toggle) takes the
+            top-right slot; otherwise the built-in chart/table toggle appears when
+            a `table` view is provided. */}
+        {toolbar ? (
+          <div className="shrink-0">{toolbar}</div>
+        ) : table ? (
           <div className="flex shrink-0 rounded-lg bg-slate-100 dark:bg-slate-700/50 p-0.5" role="tablist" aria-label="תצוגה">
             <ToggleBtn active={view === 'chart'} onClick={() => setView('chart')} icon={<BarChart3 className="w-3 h-3" />} label="תרשים" />
             <ToggleBtn active={view === 'table'} onClick={() => setView('table')} icon={<Table2 className="w-3 h-3" />} label="טבלה" />
           </div>
-        )}
+        ) : null}
       </div>
 
       {view === 'chart' || !table ? (
@@ -59,6 +65,22 @@ export default function ChartCard({
       {footnote && (
         <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-3 leading-relaxed">{footnote}</p>
       )}
+    </div>
+  )
+}
+
+/**
+ * Segmented toggle for the top-right `toolbar` slot — e.g. a "לפי קבוצה / לפי
+ * שחקן" switch. Same pill styling as the built-in chart/table toggle.
+ *
+ * `options` = [{ id, label, icon? }]   `value` = active id   `onChange(id)`
+ */
+export function SegToggle({ options = [], value, onChange, label = 'תצוגה' }) {
+  return (
+    <div className="flex shrink-0 rounded-lg bg-slate-100 dark:bg-slate-700/50 p-0.5" role="tablist" aria-label={label}>
+      {options.map((o) => (
+        <ToggleBtn key={o.id} active={value === o.id} onClick={() => onChange(o.id)} icon={o.icon} label={o.label} />
+      ))}
     </div>
   )
 }

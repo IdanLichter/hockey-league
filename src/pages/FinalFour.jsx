@@ -2,6 +2,7 @@ import { useState, useEffect } from "react"
 import { getTeams, getGames, getLeagueSetting } from "@/lib/api"
 import { standingsComparator } from "@/lib/utils"
 import { Trophy, Crown, Calendar, RefreshCw } from "lucide-react"
+import { Trophy as TrophyIcon } from "@/components/icons/HockeyIcons"
 import { motion } from "framer-motion"
 import { format } from "date-fns"
 import TeamLogo from "@/components/TeamLogo"
@@ -131,7 +132,7 @@ export default function FinalFour() {
     <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-5">
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
         <h1 className="page-title flex items-center gap-2.5">
-          <Trophy className="w-7 h-7 text-orange-500" /> Final Four
+          <TrophyIcon className="w-7 h-7 text-orange-500" /> Final Four
         </h1>
         <p className="page-subtitle mt-1">שלב הגמר — עונת 2025-26</p>
       </motion.div>
@@ -145,7 +146,7 @@ export default function FinalFour() {
           className="relative overflow-hidden bg-gradient-to-l from-amber-50 via-white to-amber-50 dark:from-amber-950/40 dark:via-slate-800 dark:to-amber-950/40 rounded-2xl border-2 border-amber-200 dark:border-amber-700 p-6 sm:p-8 shadow-lg text-center"
         >
           <div className="flex justify-center mb-4">
-            <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shadow-lg shadow-amber-500/30">
+            <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-gold flex items-center justify-center shadow-lg shadow-gold/30">
               <Crown className="w-8 h-8 sm:w-10 sm:h-10 text-white" />
             </div>
           </div>
@@ -466,7 +467,7 @@ function FinalMatchup({ t1, t2, games, delay }) {
       <div className="relative bg-gradient-to-b from-orange-50 via-white to-orange-50 dark:from-orange-950/30 dark:via-slate-800 dark:to-orange-950/30 rounded-2xl border-2 border-orange-300 dark:border-orange-700 p-4 shadow-lg">
         {/* Trophy icon */}
         <div className="flex justify-center mb-3">
-          <div className="w-14 h-14 rounded-full bg-gradient-to-br from-orange-400 to-amber-500 flex items-center justify-center shadow-lg shadow-orange-500/30">
+          <div className="w-14 h-14 rounded-full bg-gold flex items-center justify-center shadow-lg shadow-gold/30">
             <Trophy className="w-7 h-7 text-white" />
           </div>
         </div>

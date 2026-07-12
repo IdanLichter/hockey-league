@@ -5,6 +5,7 @@ import {
   getArchivedPlayerStats, getArchivedGames
 } from "@/lib/api"
 import { Archive, Trophy, Users, UserCheck, Calendar, ArrowRight, RefreshCw } from "lucide-react"
+import { Crate } from "@/components/icons/HockeyIcons"
 import { motion } from "framer-motion"
 import { format } from "date-fns"
 import TeamLogo from "@/components/TeamLogo"
@@ -56,7 +57,7 @@ function SeasonsList() {
     <div className="p-4 sm:p-6 lg:p-8 max-w-5xl mx-auto space-y-5">
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
         <h1 className="page-title flex items-center gap-2.5">
-          <Archive className="w-7 h-7 text-orange-500" /> ארכיון עונות
+          <Crate className="w-7 h-7 text-orange-500" /> ארכיון עונות
         </h1>
         <p className="page-subtitle mt-1">צפייה בנתוני עונות קודמות</p>
       </motion.div>

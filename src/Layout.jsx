@@ -2,31 +2,31 @@ import { BRAND_ORANGE } from '@/lib/brand'
 import { Link, useLocation } from "react-router-dom"
 import { useState } from "react"
 import {
-  Trophy,
   UserCheck,
-  BarChart3,
   Menu,
   X,
-  Shield,
-  Camera,
-  Images,
   LogOut,
   UserCircle
 } from "lucide-react"
-import { Rink, Standings, Crossed, Teams, Player, Whistle } from "./components/icons/HockeyIcons"
+import { Rink, Standings, Crossed, Teams, Player, Whistle, Stats, Camera, Edit, Trophy, Clipboard } from "./components/icons/HockeyIcons"
 import { useAuth } from "./lib/AuthContext"
 import AuthModal from "./components/AuthModal"
 import NotificationBell from "./components/NotificationBell"
 import ChatDrawer from "./components/ChatDrawer"
 
-// Nav uses the hockey icons in `mono`, so their orange accent becomes currentColor
-// and stays visible on the active tab's solid-orange background.
+// Nav uses the hockey icons in `mono`, so the brand-color puck accent becomes
+// currentColor and stays visible on the active tab's solid-brand background.
 const NavRink = (p) => <Rink mono {...p} />
 const NavStandings = (p) => <Standings mono {...p} />
 const NavGames = (p) => <Crossed mono {...p} />
 const NavTeams = (p) => <Teams mono {...p} />
 const NavPlayers = (p) => <Player mono {...p} />
 const NavWhistle = (p) => <Whistle mono {...p} />
+const NavStats = (p) => <Stats mono {...p} />
+const NavCamera = (p) => <Camera mono {...p} />
+const NavEdit = (p) => <Edit mono {...p} />
+const NavTrophy = (p) => <Trophy mono {...p} />
+const NavClipboard = (p) => <Clipboard mono {...p} />
 
 /**
  * Navbar avatar with three states (mirrors the /me header + feed avatars):
@@ -67,17 +67,17 @@ export default function Layout({ children }) {
     { title: "בית", url: "/", icon: NavRink },
     { title: "טבלה", url: "/standings", icon: NavStandings },
     { title: "משחקים", url: "/games", icon: NavGames },
-    { title: "סטטיסטיקות", url: "/statistics", icon: BarChart3 },
+    { title: "סטטיסטיקות", url: "/statistics", icon: NavStats },
     { title: "קבוצות", url: "/teams", icon: NavTeams },
     { title: "שחקנים", url: "/players", icon: NavPlayers },
     // Media / content-editor entry: plain users & admins keep "מדיה"; content
     // editors get "יוצרי תוכן" instead; admins see BOTH.
-    ...((!isContentEditor || isAdmin) ? [{ title: "מדיה", url: "/media", icon: Camera }] : []),
-    ...((isContentEditor || isAdmin) ? [{ title: "יוצרי תוכן", url: "/creators", icon: Images }] : []),
-    { title: "Final Four", url: "/final-four", icon: Trophy },
+    ...((!isContentEditor || isAdmin) ? [{ title: "מדיה", url: "/media", icon: NavCamera }] : []),
+    ...((isContentEditor || isAdmin) ? [{ title: "יוצרי תוכן", url: "/creators", icon: NavEdit }] : []),
+    { title: "Final Four", url: "/final-four", icon: NavTrophy },
     // Archive lives in the management screen's season tab (/admin), not the main nav.
     ...(hasRole("judge") ? [{ title: "שיפוט", url: "/judge", icon: NavWhistle }] : []),
-    ...((isAdmin || coachTeamIds.length > 0 || isJudgeRole) ? [{ title: "ניהול", url: "/admin", icon: Shield }] : []),
+    ...((isAdmin || coachTeamIds.length > 0 || isJudgeRole) ? [{ title: "ניהול", url: "/admin", icon: NavClipboard }] : []),
   ]
 
   const isActivePage = (url) =>

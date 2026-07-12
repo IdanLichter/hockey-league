@@ -2,10 +2,12 @@ import { useState, useEffect } from "react"
 import { Link } from "react-router-dom"
 import { getGames, getTeams, getPlayers, getReferees, getGameStatsByGameId } from "@/lib/api"
 import { Calendar, Clock, MapPin, Trophy, Shield, X, ChevronDown, ArrowLeft, RefreshCw } from "lucide-react"
+import { Crossed } from "@/components/icons/HockeyIcons"
 import { motion, AnimatePresence } from "framer-motion"
 import { format } from "date-fns"
 import TeamLogo from "@/components/TeamLogo"
 import { PlayerLink } from "@/components/EntityLinks"
+import { FRIENDLY_GAME_TYPE } from "@/lib/leagueStats"
 
 export default function Games() {
   const [games, setGames] = useState([])
@@ -125,6 +127,7 @@ export default function Games() {
           <div className="flex items-center gap-2 mb-3">
             <span className={`stat-pill ${status.cls}`}>{status.label}</span>
             {game.game_type === 'פלייאוף' && <span className="stat-pill bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300">פלייאוף</span>}
+            {game.game_type === FRIENDLY_GAME_TYPE && <span className="stat-pill bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300">ידידותי</span>}
             {game.series_game && <span className="stat-pill bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300">משחק {game.series_game}</span>}
             <ChevronDown className={`w-5 h-5 text-slate-400 transition-transform mr-auto ${open ? 'rotate-180' : ''}`} />
           </div>
@@ -279,7 +282,7 @@ export default function Games() {
     <div className="p-4 sm:p-6 lg:p-8 max-w-5xl mx-auto space-y-5">
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
         <h1 className="page-title flex items-center gap-2.5">
-          <Calendar className="w-7 h-7 text-orange-500" /> משחקים
+          <Crossed className="w-7 h-7 text-orange-500" /> משחקים
         </h1>
         <p className="page-subtitle mt-1">לוח משחקים ותוצאות עונת 2025-26</p>
       </motion.div>
@@ -292,6 +295,9 @@ export default function Games() {
           </button>
           <button onClick={() => setActiveCompetition("פלייאוף")} className={activeCompetition === "פלייאוף" ? "tab-active" : "tab-inactive"}>
             <Shield className="w-4 h-4" /> פלייאוף
+          </button>
+          <button onClick={() => setActiveCompetition(FRIENDLY_GAME_TYPE)} className={activeCompetition === FRIENDLY_GAME_TYPE ? "tab-active" : "tab-inactive"}>
+            <Crossed className="w-4 h-4" /> ידידותי
           </button>
         </div>
         <div className="flex gap-2 flex-1 flex-wrap">

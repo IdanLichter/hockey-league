@@ -11,81 +11,91 @@
      slate/orange values, so a full restyle later is a one-place edit here.
      Light values live on :root; dark overrides live in the html.dark block. */
   :root {
-    /* Brand */
-    --brand: 249 115 22;        /* orange-500 */
-    --brand-hover: 234 88 12;   /* orange-600 */
-    --brand-strong: 234 88 12;  /* orange-600 — brand text on light backgrounds */
-    --brand-light: 251 146 60;  /* orange-400 — brand text on dark backgrounds */
+    /* ── "Rink" palette · LIGHT (1A) ──  navy neutrals + royal-blue primary,
+       gold / green / red support. Everything reads off these vars. */
+    /* Brand (primary) */
+    --brand: 59 79 196;         /* #3B4FC4 royal blue */
+    --brand-hover: 46 62 168;   /* darker press */
+    --brand-strong: 59 79 196;  /* accent text on light */
+    --brand-light: 138 160 255; /* accent text on dark */
     --brand-fg: 255 255 255;    /* text on a brand-filled surface */
+    --brand-deep: 30 42 120;    /* #1E2A78 deep navy — hero/emphasis */
 
     /* Surfaces (backgrounds) */
     --surface: 255 255 255;         /* card fill                    (white) */
-    --surface-page: 248 250 252;    /* page background              (slate-50) */
+    --surface-page: 246 247 251;    /* page background              (faint navy-white) */
     --surface-nav: 255 255 255;     /* sticky header + mobile menu  (white) */
-    --surface-inset: 248 250 252;   /* inputs, comment bubbles      (slate-50) */
-    --surface-sunken: 241 245 249;  /* tab track, ghost hover       (slate-100) */
+    --surface-inset: 246 247 251;   /* inputs, comment bubbles */
+    --surface-sunken: 236 238 245;  /* tab track, ghost hover */
     --surface-raised: 255 255 255;  /* active tab                   (white) */
-    --surface-chip: 226 232 240;    /* neutral chip / VS pill       (slate-200) */
+    --surface-chip: 223 227 238;    /* neutral chip / VS pill */
 
-    /* Foreground (text) */
-    --fg: 51 65 85;             /* body                 (slate-700) */
-    --fg-strong: 15 23 42;      /* headings / names     (slate-900) */
-    --fg-soft: 51 65 85;        /* body (slate-700, differs in dark) */
-    --fg-muted: 100 116 139;    /* secondary            (slate-500) */
-    --fg-subtle: 148 163 184;   /* meta / timestamps    (slate-400) */
-    --fg-faint: 203 213 225;    /* empty-state hints    (slate-300) */
+    /* Foreground (text) — navy-ink */
+    --fg: 45 55 82;             /* body */
+    --fg-strong: 15 23 41;      /* #0F1729 ink — headings / names */
+    --fg-soft: 45 55 82;        /* body (differs in dark) */
+    --fg-muted: 100 110 140;    /* secondary */
+    --fg-subtle: 148 156 182;   /* meta / timestamps */
+    --fg-faint: 200 205 222;    /* empty-state hints */
     --fg-inverse: 255 255 255;  /* text on colored fills (white, no flip) */
 
     /* Borders + dividers */
-    --line: 226 232 240;        /* default border       (slate-200) */
-    --line-strong: 226 232 240; /* btn-secondary border (slate-200) */
-    --line-subtle: 241 245 249; /* faint border         (slate-100) */
-    --line-header: 226 232 240; /* header border        (slate-200) */
-    --divider: 241 245 249;     /* divide-y             (slate-100) */
+    --line: 223 227 238;        /* default border */
+    --line-strong: 210 215 230; /* btn-secondary border */
+    --line-subtle: 236 238 245; /* faint border */
+    --line-header: 223 227 238;  /* header border */
+    --divider: 236 238 245;     /* divide-y */
 
     /* Chrome */
-    --scrollbar: 203 213 225;   /* slate-300 */
+    --scrollbar: 200 205 222;
 
-    /* Harmonized supporting palette — deliberately few hues, muted to one family
-       so the whole system reads together (not a stock-Tailwind rainbow):
+    /* Harmonized supporting palette — few hues, one family:
        pos = wins/positive, neg = losses/negative, gold = champion/leader mark.
-       Everything else (qualification zones, secondary emphasis) reuses the brand
-       accent + neutrals rather than adding new hues. */
-    --pos: 47 133 90;     /* muted green  */
-    --neg: 197 68 58;     /* muted brick red */
-    --gold: 176 137 46;   /* champion gold */
+       Qualification zones + secondary emphasis reuse the brand accent + neutrals. */
+    --pos: 76 160 90;     /* #4CA05A win green */
+    --neg: 215 84 80;     /* #D75450 danger red */
+    --gold: 229 184 67;   /* #E5B843 champion gold */
   }
 
   html.dark {
+    /* ── "Rink" palette · DARK (1B) ──  deep-navy bg + navy cards, brighter
+       periwinkle-blue primary, white text. */
     color-scheme: dark;
 
-    --surface: 30 41 59;            /* slate-800 */
-    --surface-page: 2 6 23;         /* slate-950 */
-    --surface-nav: 15 23 42;        /* slate-900 */
-    --surface-inset: 30 41 59;      /* slate-800 */
-    --surface-sunken: 30 41 59;     /* slate-800 */
-    --surface-raised: 51 65 85;     /* slate-700 */
-    --surface-chip: 51 65 85;       /* slate-700 */
+    --brand: 78 109 240;       /* #4E6DF0 brighter blue */
+    --brand-hover: 108 136 248;/* lighter press on dark */
+    --brand-strong: 59 79 196;
+    --brand-light: 138 160 255;
+    --brand-fg: 255 255 255;
+    --brand-deep: 40 54 140;
 
-    --fg: 226 232 240;         /* slate-200 */
+    --surface: 20 27 46;            /* #141B2E card */
+    --surface-page: 13 19 34;       /* #0D1322 page bg */
+    --surface-nav: 16 23 40;        /* header */
+    --surface-inset: 20 27 46;
+    --surface-sunken: 26 34 56;
+    --surface-raised: 32 42 66;
+    --surface-chip: 36 46 72;
+
+    --fg: 210 216 232;         /* body */
     --fg-strong: 255 255 255;  /* white */
-    --fg-soft: 203 213 225;    /* slate-300 */
-    --fg-muted: 148 163 184;   /* slate-400 */
-    --fg-subtle: 100 116 139;  /* slate-500 */
-    --fg-faint: 71 85 105;     /* slate-600 */
-    --fg-inverse: 255 255 255; /* white */
+    --fg-soft: 190 198 218;
+    --fg-muted: 140 150 178;
+    --fg-subtle: 105 116 146;
+    --fg-faint: 66 78 106;
+    --fg-inverse: 255 255 255;
 
-    --line: 51 65 85;          /* slate-700 */
-    --line-strong: 71 85 105;  /* slate-600 */
-    --line-subtle: 30 41 59;   /* slate-800 */
-    --line-header: 30 41 59;   /* slate-800 */
-    --divider: 51 65 85;       /* slate-700 */
+    --line: 36 46 72;
+    --line-strong: 50 62 92;
+    --line-subtle: 26 34 56;
+    --line-header: 26 34 56;
+    --divider: 36 46 72;
 
-    --scrollbar: 51 65 85;     /* slate-700 */
+    --scrollbar: 50 62 92;
 
-    --pos: 92 191 130;    /* lighter for dark surfaces */
-    --neg: 232 138 128;
-    --gold: 214 178 90;
+    --pos: 79 186 104;    /* #4FBA68 */
+    --neg: 232 87 79;     /* #E8574F */
+    --gold: 235 190 80;   /* #EBBE50 */
   }
 
   html {

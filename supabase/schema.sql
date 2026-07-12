@@ -62,7 +62,7 @@ CREATE TABLE games (
   status TEXT DEFAULT 'scheduled' CHECK (status IN ('scheduled', 'waiting_result', 'in_progress', 'completed', 'postponed', 'cancelled')),
   is_neutral BOOLEAN DEFAULT FALSE,
   is_technical_loss BOOLEAN DEFAULT FALSE,
-  game_type TEXT DEFAULT 'ליג��' CHECK (game_type IN ('ליגה', 'פלייאוף', 'Final Four')),
+  game_type TEXT DEFAULT 'ליג��' CHECK (game_type IN ('ליגה', 'פלייאוף', 'Final Four', 'ידידותי')),
   playoff_round TEXT CHECK (playoff_round IN ('first_round', 'semi_final', 'final')),
   series_game INTEGER,
   referee_id TEXT,

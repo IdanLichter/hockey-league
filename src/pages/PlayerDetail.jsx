@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react"
 import { useParams, Link } from "react-router-dom"
 import { getPlayers, getTeams, getGames, getGameStats, getLeagueSetting, getPlayerRoleBadges } from "@/lib/api"
+import { countsForStats, FRIENDLY_GAME_TYPE } from "@/lib/leagueStats"
 import { useAuth } from "@/lib/AuthContext"
 import { useSeasonMode } from "@/App"
 import { getClaimContext, createClaim, cancelClaim } from "@/lib/claims"
@@ -106,7 +107,8 @@ export default function PlayerDetail() {
 
   // Goalkeeper clean sheets — computed exactly like Statistics.jsx: every
   // COMPLETED game the player's team played where the opponent was held to 0.
-  const done = games.filter(g => g.status === 'completed')
+  // Friendly (ידידותי) games never count toward the competitive record.
+  const done = games.filter(g => g.status === 'completed' && countsForStats(g))
   const teamGames = isGK ? done.filter(g => g.home_team_id === player.team_id || g.away_team_id === player.team_id) : []
   const cleanSheets = teamGames.filter(g => (g.home_team_id === player.team_id ? g.away_score : g.home_score) === 0).length
 
@@ -137,8 +139,8 @@ export default function PlayerDetail() {
     return my > opp ? 'win' : my < opp ? 'loss' : 'tie'
   }
 
-  // Last-5 form (most recent first), across all competitions.
-  const form = gameLog.slice(0, 5).map(x => resultOf(x.game))
+  // Last-5 form (most recent first), across all competitions — friendlies excluded.
+  const form = gameLog.filter(x => countsForStats(x.game)).slice(0, 5).map(x => resultOf(x.game))
 
   // ----- Achievements & season honors (derived like the home feed) -----
   // Season titles:
@@ -148,9 +150,10 @@ export default function PlayerDetail() {
   const isTopScorer = !!topScorer && topScorer.id === player.id
   const isChampion = seasonMode === 'final_four' && !!championId && championId === player.team_id
 
-  // Per-game scoring milestones from recorded box scores (3-4 = hat-trick, 5+ = big game).
+  // Per-game scoring milestones from recorded box scores (3-4 = hat-trick, 5+ =
+  // big game). Friendlies never count toward achievements/honors.
   const milestoneGames = gameLog
-    .filter(x => (x.stat.goals || 0) >= 3)
+    .filter(x => (x.stat.goals || 0) >= 3 && countsForStats(x.game))
     .map(x => {
       const isHome = x.game.home_team_id === player.team_id
       return {
@@ -175,6 +178,7 @@ export default function PlayerDetail() {
     { id: "all", label: "הכל" },
     { id: "ליגה", label: "ליגה" },
     { id: "פלייאוף", label: "פלייאוף" },
+    { id: FRIENDLY_GAME_TYPE, label: "ידידותי" },
   ].filter(c => c.id === "all" || gameLog.some(x => x.game.game_type === c.id))
   const filteredLog = logFilter === "all" ? gameLog : gameLog.filter(x => x.game.game_type === logFilter)
 
@@ -238,7 +242,7 @@ export default function PlayerDetail() {
                 </span>
               )}
               {player.is_core && <span className="stat-pill bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400">ליבה</span>}
-              {player.is_referee && <span className="stat-pill bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400">שופט</span>}
+              {player.is_referee && <span className="stat-pill bg-indigo-100 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-300">שופט</span>}
               {accountBadges && deriveRoleItems({
                 isAdmin: accountBadges.isAdmin,
                 roles: accountBadges.roles,
@@ -411,6 +415,9 @@ export default function PlayerDetail() {
                     <p className="font-semibold text-sm text-slate-900 dark:text-white truncate group-hover:text-orange-500 transition-colors">{opp?.name || '—'}</p>
                     <p className="text-[11px] text-slate-400 dark:text-slate-500">
                       {format(new Date(game.game_date), "d/M/yyyy")} · {isHome ? 'בית' : 'חוץ'}
+                      {game.game_type === FRIENDLY_GAME_TYPE && (
+                        <span className="text-violet-500 dark:text-violet-400 font-medium"> · ידידותי (לא נספר)</span>
+                      )}
                     </p>
                   </div>
                 </Link>

@@ -29,21 +29,21 @@ export const SERIES_DARK  = ['#3987e5', '#199e70', '#c98500', '#008300', '#9085e
 
 // Single-series (magnitude) colour: categorical slot 1. One series → one colour
 // for every bar. Never a value-ramp across nominal categories like teams.
-export const SINGLE_LIGHT = '#2a78d6'
-export const SINGLE_DARK  = '#3987e5'
+export const SINGLE_LIGHT = '#3b4fc4'   // Rink primary (light)
+export const SINGLE_DARK  = '#4e6df0'   // Rink primary (dark)
 
 // Diverging pair for polarity (e.g. goal difference around zero). Warm/cool
 // poles with a NEUTRAL GRAY midpoint — never a hue at the midpoint.
 export const DIVERGING = {
-  light: { pos: '#2a78d6', neg: '#e34948', mid: '#f0efec' },
-  dark:  { pos: '#3987e5', neg: '#e66767', mid: '#383835' },
+  light: { pos: '#3b4fc4', neg: '#d75450', mid: '#e6e8f0' },
+  dark:  { pos: '#4e6df0', neg: '#e8574f', mid: '#232b45' },
 }
 
 // Chrome. Gridlines and axes are SOLID hairlines one shade off the surface —
 // never dashed (dashing reads as "projection" or "threshold").
 export const CHROME = {
-  light: { grid: '#e1e0d9', axis: '#c3c2b7', muted: '#898781', surface: '#ffffff' },
-  dark:  { grid: '#2c2c2a', axis: '#383835', muted: '#898781', surface: '#1e293b' },
+  light: { grid: '#e6e8f0', axis: '#ced3e0', muted: '#6e7690', surface: '#ffffff' },
+  dark:  { grid: '#232b45', axis: '#323a54', muted: '#8c96b2', surface: '#141b2e' },
 }
 
 export const seriesColors = (dark) => (dark ? SERIES_DARK : SERIES_LIGHT)

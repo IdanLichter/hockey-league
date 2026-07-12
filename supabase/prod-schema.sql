@@ -402,7 +402,7 @@ alter table game_stats add constraint game_stats_player_id_fkey FOREIGN KEY (pla
 alter table games add constraint games_pkey PRIMARY KEY (id);
 alter table games add constraint games_away_team_id_fkey FOREIGN KEY (away_team_id) REFERENCES teams(id) ON DELETE CASCADE;
 alter table games add constraint games_home_team_id_fkey FOREIGN KEY (home_team_id) REFERENCES teams(id) ON DELETE CASCADE;
-alter table games add constraint games_game_type_check CHECK ((game_type = ANY (ARRAY['ליגה'::text, 'פלייאוף'::text, 'Final Four'::text])));
+alter table games add constraint games_game_type_check CHECK ((game_type = ANY (ARRAY['ליגה'::text, 'פלייאוף'::text, 'Final Four'::text, 'ידידותי'::text])));
 alter table games add constraint games_playoff_round_check CHECK ((playoff_round = ANY (ARRAY['first_round'::text, 'semi_final'::text, 'third_place'::text, 'final'::text])));
 alter table games add constraint games_referee_type_check CHECK ((referee_type = ANY (ARRAY['player'::text, 'external'::text])));
 alter table games add constraint games_status_check CHECK ((status = ANY (ARRAY['scheduled'::text, 'waiting_result'::text, 'in_progress'::text, 'completed'::text, 'postponed'::text, 'cancelled'::text])));
@@ -924,6 +924,7 @@ AS $function$
       coalesce(sum(case when g.home_team_id = p_team then g.away_score else g.home_score end), 0) as ga
     from public.games g
     where g.status = 'completed'
+      and g.game_type <> 'ידידותי'
       and g.home_score is not null and g.away_score is not null
       and (g.home_team_id = p_team or g.away_team_id = p_team)
   ) s

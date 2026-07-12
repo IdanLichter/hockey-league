@@ -20,10 +20,13 @@ import { axisTicks, scale, valueAt } from './chartUtils'
  * `xTicks` = [{ x:ms, label }]  month ticks along the bottom.
  */
 const VB_W = 380
-const VB_H = 250
 const M = { top: 12, right: 62, bottom: 22, left: 26 }
 
-export default function LineChart({ series = [], xTicks = [], unit = '' }) {
+// vbH sets the viewBox height → the chart's aspect ratio. The default (250) is a
+// compact card; the goal race passes a shorter value so, at full page width, it
+// reads as a wide "hero" banner instead of a near-square block.
+export default function LineChart({ series = [], xTicks = [], unit = '', vbH = 250 }) {
+  const VB_H = vbH
   const { dark } = useTheme()
   const svgRef = useRef(null)
   const [hover, setHover] = useState(null)
@@ -32,7 +35,7 @@ export default function LineChart({ series = [], xTicks = [], unit = '' }) {
   if (!drawable.length) return null
 
   const c = chrome(dark)
-  const ink = dark ? '#e2e8f0' : '#334155'
+  const ink = dark ? '#d2d8e8' : '#2d3752'
   const surface = c.surface
 
   const allX = drawable.flatMap((s) => s.points.map((p) => p.x))

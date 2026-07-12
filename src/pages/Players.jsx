@@ -2,6 +2,7 @@ import { useState, useEffect } from "react"
 import { Link } from "react-router-dom"
 import { getPlayers, getTeams } from "@/lib/api"
 import { UserCheck, Search, RefreshCw } from "lucide-react"
+import { Player as PlayerIcon } from "@/components/icons/HockeyIcons"
 import { motion } from "framer-motion"
 import TeamLogo from "@/components/TeamLogo"
 
@@ -68,7 +69,7 @@ export default function Players() {
     <div className="p-4 sm:p-6 lg:p-8 max-w-5xl mx-auto space-y-5">
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
         <h1 className="page-title flex items-center gap-2.5">
-          <UserCheck className="w-7 h-7 text-orange-500" /> שחקנים
+          <PlayerIcon className="w-7 h-7 text-orange-500" /> שחקנים
         </h1>
         <p className="page-subtitle mt-1">{players.length} שחקנים בליגה</p>
       </motion.div>

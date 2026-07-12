@@ -364,6 +364,7 @@ function GamesAdmin({ games, teams, players, teamsMap, gameStats, reload }) {
                 <option value="ליגה">ליגה</option>
                 <option value="פלייאוף">פלייאוף</option>
                 <option value="Final Four">Final Four</option>
+                <option value="ידידותי">ידידותי</option>
               </select>
             </div>
             {form.game_type !== 'ליגה' && (

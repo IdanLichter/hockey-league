@@ -5,6 +5,7 @@ import {
   Images, Camera, Flag, FolderPlus, Send, ExternalLink,
   RefreshCw, Loader2, Check, Clock, Ban
 } from "lucide-react"
+import { Edit as EditIcon } from "@/components/icons/HockeyIcons"
 import { getPlayers } from "@/lib/api"
 import { MediaClusters } from "@/pages/Media"
 import ClustersAdmin from "@/components/admin/ClustersAdmin"
@@ -54,7 +55,7 @@ export default function ContentCreators() {
     <div className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto space-y-5">
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
         <h1 className="page-title flex items-center gap-2.5">
-          <Images className="w-7 h-7 text-orange-500" /> יוצרי תוכן
+          <EditIcon className="w-7 h-7 text-orange-500" /> יוצרי תוכן
         </h1>
         <p className="page-subtitle mt-1">זיהוי שחקנים בתמונות, ניהול קבוצות תמונות, דיווחים ואלבומים חדשים</p>
       </motion.div>
