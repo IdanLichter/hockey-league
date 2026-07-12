@@ -11,6 +11,7 @@ import {
 import { Rink, Standings, Crossed, Teams, Player, Whistle, Stats, Camera, Edit, Trophy, Clipboard } from "./components/icons/HockeyIcons"
 import { useAuth } from "./lib/AuthContext"
 import AuthModal from "./components/AuthModal"
+import OnboardingModal from "./components/OnboardingModal"
 import NotificationBell from "./components/NotificationBell"
 import ChatDrawer from "./components/ChatDrawer"
 
@@ -237,6 +238,9 @@ export default function Layout({ children }) {
 
       {/* Auth (login / signup) modal */}
       <AuthModal />
+
+      {/* First-run prompt to link the account to a player profile */}
+      <OnboardingModal />
 
       {/* Members-only chat / mailbox (self-gates to members) */}
       <ChatDrawer />
