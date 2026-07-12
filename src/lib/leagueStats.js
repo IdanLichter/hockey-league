@@ -31,8 +31,10 @@
  */
 export const FRIENDLY_GAME_TYPE = 'ידידותי'
 
-/** True for games that count toward standings and all aggregate statistics. */
-export const countsForStats = (g) => g?.game_type !== FRIENDLY_GAME_TYPE
+/** True for games that count toward standings and all aggregate statistics.
+ *  Friendlies never count; neither do youth-TOURNAMENT games (tournament_id set)
+ *  — those belong to their own competition, not the senior league. */
+export const countsForStats = (g) => g?.game_type !== FRIENDLY_GAME_TYPE && !g?.tournament_id
 
 const HE_MONTHS_SHORT = [
   'ינו׳', 'פבר׳', 'מרץ', 'אפר׳', 'מאי', 'יוני',
@@ -229,8 +231,8 @@ export function teamAchievements(gameStats = [], players = [], teams = []) {
     if (tid == null || !agg.has(tid)) return
     const goals = s.goals || 0
     if (goals === 2) agg.get(tid).braces += 1
-    else if (goals >= 3 && goals <= 4) agg.get(tid).hatTricks += 1
-    else if (goals >= 5) agg.get(tid).bigGames += 1
+    else if (goals >= 3) agg.get(tid).hatTricks += 1
+    if (goals >= 5) agg.get(tid).bigGames += 1
   })
   return Array.from(agg.values()).sort((a, b) => b.hatTricks - a.hatTricks || b.bigGames - a.bigGames)
 }
@@ -258,8 +260,8 @@ export function teamGoalDiff(games = [], teams = []) {
  * Per-player achievements from `game_stats` (40 of 45 games — caller must show
  * the caveat). Guest rows (null player_id) have no player page and are skipped.
  *  - brace     = exactly 2 goals in a game
- *  - hatTrick  = 3–4 goals in a game
- *  - bigGame   = 5+ goals in a game (max observed is 6)
+ *  - hatTrick  = 3+ goals in a game (a 5+ game counts here too)
+ *  - bigGame   = 5+ goals in a game (a SUBSET of hatTricks — the extra highlight)
  * → { players:[{ id, first_name, last_name, team_id, hatTricks, bigGames,
  *                braces, gamesWithGoal }], totals:{ hatTricks, bigGames, braces } }
  */
@@ -276,8 +278,10 @@ export function playerAchievements(gameStats = [], players = []) {
     const a = agg.get(s.player_id)
     if (goals >= 1) a.gamesWithGoal += 1
     if (goals === 2) { a.braces += 1; totals.braces += 1 }
-    else if (goals >= 3 && goals <= 4) { a.hatTricks += 1; totals.hatTricks += 1 }
-    else if (goals >= 5) { a.bigGames += 1; totals.bigGames += 1 }
+    else if (goals >= 3) { a.hatTricks += 1; totals.hatTricks += 1 }
+    // A 5+ game IS a hat-trick (counted above) AND is additionally flagged as a
+    // "fire game" / משחקי-על — the two are no longer mutually exclusive.
+    if (goals >= 5) { a.bigGames += 1; totals.bigGames += 1 }
   })
   const list = Array.from(agg.values()).map((a) => {
     const p = byId.get(a.id)
@@ -301,8 +305,8 @@ export function achievementsOverTime(gameStats = [], games = []) {
     const m = gameMonth.get(s.game_id)
     if (!m || !acc[m]) return
     const goals = s.goals || 0
-    if (goals >= 3 && goals <= 4) acc[m].hatTricks += 1
-    else if (goals >= 5) acc[m].bigGames += 1
+    if (goals >= 3) acc[m].hatTricks += 1
+    if (goals >= 5) acc[m].bigGames += 1
   })
   return months.map((m) => ({ month: m, label: monthLabel(m), ...acc[m] }))
 }

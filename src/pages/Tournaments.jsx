@@ -1,0 +1,99 @@
+import { useState, useEffect } from "react"
+import { Link } from "react-router-dom"
+import { getTournaments } from "@/lib/tournaments"
+import { AGE_LABEL } from "@/lib/ageGroups"
+import { Trophy, Calendar, ChevronLeft, RefreshCw } from "lucide-react"
+import { motion } from "framer-motion"
+import { format } from "date-fns"
+
+export const TOURNAMENT_STATUS = {
+  upcoming: { label: "מתקרב", cls: "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300" },
+  active: { label: "פעיל", cls: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300" },
+  completed: { label: "הסתיים", cls: "bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-400" },
+}
+
+const fmtDate = (d) => (d ? format(new Date(d), "d/M/yyyy") : null)
+export const dateRange = (t) => {
+  const s = fmtDate(t?.start_date), e = fmtDate(t?.end_date)
+  if (s && e) return s === e ? s : `${s} – ${e}`
+  return s || e || null
+}
+
+export default function Tournaments() {
+  const [items, setItems] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+
+  useEffect(() => { load() }, [])
+
+  const load = async () => {
+    try { setLoading(true); setError(null); setItems(await getTournaments()) }
+    catch (e) { console.error(e); setError("שגיאה בטעינת הטורנירים") }
+    finally { setLoading(false) }
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="animate-spin rounded-full h-10 w-10 border-2 border-orange-500 border-t-transparent" />
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="p-4 sm:p-6 lg:p-8 max-w-4xl mx-auto">
+        <div className="card p-6 border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/30 flex flex-col items-center justify-center text-center gap-3 min-h-[300px]">
+          <span className="text-red-700 dark:text-red-400 text-sm font-medium">{error}</span>
+          <button onClick={load} className="flex items-center gap-1.5 px-3 py-1.5 bg-red-600 text-white rounded-lg text-xs font-semibold hover:bg-red-700 transition-colors">
+            <RefreshCw className="w-3.5 h-3.5" /> נסה שוב
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="p-4 sm:p-6 lg:p-8 max-w-4xl mx-auto space-y-5">
+      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
+        <h1 className="page-title flex items-center gap-2.5">
+          <Trophy className="w-7 h-7 text-orange-500" /> טורנירים
+        </h1>
+        <p className="page-subtitle mt-1">טורנירים לקבוצות הנוער</p>
+      </motion.div>
+
+      {items.length === 0 ? (
+        <div className="card p-10 flex flex-col items-center text-center gap-2">
+          <Trophy className="w-8 h-8 text-slate-300 dark:text-slate-600" />
+          <p className="text-sm font-semibold text-slate-500 dark:text-slate-400">אין טורנירים עדיין</p>
+          <p className="text-xs text-slate-400">טורנירים לנוער יתווספו כאן בהמשך</p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {items.map((t, i) => {
+            const st = TOURNAMENT_STATUS[t.status] || TOURNAMENT_STATUS.active
+            const range = dateRange(t)
+            return (
+              <motion.div key={t.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}>
+                <Link to={`/tournaments/${t.id}`} className="card card-hover p-4 sm:p-5 flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-2xl bg-orange-500/10 flex items-center justify-center shrink-0">
+                    <Trophy className="w-6 h-6 text-orange-500" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h3 className="font-bold text-base text-slate-900 dark:text-white truncate">{t.name}</h3>
+                      <span className="stat-pill bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300">{AGE_LABEL[t.age_group] || t.age_group}</span>
+                      <span className={`stat-pill ${st.cls}`}>{st.label}</span>
+                    </div>
+                    {range && <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 flex items-center gap-1"><Calendar className="w-3.5 h-3.5" /> {range}</p>}
+                  </div>
+                  <ChevronLeft className="w-5 h-5 text-slate-300 dark:text-slate-600 shrink-0" />
+                </Link>
+              </motion.div>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+}

@@ -30,7 +30,8 @@ export default function Games() {
     try {
       setLoading(true); setError(null)
       const [g, t, p, r] = await Promise.all([getGames(), getTeams(), getPlayers(), getReferees()])
-      setGames(g); setTeams(t); setPlayers(p); setReferees(r)
+      // The senior schedule excludes youth-tournament games (they live on /tournaments).
+      setGames(g.filter(x => !x.tournament_id)); setTeams(t); setPlayers(p); setReferees(r)
     } catch (err) { console.error(err); setError("שגיאה בטעינת הנתונים") }
     finally { setLoading(false) }
   }

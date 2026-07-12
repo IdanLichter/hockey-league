@@ -6,7 +6,8 @@ import {
   Menu,
   X,
   LogOut,
-  UserCircle
+  UserCircle,
+  Swords
 } from "lucide-react"
 import { Rink, Standings, Crossed, Teams, Player, Whistle, Stats, Camera, Edit, Trophy, Clipboard } from "./components/icons/HockeyIcons"
 import { useAuth } from "./lib/AuthContext"
@@ -76,6 +77,7 @@ export default function Layout({ children }) {
     ...((!isContentEditor || isAdmin) ? [{ title: "מדיה", url: "/media", icon: NavCamera }] : []),
     ...((isContentEditor || isAdmin) ? [{ title: "יוצרי תוכן", url: "/creators", icon: NavEdit }] : []),
     { title: "Final Four", url: "/final-four", icon: NavTrophy },
+    { title: "טורנירים", url: "/tournaments", icon: Swords },
     // Archive lives in the management screen's season tab (/admin), not the main nav.
     ...(hasRole("judge") ? [{ title: "שיפוט", url: "/judge", icon: NavWhistle }] : []),
     ...((isAdmin || coachTeamIds.length > 0 || isJudgeRole) ? [{ title: "ניהול", url: "/admin", icon: NavClipboard }] : []),

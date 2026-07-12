@@ -1,0 +1,153 @@
+import { useState, useEffect } from "react"
+import { useParams, Link } from "react-router-dom"
+import { getTournamentById, getTournamentGames } from "@/lib/tournaments"
+import { getTeams } from "@/lib/api"
+import { AGE_LABEL } from "@/lib/ageGroups"
+import { TOURNAMENT_STATUS, dateRange } from "./Tournaments"
+import { Trophy, Calendar, MapPin, ArrowRight, RefreshCw, Users } from "lucide-react"
+import { motion } from "framer-motion"
+import { format } from "date-fns"
+import TeamLogo from "@/components/TeamLogo"
+
+const statusLabel = {
+  scheduled: "מתוכנן", in_progress: "משחק חי", waiting_result: "ממתין לתוצאה",
+  completed: "הסתיים", postponed: "נדחה", cancelled: "בוטל",
+}
+
+export default function TournamentDetail() {
+  const { id } = useParams()
+  const [tournament, setTournament] = useState(null)
+  const [games, setGames] = useState([])
+  const [teamsMap, setTeamsMap] = useState({})
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+
+  useEffect(() => { load() }, [id])
+
+  const load = async () => {
+    try {
+      setLoading(true); setError(null)
+      const [tour, gs, teams] = await Promise.all([getTournamentById(id), getTournamentGames(id), getTeams()])
+      if (!tour) { setError("הטורניר לא נמצא"); return }
+      setTournament(tour); setGames(gs)
+      setTeamsMap(Object.fromEntries(teams.map(x => [x.id, x])))
+    } catch (e) { console.error(e); setError("שגיאה בטעינת הטורניר") }
+    finally { setLoading(false) }
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="animate-spin rounded-full h-10 w-10 border-2 border-orange-500 border-t-transparent" />
+      </div>
+    )
+  }
+
+  if (error || !tournament) {
+    return (
+      <div className="p-4 sm:p-6 lg:p-8 max-w-3xl mx-auto">
+        <div className="card p-6 border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/30 flex flex-col items-center justify-center text-center gap-3 min-h-[300px]">
+          <span className="text-red-700 dark:text-red-400 text-sm font-medium">{error || "הטורניר לא נמצא"}</span>
+          <div className="flex gap-2">
+            <button onClick={load} className="flex items-center gap-1.5 px-3 py-1.5 bg-red-600 text-white rounded-lg text-xs font-semibold hover:bg-red-700 transition-colors">
+              <RefreshCw className="w-3.5 h-3.5" /> נסה שוב
+            </button>
+            <Link to="/tournaments" className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-600 text-white rounded-lg text-xs font-semibold hover:bg-slate-700 transition-colors">
+              <ArrowRight className="w-3.5 h-3.5" /> חזרה
+            </Link>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  const st = TOURNAMENT_STATUS[tournament.status] || TOURNAMENT_STATUS.active
+  const range = dateRange(tournament)
+  const teamIds = [...new Set(games.flatMap(g => [g.home_team_id, g.away_team_id]).filter(Boolean))]
+
+  return (
+    <div className="p-4 sm:p-6 lg:p-8 max-w-3xl mx-auto space-y-5">
+      <Link to="/tournaments" className="inline-flex items-center gap-1.5 text-sm font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 transition-colors">
+        <ArrowRight className="w-4 h-4" /> חזרה לטורנירים
+      </Link>
+
+      {/* header */}
+      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="card p-5 sm:p-6">
+        <div className="flex items-start gap-4">
+          <div className="w-14 h-14 rounded-2xl bg-orange-500/10 flex items-center justify-center shrink-0">
+            <Trophy className="w-7 h-7 text-orange-500" />
+          </div>
+          <div className="min-w-0">
+            <h1 className="text-xl font-extrabold text-slate-900 dark:text-white">{tournament.name}</h1>
+            <div className="flex items-center gap-2 flex-wrap mt-2">
+              <span className="stat-pill bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300">{AGE_LABEL[tournament.age_group] || tournament.age_group}</span>
+              <span className={`stat-pill ${st.cls}`}>{st.label}</span>
+              {range && <span className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1"><Calendar className="w-3.5 h-3.5" /> {range}</span>}
+            </div>
+            {tournament.notes && <p className="text-sm text-slate-500 dark:text-slate-400 mt-3">{tournament.notes}</p>}
+          </div>
+        </div>
+      </motion.div>
+
+      {/* teams involved */}
+      {teamIds.length > 0 && (
+        <div className="card p-5">
+          <h2 className="flex items-center gap-2 text-sm font-bold text-slate-900 dark:text-white mb-3">
+            <Users className="w-4 h-4 text-orange-500" /> קבוצות משתתפות ({teamIds.length})
+          </h2>
+          <div className="flex flex-wrap gap-2">
+            {teamIds.map(tid => {
+              const team = teamsMap[tid]
+              return (
+                <div key={tid} className="flex items-center gap-2 bg-slate-50 dark:bg-slate-800/60 rounded-xl px-3 py-1.5">
+                  <TeamLogo team={team} size={6} />
+                  <span className="text-sm font-semibold text-slate-800 dark:text-slate-200">{team?.name || "—"}</span>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* games / results */}
+      <div className="card p-5">
+        <h2 className="flex items-center gap-2 text-sm font-bold text-slate-900 dark:text-white mb-3">
+          <Calendar className="w-4 h-4 text-orange-500" /> משחקים ({games.length})
+        </h2>
+        {games.length === 0 ? (
+          <p className="text-sm text-slate-400 text-center py-6">עדיין לא נקבעו משחקים לטורניר זה</p>
+        ) : (
+          <div className="space-y-2">
+            {games.map(g => {
+              const home = teamsMap[g.home_team_id], away = teamsMap[g.away_team_id]
+              const done = g.status === "completed" && g.home_score != null && g.away_score != null
+              return (
+                <div key={g.id} className="flex items-center gap-3 py-2.5 px-3 rounded-xl bg-slate-50 dark:bg-slate-800/50">
+                  {/* RTL: home on the right, away on the left; score rendered away:home */}
+                  <div className="flex-1 flex items-center justify-end gap-2 min-w-0">
+                    <span className="text-sm font-semibold text-slate-800 dark:text-slate-200 truncate text-left">{home?.name || "—"}</span>
+                    <TeamLogo team={home} size={6} />
+                  </div>
+                  <div className="shrink-0 text-center min-w-[3.5rem]">
+                    {done ? (
+                      <span className="text-base font-extrabold tabular-nums text-slate-900 dark:text-white">{g.away_score}<span className="text-slate-300 dark:text-slate-600 mx-1">:</span>{g.home_score}</span>
+                    ) : (
+                      <span className="text-[11px] font-semibold text-slate-400">{g.game_date ? format(new Date(g.game_date), "d/M HH:mm") : (statusLabel[g.status] || "")}</span>
+                    )}
+                  </div>
+                  <div className="flex-1 flex items-center gap-2 min-w-0">
+                    <TeamLogo team={away} size={6} />
+                    <span className="text-sm font-semibold text-slate-800 dark:text-slate-200 truncate">{away?.name || "—"}</span>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        )}
+        {games.some(g => g.venue) && (
+          <p className="text-[11px] text-slate-400 mt-3 flex items-center gap-1"><MapPin className="w-3 h-3" /> המשחקים מתקיימים במגרשי הטורניר</p>
+        )}
+      </div>
+    </div>
+  )
+}
