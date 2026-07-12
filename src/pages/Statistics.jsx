@@ -244,7 +244,7 @@ export default function Statistics() {
 
     // radar — scoring profile (doubles / hat-tricks / 5+)
     const pal = seriesColors(dark)
-    const AXES = ['דאבלים (2)', 'שלישיות (3–4)', 'משחקי-על (5+)']
+    const AXES = ['דאבלים (2)', 'שלישיות (3+)', 'משחקי-על (5+)']
     const topPlayers = [...enriched].sort((x, y) => y.goals - x.goals).slice(0, 4)
     const radarPlayers = {
       axes: AXES,
@@ -419,6 +419,7 @@ export default function Statistics() {
         </ChartCard>
 
         <ChartCard
+          className="lg:col-span-2"
           title="הפרש שערים"
           subtitle={gdView === 'scatter'
             ? 'מתקפה מול הגנה — כל קבוצה על המפה'
@@ -436,21 +437,24 @@ export default function Statistics() {
           }
           legend={gdView === 'radar' ? <MiniLegend items={gdCharts.radar.series} /> : undefined}
         >
-          {gdView === 'scatter' ? (
-            <ScatterChart
-              {...gdCharts.scatter}
-              yUp={false}
-              diagonal
-              quadrants={{ tr: 'שולטות', tl: 'מגננתיות', br: 'התקפיות', bl: 'נאבקות' }}
-              xLabel="זכות (מתקפה) ◄"
-              yLabel="חובה (הגנה) ►"
-            />
-          ) : (
-            <RadarChart {...gdCharts.radar} />
-          )}
+          <div className="mx-auto w-full max-w-3xl">
+            {gdView === 'scatter' ? (
+              <ScatterChart
+                {...gdCharts.scatter}
+                yUp={false}
+                diagonal
+                quadrants={{ tr: 'שולטות', tl: 'מגננתיות', br: 'התקפיות', bl: 'נאבקות' }}
+                xLabel="זכות (מתקפה) ◄"
+                yLabel="חובה (הגנה) ►"
+              />
+            ) : (
+              <RadarChart {...gdCharts.radar} />
+            )}
+          </div>
         </ChartCard>
 
         <ChartCard
+          className="lg:col-span-2"
           title="שלישיות"
           subtitle={hatView === 'radar'
             ? 'פרופיל הבקעה: דאבלים · שלישיות · משחקי-על'
@@ -483,19 +487,21 @@ export default function Statistics() {
             ? <MiniLegend items={(hatMode === 'player' ? hatCharts.radarPlayers : hatCharts.radarTeams).series} />
             : undefined}
         >
-          {hatView === 'scatter' ? (
-            <ScatterChart
-              {...(hatMode === 'player' ? hatCharts.scatterPlayers : hatCharts.scatterTeams)}
-              yUp
-              quadrants={hatMode === 'player'
-                ? { tr: 'כוכבי-על', tl: 'נפיצים', br: 'עקביים', bl: 'מזדמנים' }
-                : { tr: 'דומיננטיות', tl: 'נפיצות', br: 'עקביות', bl: 'מזדמנות' }}
-              xLabel={hatMode === 'player' ? 'סך שערים ◄' : 'שערי הקבוצה ◄'}
-              yLabel="שלישיות ►"
-            />
-          ) : (
-            <RadarChart {...(hatMode === 'player' ? hatCharts.radarPlayers : hatCharts.radarTeams)} />
-          )}
+          <div className="mx-auto w-full max-w-3xl">
+            {hatView === 'scatter' ? (
+              <ScatterChart
+                {...(hatMode === 'player' ? hatCharts.scatterPlayers : hatCharts.scatterTeams)}
+                yUp
+                quadrants={hatMode === 'player'
+                  ? { tr: 'כוכבי-על', tl: 'נפיצים', br: 'עקביים', bl: 'מזדמנים' }
+                  : { tr: 'דומיננטיות', tl: 'נפיצות', br: 'עקביות', bl: 'מזדמנות' }}
+                xLabel={hatMode === 'player' ? 'סך שערים ◄' : 'שערי הקבוצה ◄'}
+                yLabel="שלישיות ►"
+              />
+            ) : (
+              <RadarChart {...(hatMode === 'player' ? hatCharts.radarPlayers : hatCharts.radarTeams)} />
+            )}
+          </div>
         </ChartCard>
       </div>
 
