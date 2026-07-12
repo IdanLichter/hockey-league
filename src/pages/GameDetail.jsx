@@ -7,6 +7,7 @@ import { motion } from "framer-motion"
 import { format } from "date-fns"
 import TeamLogo from "@/components/TeamLogo"
 import LiveGame from "@/components/LiveGame"
+import GameVideo from "@/components/GameVideo"
 import { TeamLink, PlayerLink } from "@/components/EntityLinks"
 import { useSeo } from "@/lib/seo"
 import { countsForStats, FRIENDLY_GAME_TYPE } from "@/lib/leagueStats"
@@ -237,6 +238,9 @@ export default function GameDetail() {
           </div>
         )}
       </motion.div>
+
+      {/* ============ VIDEO / LIVE STREAM ============ */}
+      <GameVideo game={game} home={home} away={away} players={players} />
 
       {/* ============ STAT TILES ============ */}
       {tiles.length > 0 && (
