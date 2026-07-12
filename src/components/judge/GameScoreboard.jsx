@@ -4,10 +4,10 @@ import { useGameEngine, clearEngineDraft } from "@/lib/game/useGameEngine"
 import { saveGameResult } from "@/lib/judge"
 import { broadcastGameState, setGameStatus } from "@/lib/live"
 import { clockString } from "@/lib/game/format"
-import { Phase, TeamSide, CardType, GameRules } from "@/lib/game/rules"
+import { Phase, TeamSide, CardType } from "@/lib/game/rules"
 import {
   Play, Pause, RotateCcw, Maximize, Minimize, X, Check, Trophy, Loader2,
-  ArrowRight, Plus, Clock, ShieldAlert, Undo2,
+  Undo2, Goal, RectangleVertical, ShieldAlert, Timer,
 } from "lucide-react"
 import TeamLogo from "@/components/TeamLogo"
 
@@ -33,7 +33,12 @@ export default function GameScoreboard({ game, home, guest, players }) {
   const [saved, setSaved] = useState(false)
   const [saveErr, setSaveErr] = useState(null)
   const [isFs, setIsFs] = useState(false)
+  // Immersive, full-viewport judge board (in-app overlay) — the default, so the
+  // web board matches the native app's full-screen scoreboard. `isFs` is the
+  // browser Fullscreen API (kiosk) layered on top; either makes the board `full`.
+  const [immersive, setImmersive] = useState(true)
   const wrapRef = useRef(null)
+  const full = immersive || isFs
 
   useEffect(() => {
     const h = () => setIsFs(!!document.fullscreenElement)
@@ -78,6 +83,8 @@ export default function GameScoreboard({ game, home, guest, players }) {
     }
   }
 
+  // Kiosk fullscreen (browser Fullscreen API) — hides the browser chrome on top
+  // of the immersive layout, and locks landscape where supported.
   const toggleFs = async () => {
     try {
       if (document.fullscreenElement) { await document.exitFullscreen() }
@@ -86,6 +93,11 @@ export default function GameScoreboard({ game, home, guest, players }) {
         try { await window.screen?.orientation?.lock?.("landscape") } catch { /* not supported */ }
       }
     } catch { /* ignore */ }
+  }
+
+  const exitImmersive = async () => {
+    if (document.fullscreenElement) { try { await document.exitFullscreen() } catch { /* ignore */ } }
+    setImmersive(false)
   }
 
   const roster = (side) => (side === TeamSide.home ? homeRoster : guestRoster)
@@ -146,25 +158,25 @@ export default function GameScoreboard({ game, home, guest, players }) {
     const cards = engine.activeCards(side)
     return (
       <div className="flex-1 min-w-0 flex flex-col items-center gap-2">
-        <div className="flex items-center gap-2 max-w-full">
-          <TeamLogo team={team} size={8} />
-          <span className="font-bold text-sm sm:text-base text-white truncate">{team?.name}</span>
+        <div className="flex flex-col items-center gap-1.5">
+          <TeamLogo team={team} size={full ? 14 : 10} />
+          <span className={`font-bold text-white text-center leading-tight line-clamp-2 ${full ? "text-sm sm:text-lg" : "text-sm"}`}>{team?.name}</span>
         </div>
-        <div className="text-6xl sm:text-7xl font-extrabold tabular-nums text-white leading-none">{s.score}</div>
+        <div className={`font-extrabold tabular-nums text-white leading-none ${full ? "text-[clamp(1.75rem,min(12vw,16vh),8rem)]" : "text-6xl sm:text-7xl"}`}>{s.score}</div>
         {/* timeouts + strikes */}
-        <div className="flex items-center gap-3 text-[11px] text-slate-300">
-          <span className="flex items-center gap-1">
+        <div className={`flex items-center gap-3 text-slate-300 ${full ? "text-xs sm:text-sm" : "text-[11px]"}`}>
+          <span className="flex items-center gap-1.5">
             {[0, 1].map(i => (
-              <span key={i} className={`w-2 h-2 rounded-full ${i < s.timeoutsThisPeriod ? "bg-slate-600" : "bg-orange-400"}`} />
+              <span key={i} className={`rounded-full ${full ? "w-2.5 h-2.5" : "w-2 h-2"} ${i < s.timeoutsThisPeriod ? "bg-slate-600" : "bg-orange-400"}`} />
             ))}
             <span className="text-slate-400">פסקי זמן</span>
           </span>
-          <span className="text-slate-400">עבירות {s.strikes}</span>
+          <span className="text-slate-400">עבירות <span className="font-bold text-slate-200 tabular-nums">{s.strikes}</span></span>
         </div>
         {/* active penalty cards with live countdown */}
         <div className="flex flex-col gap-1 w-full items-center min-h-[1.5rem]">
           {cards.map(c => (
-            <span key={c.id} className={`text-[11px] font-bold px-2 py-0.5 rounded ${c.type === "red" ? "bg-red-500/90 text-white" : "bg-blue-500/90 text-white"}`}>
+            <span key={c.id} className={`font-bold px-2 py-0.5 rounded ${full ? "text-xs sm:text-sm" : "text-[11px]"} ${c.type === "red" ? "bg-red-500/90 text-white" : "bg-blue-500/90 text-white"}`}>
               {c.player ? `#${c.player.number}` : "—"} · {cardMMSS(c.remainingS)}
             </span>
           ))}
@@ -173,76 +185,100 @@ export default function GameScoreboard({ game, home, guest, players }) {
     )
   }
 
-  const CtrlBtn = ({ onClick, disabled, className = "", children }) => (
+  // A small square action button (card / foul / timeout): icon over label.
+  const MiniCtrl = ({ onClick, disabled, className = "", icon: Icon, label }) => (
     <button onClick={onClick} disabled={disabled}
-      className={`flex items-center justify-center gap-1 px-2.5 py-2 rounded-lg text-xs font-bold transition-colors disabled:opacity-30 ${className}`}>
-      {children}
+      className={`flex flex-col items-center justify-center gap-0.5 rounded-lg font-bold transition-colors disabled:opacity-30 ${full ? "py-2.5 text-[13px]" : "py-2 text-[11px]"} ${className}`}>
+      <Icon className={full ? "w-5 h-5" : "w-4 h-4"} />
+      <span className="leading-tight">{label}</span>
     </button>
   )
 
   const TeamControls = ({ side }) => (
-    <div className="flex flex-wrap gap-1.5 justify-center">
-      <CtrlBtn onClick={() => setPicker({ side, action: "goal" })} className="bg-emerald-500 text-white hover:bg-emerald-600">⚽ שער</CtrlBtn>
-      <CtrlBtn onClick={() => setPicker({ side, action: "blue" })} className="bg-blue-500 text-white hover:bg-blue-600">🟦</CtrlBtn>
-      <CtrlBtn onClick={() => setPicker({ side, action: "red" })} className="bg-red-500 text-white hover:bg-red-600">🟥</CtrlBtn>
-      <CtrlBtn onClick={() => engine.addStrike(side)} className="bg-slate-700 text-slate-200 hover:bg-slate-600"><ShieldAlert className="w-3.5 h-3.5" /> עבירה</CtrlBtn>
-      <CtrlBtn onClick={() => engine.requestTimeout(side)} disabled={!engine.canTimeout(side) || engine.phase === Phase.ready || over}
-        className="bg-slate-700 text-slate-200 hover:bg-slate-600"><Clock className="w-3.5 h-3.5" /> פסק זמן</CtrlBtn>
+    <div className="flex flex-col gap-2">
+      {/* Goal is the primary, most-used action — full-width and prominent. */}
+      <button onClick={() => setPicker({ side, action: "goal" })}
+        className={`flex items-center justify-center gap-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-extrabold transition-colors ${full ? "py-3 text-lg" : "py-2.5 text-base"}`}>
+        <Goal className={full ? "w-6 h-6" : "w-5 h-5"} /> שער
+      </button>
+      <div className="grid grid-cols-4 gap-1.5">
+        <MiniCtrl onClick={() => setPicker({ side, action: "blue" })} icon={RectangleVertical} label="כחול" className="bg-blue-500 text-white hover:bg-blue-600" />
+        <MiniCtrl onClick={() => setPicker({ side, action: "red" })} icon={RectangleVertical} label="אדום" className="bg-red-600 text-white hover:bg-red-700" />
+        <MiniCtrl onClick={() => engine.addStrike(side)} icon={ShieldAlert} label="עבירה" className="bg-slate-700 text-slate-200 hover:bg-slate-600" />
+        <MiniCtrl onClick={() => engine.requestTimeout(side)} disabled={!engine.canTimeout(side) || engine.phase === Phase.ready || over}
+          icon={Timer} label="פסק זמן" className="bg-slate-700 text-slate-200 hover:bg-slate-600" />
+      </div>
     </div>
   )
 
   return (
-    <div ref={wrapRef} className={`rounded-2xl bg-slate-950 text-white ${isFs ? "fixed inset-0 z-50 rounded-none overflow-auto p-4 sm:p-6 flex flex-col justify-center" : "p-4 sm:p-6 border border-slate-800"}`}>
-      {/* top bar */}
-      <div className="flex items-center justify-between mb-4">
-        <span className="text-2xl font-extrabold text-orange-400">{engine.periodLabel}</span>
+    <div
+      ref={wrapRef}
+      className={`bg-slate-950 text-white flex flex-col ${full ? "fixed inset-0 z-50 gap-3 p-3 sm:p-5 overflow-y-auto" : "rounded-2xl border border-slate-800 gap-4 p-4 sm:p-6"}`}
+    >
+      {/* top bar: period · passive · fullscreen / exit */}
+      <div className="flex items-center justify-between gap-2 shrink-0">
+        <span className={`font-extrabold text-orange-400 ${full ? "text-2xl sm:text-3xl" : "text-2xl"}`}>{engine.periodLabel}</span>
         <div className="flex items-center gap-2">
           {engine.settings.passivePlayEnabled && running && (
-            <span className={`text-sm font-bold px-2 py-1 rounded tabular-nums ${engine.passiveIsWarning ? "bg-red-500 text-white animate-pulse" : "bg-slate-800 text-slate-300"}`}>
+            <span className={`font-bold px-2 py-1 rounded tabular-nums ${full ? "text-sm sm:text-base" : "text-sm"} ${engine.passiveIsWarning ? "bg-red-500 text-white animate-pulse" : "bg-slate-800 text-slate-300"}`}>
               מסירה {engine.passiveSeconds}
             </span>
           )}
-          <button onClick={toggleFs} className="p-2 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 transition-colors" aria-label="מסך מלא">
-            {isFs ? <Minimize className="w-4 h-4" /> : <Maximize className="w-4 h-4" />}
-          </button>
+          {full ? (
+            <>
+              <button onClick={toggleFs} className="p-2 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 transition-colors" aria-label="מסך מלא (קיוסק)">
+                {isFs ? <Minimize className="w-5 h-5" /> : <Maximize className="w-5 h-5" />}
+              </button>
+              <button onClick={exitImmersive} className="p-2 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 transition-colors" aria-label="צא ממסך מלא">
+                <X className="w-5 h-5" />
+              </button>
+            </>
+          ) : (
+            <button onClick={() => setImmersive(true)} className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-slate-800 text-slate-200 hover:bg-slate-700 transition-colors text-sm font-bold" aria-label="מסך שיפוט">
+              <Maximize className="w-4 h-4" /> מסך שיפוט
+            </button>
+          )}
         </div>
       </div>
 
       {/* scoreboard: home (right) | clock | guest (left) */}
-      <div className="flex items-center gap-3 sm:gap-6">
-        <TeamPanel side={TeamSide.home} />
-        <div className="shrink-0 flex flex-col items-center gap-3">
-          <div className={`font-mono font-extrabold tabular-nums leading-none ${showTenths ? "text-red-400" : "text-white"} text-5xl sm:text-7xl`}>
-            {clockString(engine.clock.remainingMS, showTenths)}
+      <div className={full ? "shrink-0" : ""}>
+        <div className="w-full flex items-center justify-center gap-3 sm:gap-6">
+          <TeamPanel side={TeamSide.home} />
+          <div className="shrink-0 flex flex-col items-center gap-3">
+            <div className={`font-mono font-extrabold tabular-nums leading-none ${showTenths ? "text-red-400" : "text-white"} ${full ? "text-[clamp(2.25rem,min(16vw,20vh),9rem)]" : "text-6xl sm:text-7xl"}`}>
+              {clockString(engine.clock.remainingMS, showTenths)}
+            </div>
+            <div className="flex items-center gap-2 flex-wrap justify-center">
+              {!over && (
+                <button onClick={() => engine.toggleClock()} disabled={inBreak}
+                  className={`flex items-center gap-2 rounded-2xl font-extrabold transition-colors disabled:opacity-40 text-white ${running ? "bg-amber-500 hover:bg-amber-600" : "bg-emerald-500 hover:bg-emerald-600"} ${full ? "px-8 py-3 text-xl" : "px-5 py-2.5 text-base"}`}>
+                  {running ? <><Pause className={full ? "w-6 h-6" : "w-5 h-5"} /> עצור</> : <><Play className={full ? "w-6 h-6" : "w-5 h-5"} /> {engine.phase === Phase.paused ? "המשך" : "התחל"}</>}
+                </button>
+              )}
+              {inBreak && (
+                <button onClick={() => engine.skipBreak()} className={`rounded-xl bg-slate-700 text-slate-200 font-bold hover:bg-slate-600 transition-colors ${full ? "px-5 py-4 text-base" : "px-4 py-2.5 text-sm"}`}>דלג על ההפסקה</button>
+              )}
+              {engine.settings.passivePlayEnabled && running && (
+                <button onClick={() => engine.resetPassive()} className={`rounded-xl bg-slate-800 text-slate-300 font-bold hover:bg-slate-700 transition-colors ${full ? "px-4 py-4 text-base" : "px-3 py-2.5 text-sm"}`}>אפס מסירה</button>
+              )}
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            {!over && (
-              <button onClick={() => engine.toggleClock()} disabled={inBreak}
-                className={`flex items-center gap-1.5 px-5 py-2.5 rounded-xl text-base font-bold transition-colors disabled:opacity-40 ${running ? "bg-amber-500 hover:bg-amber-600" : "bg-emerald-500 hover:bg-emerald-600"} text-white`}>
-                {running ? <><Pause className="w-5 h-5" /> עצור</> : <><Play className="w-5 h-5" /> {engine.phase === Phase.paused ? "המשך" : "התחל"}</>}
-              </button>
-            )}
-            {inBreak && (
-              <button onClick={() => engine.skipBreak()} className="px-4 py-2.5 rounded-xl bg-slate-700 text-slate-200 text-sm font-bold hover:bg-slate-600 transition-colors">דלג על ההפסקה</button>
-            )}
-            {engine.settings.passivePlayEnabled && running && (
-              <button onClick={() => engine.resetPassive()} className="px-3 py-2.5 rounded-xl bg-slate-800 text-slate-300 text-sm font-bold hover:bg-slate-700 transition-colors">אפס מסירה</button>
-            )}
-          </div>
+          <TeamPanel side={TeamSide.guest} />
         </div>
-        <TeamPanel side={TeamSide.guest} />
       </div>
 
       {/* controls */}
-      <div className="mt-5 pt-4 border-t border-slate-800 grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 shrink-0 pt-3 border-t border-slate-800">
         <TeamControls side={TeamSide.home} />
         <TeamControls side={TeamSide.guest} />
       </div>
 
-      {saveErr && <p className="mt-3 text-center text-sm text-red-400">{saveErr}</p>}
+      {saveErr && <p className="text-center text-sm text-red-400 shrink-0">{saveErr}</p>}
 
       {/* bottom: reset + abandon (left) | finish (right) */}
-      <div className="mt-5 flex items-center justify-between gap-3">
+      <div className={`flex items-center justify-between gap-3 shrink-0 ${full ? "mt-auto" : ""}`}>
         <div className="flex items-center gap-2 flex-wrap">
           {confirmReset ? (
             <div className="flex items-center gap-2">
