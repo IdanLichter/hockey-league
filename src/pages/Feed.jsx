@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef, useMemo } from "react"
+import { Link } from "react-router-dom"
 import { getGames, getTeams, getPlayers, getGameStats, getLeagueSetting, getPosts, getMyLikes, getRoleBadges } from "@/lib/api"
 import { getItemLikes, getItemCommentCounts } from "@/lib/reactions"
 import { getMyBlocks } from "@/lib/moderation"
 import { useAuth } from "@/lib/AuthContext"
-import { RefreshCw } from "lucide-react"
+import { RefreshCw, Smartphone } from "lucide-react"
 import { Rink } from "@/components/icons/HockeyIcons"
 import { motion } from "framer-motion"
 import { useSeasonMode } from "@/App"
@@ -169,12 +170,26 @@ export default function Feed() {
 
         {/* (2) Center column — feed */}
         <div className="space-y-5 min-w-0">
-          {/* Page header */}
-          <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
-            <h1 className="page-title flex items-center gap-2.5">
-              <Rink className="w-7 h-7 text-orange-500" /> המגרש
-            </h1>
-            <p className="page-subtitle mt-1">כל מה שקורה בליגה</p>
+          {/* Page header — title on the right (RTL), "download the app" banner on the left */}
+          <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="flex items-start justify-between gap-3">
+            <div>
+              <h1 className="page-title flex items-center gap-2.5">
+                <Rink className="w-7 h-7 text-orange-500" /> המגרש
+              </h1>
+              <p className="page-subtitle mt-1">כל מה שקורה בליגה</p>
+            </div>
+
+            <Link
+              to="/app"
+              className="group shrink-0 inline-flex items-center gap-2 rounded-2xl bg-gradient-to-l from-orange-500 to-orange-600 px-3.5 py-2.5 text-white shadow-sm ring-1 ring-orange-600/20 hover:shadow-md hover:brightness-105 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400"
+              aria-label="הורידו את האפליקציה"
+            >
+              <Smartphone className="w-5 h-5 shrink-0 transition-transform group-hover:-translate-y-0.5" />
+              <span className="leading-tight text-right">
+                <span className="block text-[13px] font-black">הורידו את האפליקציה!</span>
+                <span className="block text-[11px] font-medium text-white/85">iPhone · Android</span>
+              </span>
+            </Link>
           </motion.div>
 
           <Composer onPosted={handlePosted} />

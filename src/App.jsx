@@ -24,6 +24,7 @@ const Media = lazy(() => import('./pages/Media'))
 const ContentCreators = lazy(() => import('./pages/ContentCreators'))
 const Profile = lazy(() => import('./pages/Profile'))
 const Privacy = lazy(() => import('./pages/Privacy'))
+const MobileApp = lazy(() => import('./pages/MobileApp'))
 
 const SeasonModeContext = createContext()
 export const useSeasonMode = () => useContext(SeasonModeContext)
@@ -69,6 +70,7 @@ function App() {
             <Route path="/players/:id" element={<PlayerDetail />} />
             <Route path="/me" element={<Profile />} />
             <Route path="/privacy" element={<Privacy />} />
+            <Route path="/app" element={<MobileApp />} />
             <Route path="/media" element={<Media />} />
             <Route path="/creators" element={<ContentCreators />} />
             <Route path="/final-four" element={<FinalFour />} />
