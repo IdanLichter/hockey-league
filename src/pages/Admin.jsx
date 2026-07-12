@@ -20,6 +20,7 @@ import {
 } from "lucide-react"
 import { motion } from "framer-motion"
 import TeamLogo from "@/components/TeamLogo"
+import { AGE_GROUPS, DEFAULT_AGE } from "@/lib/ageGroups"
 import { format } from "date-fns"
 import { useSeasonMode } from "@/App"
 import PosterGenerator from "@/components/PosterGenerator"
@@ -920,6 +921,7 @@ function TeamsAdmin({ teams, reload }) {
       own_goals_received: team.own_goals_received || 0,
       home_venue: team.home_venue || '',
       primary_color: team.primary_color || BRAND_ORANGE,
+      age_group: team.age_group || DEFAULT_AGE,
     })
     setEditingTeam(team.id)
   }
@@ -964,7 +966,7 @@ function TeamsAdmin({ teams, reload }) {
           {editingTeam === team.id && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
               className="px-4 pb-4 border-t border-slate-100 dark:border-slate-700 pt-4 space-y-3">
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 <div>
                   <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1 block">שם</label>
                   <input type="text" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} className="filter-input w-full" />
@@ -976,6 +978,12 @@ function TeamsAdmin({ teams, reload }) {
                 <div>
                   <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1 block">מגרש בית</label>
                   <input type="text" value={form.home_venue} onChange={e => setForm({ ...form, home_venue: e.target.value })} className="filter-input w-full" />
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1 block">קטגוריית גיל</label>
+                  <select value={form.age_group || DEFAULT_AGE} onChange={e => setForm({ ...form, age_group: e.target.value })} className="filter-input w-full">
+                    {AGE_GROUPS.map(a => <option key={a.value} value={a.value}>{a.label}</option>)}
+                  </select>
                 </div>
               </div>
               <div className="grid grid-cols-3 sm:grid-cols-7 gap-3">
