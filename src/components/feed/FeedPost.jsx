@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react"
 import { Link } from "react-router-dom"
 import { motion, AnimatePresence } from "framer-motion"
 import { format } from "date-fns"
-import { Crown, Flame, Trophy, MapPin, FileText, ChevronDown, Heart, MessageCircle, Send, Loader2, Camera, ExternalLink, BadgeCheck, Check, RefreshCw } from "lucide-react"
+import { Crown, Flame, Trophy, MapPin, FileText, ChevronDown, Heart, MessageCircle, Send, Loader2, Camera, ExternalLink, BadgeCheck, Check, RefreshCw, ArrowLeft } from "lucide-react"
 import TeamLogo from "@/components/TeamLogo"
 import { useAuth } from "@/lib/AuthContext"
 import { likePost, unlikePost, getComments, createComment, editPost, deletePost, editComment, deleteComment } from "@/lib/api"
@@ -176,11 +176,29 @@ function ScoreBlock({ away, home, awayWin, homeWin }) {
     ? "text-emerald-600 dark:text-emerald-400"
     : decisive ? "text-slate-400 dark:text-slate-500" : "text-slate-900 dark:text-white"
   return (
-    <div className="text-2xl font-extrabold tracking-tight tabular-nums">
+    <div className="text-4xl sm:text-5xl font-black tracking-tighter tabular-nums leading-none">
       <span className={cls(awayWin)}>{away}</span>
-      <span className="text-slate-300 dark:text-slate-600 mx-1">:</span>
+      <span className="mx-1.5 align-middle text-2xl sm:text-3xl font-bold text-slate-300 dark:text-slate-600">:</span>
       <span className={cls(homeWin)}>{home}</span>
     </div>
+  )
+}
+
+/* One team on the result row. side="home" flows normally (right in RTL);
+   side="away" mirrors to the left. Winner is emerald + trophy, loser muted. */
+function ResultTeam({ team, side, isWin, isLoss, label }) {
+  const reverse = side === "away"
+  return (
+    <TeamLink team={team} className={`group flex items-center gap-2.5 flex-1 min-w-0 rounded-xl px-2 py-1.5 transition-colors ${reverse ? "flex-row-reverse" : ""} ${isWin ? "bg-emerald-50 dark:bg-emerald-900/20" : ""}`}>
+      <TeamLogo team={team} size={12} />
+      <div className={`min-w-0 ${reverse ? "text-left" : ""}`}>
+        <p className={`text-sm sm:text-[15px] truncate flex items-center gap-1 group-hover:text-orange-500 transition-colors ${reverse ? "flex-row-reverse" : ""} ${isWin ? "font-extrabold text-emerald-700 dark:text-emerald-300" : isLoss ? "font-semibold text-slate-400 dark:text-slate-500" : "font-bold text-slate-900 dark:text-white"}`}>
+          {isWin && <Trophy className="w-3.5 h-3.5 text-amber-500 shrink-0" />}
+          <span className="truncate">{team?.name}</span>
+        </p>
+        <p className={`text-[11px] ${isWin ? "text-emerald-600 dark:text-emerald-400 font-semibold" : "text-slate-400"}`}>{label}</p>
+      </div>
+    </TeamLink>
   )
 }
 
@@ -246,8 +264,6 @@ function TopScorerPost({ post, likedItems, itemLikeCounts, itemCommentCounts, bl
 }
 
 /* ============ GAME RESULT ============ */
-const statusPill = "stat-pill bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-400"
-
 function GameResultPost({ post, playersMap, teamsMap, likedItems, itemLikeCounts, itemCommentCounts, blockedIds, onPhotoRefreshed }) {
   const [open, setOpen] = useState(false)
   const { game, home, away, stats } = post.data
@@ -259,66 +275,48 @@ function GameResultPost({ post, playersMap, teamsMap, likedItems, itemLikeCounts
   return (
     <motion.div {...fade} layout className="card-hover overflow-hidden">
       <div className="p-4 sm:p-5">
-        <PostHeader
-          icon={<Trophy className="w-4 h-4 text-emerald-500" />}
-          label="תוצאת משחק"
-          date={post.date}
-        />
-
-        {/* Tags row */}
-        <div className="flex items-center gap-2 mb-3 flex-wrap">
-          <span className={statusPill}>הסתיים</span>
-          {tie
-            ? <span className="stat-pill bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300">תיקו</span>
-            : <span className="stat-pill bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300"><Trophy className="w-3.5 h-3.5" /> {(homeWin ? home : away)?.name}</span>}
-          {game.game_type === 'פלייאוף' && <span className="stat-pill bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300">פלייאוף</span>}
-          {game.game_type === FRIENDLY_GAME_TYPE && <span className="stat-pill bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300">ידידותי</span>}
-          {game.series_game && <span className="stat-pill bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300">משחק {game.series_game}</span>}
+        {/* Header — label + trophy on the right; type tags + date on the left */}
+        <div className="flex items-center gap-2 mb-4">
+          <Trophy className="w-4 h-4 text-emerald-500 shrink-0" />
+          <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">תוצאת משחק</span>
+          <div className="mr-auto flex items-center gap-1.5 flex-wrap justify-end">
+            {game.game_type === 'פלייאוף' && <span className="stat-pill badge-warning !py-0.5">פלייאוף</span>}
+            {game.game_type === FRIENDLY_GAME_TYPE && <span className="stat-pill badge-neutral !py-0.5">ידידותי</span>}
+            {game.series_game && <span className="stat-pill badge-info !py-0.5">משחק {game.series_game}</span>}
+            <span className="text-[11px] text-slate-400 dark:text-slate-500 whitespace-nowrap">{fmtDate(post.date)}</span>
+          </div>
         </div>
 
-        {/* Match row — winning side is tinted + trophy-marked */}
-        <div className="flex items-center justify-between gap-2">
-          <TeamLink team={home} className={`group flex items-center gap-3 flex-1 min-w-0 rounded-xl px-2 py-1.5 transition-colors ${homeWin ? "bg-emerald-50 dark:bg-emerald-900/20" : ""}`}>
-            <TeamLogo team={home} size={10} />
-            <div className="min-w-0">
-              <p className={`text-sm truncate flex items-center gap-1 group-hover:text-orange-500 transition-colors ${homeWin ? "font-extrabold text-emerald-700 dark:text-emerald-300" : awayWin ? "font-semibold text-slate-400 dark:text-slate-500" : "font-bold text-slate-900 dark:text-white"}`}>
-                {homeWin && <Trophy className="w-3.5 h-3.5 text-amber-500 shrink-0" />}
-                <span className="truncate">{home?.name}</span>
-              </p>
-              <p className={`text-[11px] ${homeWin ? "text-emerald-600 dark:text-emerald-400 font-semibold" : "text-slate-400"}`}>{tie ? 'תיקו' : homeWin ? 'מנצחת' : 'בית'}</p>
-            </div>
-          </TeamLink>
-
-          {/* RTL gotcha: away_score first, home_score last */}
-          <div className="px-3 text-center shrink-0">
+        {/* Match row — the score is the hero; winning side tinted + trophy-marked.
+           RTL gotcha: home team renders first (right); ScoreBlock stays away:home. */}
+        <div className="flex items-center gap-1 sm:gap-2">
+          <ResultTeam team={home} side="home" isWin={homeWin} isLoss={awayWin}
+            label={tie ? 'תיקו' : homeWin ? 'מנצחת' : 'בית'} />
+          <div className="px-1 sm:px-2 text-center shrink-0">
             <ScoreBlock away={game.away_score} home={game.home_score} awayWin={awayWin} homeWin={homeWin} />
           </div>
-
-          <TeamLink team={away} className={`group flex items-center gap-3 flex-1 min-w-0 flex-row-reverse rounded-xl px-2 py-1.5 transition-colors ${awayWin ? "bg-emerald-50 dark:bg-emerald-900/20" : ""}`}>
-            <TeamLogo team={away} size={10} />
-            <div className="min-w-0 text-left">
-              <p className={`text-sm truncate flex items-center gap-1 flex-row-reverse group-hover:text-orange-500 transition-colors ${awayWin ? "font-extrabold text-emerald-700 dark:text-emerald-300" : homeWin ? "font-semibold text-slate-400 dark:text-slate-500" : "font-bold text-slate-900 dark:text-white"}`}>
-                {awayWin && <Trophy className="w-3.5 h-3.5 text-amber-500 shrink-0" />}
-                <span className="truncate">{away?.name}</span>
-              </p>
-              <p className={`text-[11px] ${awayWin ? "text-emerald-600 dark:text-emerald-400 font-semibold" : "text-slate-400"}`}>{tie ? 'תיקו' : awayWin ? 'מנצחת' : 'חוץ'}</p>
-            </div>
-          </TeamLink>
+          <ResultTeam team={away} side="away" isWin={awayWin} isLoss={homeWin}
+            label={tie ? 'תיקו' : awayWin ? 'מנצחת' : 'חוץ'} />
         </div>
 
         {/* Meta row */}
         <div className="flex items-center gap-3 mt-3 pt-3 border-t border-slate-100 dark:border-slate-700/50 text-xs text-slate-500 dark:text-slate-400 flex-wrap">
           <span className="flex items-center gap-1"><MapPin className="w-3.5 h-3.5" />{game.venue || '—'}</span>
-          {stats.length > 0 && (
-            <button
-              onClick={() => setOpen(o => !o)}
-              className="mr-auto flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg font-medium border border-slate-200 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
-            >
-              <FileText className="w-3.5 h-3.5" />
-              {open ? 'סגור' : 'פרטים'}
-              <ChevronDown className={`w-3 h-3 transition-transform ${open ? 'rotate-180' : ''}`} />
-            </button>
-          )}
+          <div className="mr-auto flex items-center gap-2">
+            <Link to={`/games/${game.id}`} className="flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg font-semibold text-orange-600 dark:text-orange-400 hover:bg-orange-50/60 dark:hover:bg-orange-900/10 transition-colors">
+              לעמוד המשחק <ArrowLeft className="w-3.5 h-3.5" />
+            </Link>
+            {stats.length > 0 && (
+              <button
+                onClick={() => setOpen(o => !o)}
+                className="flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg font-medium border border-slate-200 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+              >
+                <FileText className="w-3.5 h-3.5" />
+                {open ? 'סגור' : 'פרטים'}
+                <ChevronDown className={`w-3 h-3 transition-transform ${open ? 'rotate-180' : ''}`} />
+              </button>
+            )}
+          </div>
         </div>
 
         <EventPhoto photo={post.data.photo} itemKey={post.id} candidates={post.data.photoCandidates} onRefreshed={onPhotoRefreshed} />
