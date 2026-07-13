@@ -2,7 +2,8 @@ import { useState, useEffect } from "react"
 import { useParams, Link } from "react-router-dom"
 import { getGameById, getGameStatsByGameId, getTeams, getPlayers, getReferees, getGames } from "@/lib/api"
 import { getLiveGame } from "@/lib/live"
-import { ArrowRight, ArrowLeft, Calendar, Clock, MapPin, Shield, Trophy, Users, Flame, Swords, TrendingUp, RefreshCw } from "lucide-react"
+import { useAuth } from "@/lib/AuthContext"
+import { ArrowRight, ArrowLeft, Calendar, Clock, MapPin, Shield, Trophy, Users, Flame, Swords, TrendingUp, RefreshCw, Radio } from "lucide-react"
 import { motion } from "framer-motion"
 import { format } from "date-fns"
 import TeamLogo from "@/components/TeamLogo"
@@ -39,6 +40,7 @@ function StatPills({ stat }) {
 
 export default function GameDetail() {
   const { id } = useParams()
+  const { isAdmin, isJudgeRole } = useAuth()
   const [game, setGame] = useState(null)
   const [stats, setStats] = useState([])
   const [teams, setTeams] = useState([])
@@ -118,6 +120,8 @@ export default function GameDetail() {
   // the judge broadcasts, and a live row is the belt-and-suspenders signal. Never
   // for a completed game (the finish RPC clears the live row anyway).
   const showLive = !done && (game.status === 'in_progress' || !!live)
+  // Officials (judge/admin) get an in-page entry to run the scoreboard + go live.
+  const canOfficiate = isAdmin || isJudgeRole
   const played = done && game.home_score != null && game.away_score != null
   const homeWin = played && game.home_score > game.away_score
   const awayWin = played && game.away_score > game.home_score
@@ -174,12 +178,25 @@ export default function GameDetail() {
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-3xl mx-auto space-y-5">
-      <Link to="/games" className="inline-flex items-center gap-1.5 text-sm font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 transition-colors">
-        <ArrowRight className="w-4 h-4" /> חזרה למשחקים
-      </Link>
+      <div className="flex items-center justify-between gap-3">
+        <Link to="/games" className="inline-flex items-center gap-1.5 text-sm font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 transition-colors">
+          <ArrowRight className="w-4 h-4" /> חזרה למשחקים
+        </Link>
+        {/* Officials: jump straight to this game's scoreboard to run the clock / go live */}
+        {canOfficiate && !done && (
+          <Link to={`/judge/${id}`} className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg bg-brand text-brand-fg hover:bg-brand-hover transition-colors">
+            <Radio className="w-3.5 h-3.5" /> {game.status === 'in_progress' ? 'נהל שידור חי' : 'שפוט / שדר משחק'}
+          </Link>
+        )}
+      </div>
 
-      {/* ============ LIVE SCOREBOARD (in-progress only) ============ */}
-      {showLive && <LiveGame gameId={id} home={home} away={away} initial={live} />}
+      {/* ===== LIVE (in-progress): scoreboard + stream unified at the top ===== */}
+      {showLive && (
+        <>
+          <LiveGame gameId={id} home={home} away={away} initial={live} />
+          <GameVideo game={game} home={home} away={away} players={players} />
+        </>
+      )}
 
       {/* ============ HEADER ============ */}
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="card p-5 sm:p-6">
@@ -239,8 +256,8 @@ export default function GameDetail() {
         )}
       </motion.div>
 
-      {/* ============ VIDEO / LIVE STREAM ============ */}
-      <GameVideo game={game} home={home} away={away} players={players} />
+      {/* ===== VIDEO / VOD (the live stream is shown up top while in-progress) ===== */}
+      {!showLive && <GameVideo game={game} home={home} away={away} players={players} />}
 
       {/* ============ STAT TILES ============ */}
       {tiles.length > 0 && (

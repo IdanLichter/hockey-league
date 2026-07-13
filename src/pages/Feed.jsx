@@ -14,6 +14,8 @@ import { getPhotoIndex } from "@/lib/media"
 import { getPhotoOverrides } from "@/lib/photoOverrides"
 import FeedPost from "@/components/feed/FeedPost"
 import Composer from "@/components/feed/Composer"
+import LiveGameBanner from "@/components/LiveGameBanner"
+import { useLiveGames } from "@/lib/useLiveGames"
 import FeedFilters, { matchesFilter } from "@/components/feed/FeedFilters"
 import { StandingsWidget, NextGameWidget, LeadersWidget } from "@/components/feed/Widgets"
 
@@ -93,6 +95,10 @@ export default function Feed() {
 
   const teamsMap = useMemo(() => Object.fromEntries(teams.map(t => [t.id, t])), [teams])
   const playersMap = useMemo(() => Object.fromEntries(players.map(p => [p.id, p])), [players])
+  const gamesById = useMemo(() => Object.fromEntries(games.map(g => [g.id, g])), [games])
+
+  // Games being officiated right now — realtime, independent of the feed load.
+  const liveGames = useLiveGames()
 
   // Rebuilds only when the underlying data changes — not on every scroll/like re-render.
   const feed = useMemo(() => attachEventPhotos(
@@ -191,6 +197,9 @@ export default function Feed() {
               </span>
             </Link>
           </motion.div>
+
+          {/* Live now — pinned above the composer when a game is being officiated */}
+          <LiveGameBanner liveGames={liveGames} gamesById={gamesById} teamsMap={teamsMap} />
 
           <Composer onPosted={handlePosted} />
 

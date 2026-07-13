@@ -40,6 +40,39 @@ export async function broadcastGameState(engine, gameId) {
   }
 }
 
+// All games live right now — every `live_game_state` row touched within
+// LIVE_MAX_AGE_MS, newest first. Public SELECT, safe for anon. The freshness
+// window drops "zombie" rows: a judge who closes the board without reset/finish
+// leaves a stale row behind, and we never want the site announcing a game that
+// stopped being officiated hours ago. Best-effort → [] on error.
+const LIVE_MAX_AGE_MS = 4 * 60 * 60 * 1000  // 4h, comfortably longer than a game
+
+export async function getLiveGames() {
+  const since = new Date(Date.now() - LIVE_MAX_AGE_MS).toISOString()
+  const { data, error } = await supabase
+    .from('live_game_state')
+    .select('*')
+    .gte('updated_at', since)
+    .order('updated_at', { ascending: false })
+  if (error) return []
+  return data || []
+}
+
+// Realtime for ANY live-game change (start / score / finish / abandon). The cb
+// takes no args — callers just refetch getLiveGames(). No-op-safe if Realtime
+// isn't reachable. Returns an unsubscribe fn.
+export function subscribeLiveGames(cb) {
+  const channel = supabase
+    .channel('live_games:all')
+    .on(
+      'postgres_changes',
+      { event: '*', schema: 'public', table: 'live_game_state' },
+      () => cb(),
+    )
+    .subscribe()
+  return () => { supabase.removeChannel(channel) }
+}
+
 // Current live row for a game, or null. Public SELECT — safe for anon spectators.
 export async function getLiveGame(gameId) {
   if (!gameId) return null

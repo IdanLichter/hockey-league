@@ -8,6 +8,9 @@ import { format } from "date-fns"
 import TeamLogo from "@/components/TeamLogo"
 import { PlayerLink } from "@/components/EntityLinks"
 import { FRIENDLY_GAME_TYPE } from "@/lib/leagueStats"
+import LiveGameBanner from "@/components/LiveGameBanner"
+import { useLiveGames } from "@/lib/useLiveGames"
+import { Radio } from "lucide-react"
 
 export default function Games() {
   const [games, setGames] = useState([])
@@ -26,6 +29,9 @@ export default function Games() {
 
   useEffect(() => { loadData() }, [])
 
+  // Games being officiated right now — realtime, pinned above the schedule.
+  const liveGames = useLiveGames()
+
   const loadData = async () => {
     try {
       setLoading(true); setError(null)
@@ -37,6 +43,7 @@ export default function Games() {
   }
 
   const teamsMap = Object.fromEntries(teams.map(t => [t.id, t]))
+  const gamesById = Object.fromEntries(games.map(g => [g.id, g]))
   const playersMap = Object.fromEntries(players.map(p => [p.id, p]))
   const teamName = (id) => teamsMap[id]?.name || '—'
 
@@ -268,13 +275,18 @@ export default function Games() {
                   </div>
                 )}
 
-                <Link to={`/games/${game.id}`} className="mt-4 flex items-center justify-center gap-1.5 text-xs font-semibold text-orange-600 dark:text-orange-400 hover:text-orange-700 dark:hover:text-orange-300 py-2.5 border border-orange-100 dark:border-orange-900/40 rounded-lg transition-colors">
-                  לעמוד המשחק המלא <ArrowLeft className="w-3.5 h-3.5" />
-                </Link>
               </div>
             </motion.div>
           )}
         </AnimatePresence>
+
+        {/* Always-visible entry to the full game page (live scoreboard, stream, H2H) */}
+        <Link
+          to={`/games/${game.id}`}
+          className="flex items-center justify-center gap-1.5 px-4 sm:px-5 py-2.5 border-t border-slate-100 dark:border-slate-700/50 text-xs font-semibold text-orange-600 dark:text-orange-400 hover:bg-orange-50/60 dark:hover:bg-orange-900/10 transition-colors"
+        >
+          לעמוד המשחק <ArrowLeft className="w-3.5 h-3.5" />
+        </Link>
       </motion.div>
     )
   }
@@ -321,6 +333,14 @@ export default function Games() {
 
       {/* Games */}
       <div className="space-y-6">
+        {liveGames.length > 0 && (
+          <div>
+            <h2 className="text-sm font-bold text-slate-900 dark:text-white mb-3 flex items-center gap-2 uppercase tracking-wide">
+              <Radio className="w-4 h-4 text-red-500" /> משחקים חיים
+            </h2>
+            <LiveGameBanner liveGames={liveGames} gamesById={gamesById} teamsMap={teamsMap} />
+          </div>
+        )}
         {upcoming.length > 0 && (
           <div>
             <h2 className="text-sm font-bold text-slate-900 dark:text-white mb-3 flex items-center gap-2 uppercase tracking-wide">
