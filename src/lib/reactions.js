@@ -52,7 +52,9 @@ export async function likeItem(itemKey) {
   const me = await currentUserId()
   if (!me) throw new Error('not authenticated')
   const { error } = await supabase.from('feed_item_likes').insert({ item_key: itemKey, user_id: me })
-  if (error) throw error
+  // PK is (item_key, user_id): a double-click / stale-UI re-like returns 23505.
+  // Liking is idempotent, so treat a duplicate as success instead of surfacing an error.
+  if (error && error.code !== '23505') throw error
 }
 
 export async function unlikeItem(itemKey) {

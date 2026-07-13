@@ -51,8 +51,20 @@ export async function createClaim(playerId, note) {
 }
 
 export async function cancelClaim(claimId) {
-  const { error } = await supabase.from('player_claims').delete().eq('id', claimId)
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('not-authenticated')
+  // Mirror the DELETE RLS policy in the query (own + pending) instead of relying
+  // on it silently, and read back the deleted rows so we can tell the caller when
+  // nothing matched (e.g. the claim was already approved/rejected).
+  const { data, error } = await supabase
+    .from('player_claims')
+    .delete()
+    .eq('id', claimId)
+    .eq('profile_id', user.id)
+    .eq('status', 'pending')
+    .select('id')
   if (error) throw error
+  if (!data || data.length === 0) throw new Error('claim-not-cancelable')
 }
 
 // ----- admin review side -----

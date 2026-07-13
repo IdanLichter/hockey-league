@@ -171,7 +171,9 @@ export async function likePost(postId) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error('not authenticated')
   const { error } = await supabase.from('post_likes').insert({ post_id: postId, user_id: user.id })
-  if (error) throw error
+  // PK is (post_id, user_id): a double-click / stale-UI re-like returns 23505.
+  // Liking is idempotent, so treat a duplicate as success instead of surfacing an error.
+  if (error && error.code !== '23505') throw error
 }
 
 export async function unlikePost(postId) {
