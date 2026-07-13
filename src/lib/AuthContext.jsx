@@ -135,6 +135,10 @@ export function AuthProvider({ children }) {
   // does NOT pass for admins, so content pages gate on `isContentEditor || isAdmin`.
   const isContentEditor = roles.some(r => r.role === 'content_editor')
 
+  // Holds an actual league_manager row (RAW role, does NOT pass for admins) — used
+  // to unlock tournament management and, later, the coach-request approval flow.
+  const isLeagueManager = roles.some(r => r.role === 'league_manager')
+
   const signInWithGoogle = async () => {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
@@ -177,7 +181,7 @@ export function AuthProvider({ children }) {
 
   return (
     <AuthContext.Provider value={{
-      user, isAdmin, roles, hasRole, coachTeamIds, isJudgeRole, isContentEditor, profile, refreshProfile, loading, authOpen,
+      user, isAdmin, roles, hasRole, coachTeamIds, isJudgeRole, isContentEditor, isLeagueManager, profile, refreshProfile, loading, authOpen,
       signInWithGoogle, signUpWithEmail, signInWithEmail, signOut,
       openAuth, closeAuth,
     }}>

@@ -63,7 +63,7 @@ function NavAvatar({ profile, email, className = "w-8 h-8" }) {
 export default function Layout({ children }) {
   const location = useLocation()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const { user, isAdmin, hasRole, coachTeamIds, isJudgeRole, isContentEditor, profile, signOut, openAuth } = useAuth()
+  const { user, isAdmin, hasRole, coachTeamIds, isJudgeRole, isContentEditor, isLeagueManager, profile, signOut, openAuth } = useAuth()
 
   const navItems = [
     { title: "בית", url: "/", icon: NavRink },
@@ -80,7 +80,7 @@ export default function Layout({ children }) {
     { title: "טורנירים", url: "/tournaments", icon: Swords },
     // Archive lives in the management screen's season tab (/admin), not the main nav.
     ...(hasRole("judge") ? [{ title: "שיפוט", url: "/judge", icon: NavWhistle }] : []),
-    ...((isAdmin || coachTeamIds.length > 0 || isJudgeRole) ? [{ title: "ניהול", url: "/admin", icon: NavClipboard }] : []),
+    ...((isAdmin || coachTeamIds.length > 0 || isJudgeRole || isLeagueManager) ? [{ title: "ניהול", url: "/admin", icon: NavClipboard }] : []),
   ]
 
   const isActivePage = (url) =>

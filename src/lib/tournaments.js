@@ -53,3 +53,45 @@ export async function deleteTournament(id) {
   const { error } = await supabase.from('tournaments').delete().eq('id', id)
   if (error) throw error
 }
+
+// ----- coach request → league-manager approval -----
+
+/** A coach submits a PENDING tournament request for themselves (RLS-gated). */
+export async function requestTournament(payload) {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('not-authenticated')
+  const { data, error } = await supabase
+    .from('tournaments')
+    .insert({ ...payload, status: 'pending', created_by: user.id })
+    .select().single()
+  if (error) throw error
+  return data
+}
+
+/** The signed-in coach's own requests (any status), newest first. */
+export async function getMyTournamentRequests() {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
+  const { data, error } = await supabase
+    .from('tournaments').select('*')
+    .eq('created_by', user.id)
+    .order('created_at', { ascending: false })
+  if (error) throw error
+  return data || []
+}
+
+/** League manager / admin approves (→ active) or rejects (→ rejected) a request. */
+export async function reviewTournament(id, approve) {
+  const { data: { user } } = await supabase.auth.getUser()
+  const { error } = await supabase
+    .from('tournaments')
+    .update({ status: approve ? 'active' : 'rejected', approved_by: user?.id || null })
+    .eq('id', id)
+  if (error) throw error
+}
+
+/** A coach cancels their own still-pending request. */
+export async function cancelTournamentRequest(id) {
+  const { error } = await supabase.from('tournaments').delete().eq('id', id)
+  if (error) throw error
+}

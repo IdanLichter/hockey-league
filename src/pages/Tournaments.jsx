@@ -27,8 +27,13 @@ export default function Tournaments() {
   useEffect(() => { load() }, [])
 
   const load = async () => {
-    try { setLoading(true); setError(null); setItems(await getTournaments()) }
-    catch (e) { console.error(e); setError("שגיאה בטעינת הטורנירים") }
+    try {
+      setLoading(true); setError(null)
+      const all = await getTournaments()
+      // Never surface pending/rejected requests on the public list (a manager who
+      // can see them via RLS still shouldn't here — those live in the admin queue).
+      setItems(all.filter(t => t.status !== 'pending' && t.status !== 'rejected'))
+    } catch (e) { console.error(e); setError("שגיאה בטעינת הטורנירים") }
     finally { setLoading(false) }
   }
 

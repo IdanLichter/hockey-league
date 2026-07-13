@@ -21,7 +21,7 @@ import {
 import { motion } from "framer-motion"
 import TeamLogo from "@/components/TeamLogo"
 import { AGE_GROUPS, DEFAULT_AGE, AGE_LABEL } from "@/lib/ageGroups"
-import { getTournaments, createTournament, updateTournament, deleteTournament } from "@/lib/tournaments"
+import { getTournaments, createTournament, updateTournament, deleteTournament, requestTournament, getMyTournamentRequests, reviewTournament, cancelTournamentRequest } from "@/lib/tournaments"
 import { format } from "date-fns"
 import { useSeasonMode } from "@/App"
 import PosterGenerator from "@/components/PosterGenerator"
@@ -48,18 +48,22 @@ const tabs = [
 ]
 
 export default function Admin() {
-  const { user, isAdmin, coachTeamIds, isJudgeRole, loading: authLoading, signOut } = useAuth()
+  const { user, isAdmin, coachTeamIds, isJudgeRole, isLeagueManager, loading: authLoading, signOut } = useAuth()
   const navigate = useNavigate()
   // Each non-admin role unlocks a subset of tabs, and one person may hold
   // several (a coach who is also a judge sees games + players + claims).
   // Branch on isAdmin FIRST — an admin has coachTeamIds === [] but full access.
   const isCoach = coachTeamIds.length > 0
-  const canManage = isAdmin || isCoach || isJudgeRole
+  const canManage = isAdmin || isCoach || isJudgeRole || isLeagueManager
   const coachScoped = !isAdmin && isCoach          // team-scope the players/claims tabs
   const scopedTabIds = new Set([
-    ...(isCoach ? ["players", "claims"] : []),
+    ...(isCoach ? ["players", "claims", "tournaments"] : []),
     ...(isJudgeRole ? ["games"] : []),
+    ...(isLeagueManager ? ["tournaments"] : []),
   ])
+  // Full tournament management (create/edit/delete + approve requests) vs. the
+  // coach's request-only view of the same tab.
+  const canManageTournaments = isAdmin || isLeagueManager
   const visibleTabs = isAdmin ? tabs : tabs.filter(t => scopedTabIds.has(t.id))
   // A role-less user reaches AccessDenied below, but this runs first — so never
   // index into an empty array.
@@ -155,7 +159,9 @@ export default function Admin() {
           ) : (
             <>
               {currentTab === "games" && <GamesAdmin games={games} teams={teams} players={players} teamsMap={teamsMap} gameStats={gameStats} tournaments={tournaments} reload={loadData} />}
-              {currentTab === "tournaments" && <TournamentsAdmin tournaments={tournaments} reload={loadData} />}
+              {currentTab === "tournaments" && (canManageTournaments
+                ? <TournamentsAdmin tournaments={tournaments} reload={loadData} />
+                : <TournamentRequests reload={loadData} />)}
               {currentTab === "players" && <PlayersAdmin players={players} teams={teams} teamsMap={teamsMap} reload={loadData} coachTeamIds={coachScoped ? coachTeamIds : null} />}
               {currentTab === "teams" && <TeamsAdmin teams={teams} reload={loadData} />}
               {currentTab === "season" && <SeasonAdmin games={games} teams={teams} players={players} reload={loadData} />}
@@ -1080,6 +1086,14 @@ function TournamentsAdmin({ tournaments, reload }) {
   const youthAges = AGE_GROUPS.filter(a => a.value !== DEFAULT_AGE)
   const statusOpts = [{ v: 'upcoming', l: 'מתקרב' }, { v: 'active', l: 'פעיל' }, { v: 'completed', l: 'הסתיים' }]
 
+  // Coach-submitted requests awaiting review vs. the live/approved tournaments.
+  const pending = tournaments.filter(t => t.status === 'pending')
+  const live = tournaments.filter(t => t.status !== 'pending')
+  const review = async (id, approve) => {
+    try { await reviewTournament(id, approve); await reload() }
+    catch (err) { alert('שגיאה: ' + err.message) }
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -1136,11 +1150,39 @@ function TournamentsAdmin({ tournaments, reload }) {
         </motion.div>
       )}
 
-      {tournaments.length === 0 ? (
+      {/* Pending coach requests awaiting approval */}
+      {pending.length > 0 && (
+        <div className="card p-4 border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-950/20 space-y-2">
+          <h3 className="flex items-center gap-2 text-sm font-bold text-amber-700 dark:text-amber-400">
+            <UserPlus className="w-4 h-4" /> בקשות ממתינות לאישור ({pending.length})
+          </h3>
+          {pending.map(t => (
+            <div key={t.id} className="flex items-center justify-between gap-3 bg-white dark:bg-slate-900 rounded-xl p-3">
+              <div className="min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="font-bold text-sm text-slate-900 dark:text-white truncate">{t.name}</span>
+                  <span className="stat-pill bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300">{AGE_LABEL[t.age_group] || t.age_group}</span>
+                </div>
+                <p className="text-xs text-slate-500 mt-0.5">{t.start_date || '—'}{t.end_date ? ` – ${t.end_date}` : ''}{t.notes ? ` · ${t.notes}` : ''}</p>
+              </div>
+              <div className="flex items-center gap-1.5 shrink-0">
+                <button onClick={() => review(t.id, true)} className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-emerald-500 text-white text-xs font-bold hover:bg-emerald-600 transition-colors">
+                  <Check className="w-3.5 h-3.5" /> אשר
+                </button>
+                <button onClick={() => review(t.id, false)} className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 text-xs font-bold hover:bg-red-100 dark:hover:bg-red-900/30 hover:text-red-600 transition-colors">
+                  <X className="w-3.5 h-3.5" /> דחה
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {live.length === 0 ? (
         <div className="card p-8 text-center text-sm text-slate-400">אין טורנירים עדיין. צרו את הראשון עם "טורניר חדש".</div>
       ) : (
         <div className="space-y-2">
-          {tournaments.map(t => (
+          {live.map(t => (
             <div key={t.id} className="card p-4 flex items-center justify-between gap-3">
               <div className="min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
@@ -1156,6 +1198,130 @@ function TournamentsAdmin({ tournaments, reload }) {
               </div>
             </div>
           ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ============ TOURNAMENT REQUESTS (coach view) ============
+function TournamentRequests({ reload }) {
+  const [requests, setRequests] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [showForm, setShowForm] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const empty = { name: '', age_group: 'u17', start_date: '', end_date: '', notes: '' }
+  const [form, setForm] = useState(empty)
+
+  useEffect(() => { load() }, [])
+  const load = async () => {
+    try { setLoading(true); setRequests(await getMyTournamentRequests()) }
+    catch (e) { console.error(e) }
+    finally { setLoading(false) }
+  }
+
+  const youthAges = AGE_GROUPS.filter(a => a.value !== DEFAULT_AGE)
+  const statusInfo = {
+    pending: { l: 'ממתין לאישור', cls: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' },
+    active: { l: 'אושר', cls: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' },
+    upcoming: { l: 'אושר', cls: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' },
+    completed: { l: 'הסתיים', cls: 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-400' },
+    rejected: { l: 'נדחה', cls: 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400' },
+  }
+
+  const submit = async () => {
+    setSaving(true)
+    try {
+      await requestTournament({
+        name: form.name.trim(),
+        age_group: form.age_group,
+        start_date: form.start_date || null,
+        end_date: form.end_date || null,
+        notes: form.notes.trim() || null,
+      })
+      setForm(empty); setShowForm(false)
+      await load(); await reload?.()
+    } catch (err) { alert('שגיאה: ' + err.message) }
+    finally { setSaving(false) }
+  }
+
+  const cancel = async (id) => {
+    if (!confirm('לבטל את הבקשה?')) return
+    try { await cancelTournamentRequest(id); await load(); await reload?.() }
+    catch (err) { alert('שגיאה: ' + err.message) }
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="font-bold text-sm text-slate-900 dark:text-white">בקשות לטורניר</h2>
+          <p className="text-xs text-slate-500 mt-0.5">בקשה לטורניר נוער — מנהל הליגה יאשר אותה</p>
+        </div>
+        <button onClick={() => setShowForm(v => !v)} className="flex items-center gap-2 px-4 py-2 bg-orange-500 text-white text-sm font-semibold rounded-xl hover:bg-orange-600 transition-colors">
+          <Plus className="w-4 h-4" /> בקשה חדשה
+        </button>
+      </div>
+
+      {showForm && (
+        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="card p-5 space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            <div className="sm:col-span-2 lg:col-span-1">
+              <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1 block">שם הטורניר</label>
+              <input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} className="filter-input w-full" placeholder="שם הטורניר" />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1 block">קטגוריית גיל</label>
+              <select value={form.age_group} onChange={e => setForm({ ...form, age_group: e.target.value })} className="filter-select w-full">
+                {youthAges.map(a => <option key={a.value} value={a.value}>{a.label}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1 block">תאריך התחלה</label>
+              <input type="date" value={form.start_date} onChange={e => setForm({ ...form, start_date: e.target.value })} className="filter-input w-full" />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1 block">תאריך סיום</label>
+              <input type="date" value={form.end_date} onChange={e => setForm({ ...form, end_date: e.target.value })} className="filter-input w-full" />
+            </div>
+            <div className="sm:col-span-2">
+              <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1 block">הערות</label>
+              <input value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} className="filter-input w-full" placeholder="פרטים נוספים (אופציונלי)" />
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <button onClick={submit} disabled={saving || !form.name.trim()} className="flex items-center gap-2 px-5 py-2.5 bg-orange-500 text-white text-sm font-semibold rounded-xl hover:bg-orange-600 transition-colors disabled:opacity-50">
+              <Save className="w-4 h-4" /> {saving ? 'שולח...' : 'שלח בקשה'}
+            </button>
+            <button onClick={() => { setShowForm(false); setForm(empty) }} className="px-4 py-2.5 text-sm font-semibold text-slate-500 hover:text-slate-700 transition-colors">ביטול</button>
+          </div>
+        </motion.div>
+      )}
+
+      {loading ? (
+        <div className="flex items-center justify-center py-8"><div className="animate-spin rounded-full h-8 w-8 border-2 border-orange-500 border-t-transparent" /></div>
+      ) : requests.length === 0 ? (
+        <div className="card p-8 text-center text-sm text-slate-400">לא שלחת בקשות עדיין.</div>
+      ) : (
+        <div className="space-y-2">
+          {requests.map(t => {
+            const si = statusInfo[t.status] || statusInfo.pending
+            return (
+              <div key={t.id} className="card p-4 flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h3 className="font-bold text-sm text-slate-900 dark:text-white truncate">{t.name}</h3>
+                    <span className="stat-pill bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300">{AGE_LABEL[t.age_group] || t.age_group}</span>
+                    <span className={`stat-pill ${si.cls}`}>{si.l}</span>
+                  </div>
+                  <p className="text-xs text-slate-500 mt-0.5">{t.start_date || '—'}{t.end_date ? ` – ${t.end_date}` : ''}</p>
+                </div>
+                {t.status === 'pending' && (
+                  <button onClick={() => cancel(t.id)} className="p-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-slate-400 hover:text-red-500 transition-colors shrink-0"><Trash2 className="w-4 h-4" /></button>
+                )}
+              </div>
+            )
+          })}
         </div>
       )}
     </div>
