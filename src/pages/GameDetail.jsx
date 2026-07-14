@@ -9,6 +9,7 @@ import { format } from "date-fns"
 import TeamLogo from "@/components/TeamLogo"
 import LiveGame from "@/components/LiveGame"
 import GameVideo from "@/components/GameVideo"
+import GameAvailability from "@/components/GameAvailability"
 import { TeamLink, PlayerLink } from "@/components/EntityLinks"
 import { useSeo } from "@/lib/seo"
 import { countsForStats, FRIENDLY_GAME_TYPE } from "@/lib/leagueStats"
@@ -40,7 +41,7 @@ function StatPills({ stat }) {
 
 export default function GameDetail() {
   const { id } = useParams()
-  const { isAdmin, isJudgeRole } = useAuth()
+  const { isAdmin, isJudgeRole, profile, coachTeamIds } = useAuth()
   const [game, setGame] = useState(null)
   const [stats, setStats] = useState([])
   const [teams, setTeams] = useState([])
@@ -122,6 +123,13 @@ export default function GameDetail() {
   const showLive = !done && (game.status === 'in_progress' || !!live)
   // Officials (judge/admin) get an in-page entry to run the scoreboard + go live.
   const canOfficiate = isAdmin || isJudgeRole
+
+  // #3 availability: the viewer's linked player (only if rostered on a team in this
+  // game) and whether they may see the in/out roster (admin or a coach of either team).
+  const myPlayer = profile?.player_id ? playersMap[profile.player_id] : null
+  const myAvailPlayerId = (myPlayer && (myPlayer.team_id === game.home_team_id || myPlayer.team_id === game.away_team_id)) ? myPlayer.id : null
+  const canSeeAvail = isAdmin || (coachTeamIds || []).some(tid => tid === game.home_team_id || tid === game.away_team_id)
+  const showAvailability = game.status === "scheduled" && (myAvailPlayerId || canSeeAvail)
   const played = done && game.home_score != null && game.away_score != null
   const homeWin = played && game.home_score > game.away_score
   const awayWin = played && game.away_score > game.home_score
@@ -258,6 +266,11 @@ export default function GameDetail() {
 
       {/* ===== VIDEO / VOD (the live stream is shown up top while in-progress) ===== */}
       {!showLive && <GameVideo game={game} home={home} away={away} players={players} />}
+
+      {/* ===== AVAILABILITY (upcoming games) ===== */}
+      {showAvailability && (
+        <GameAvailability gameId={game.id} myPlayerId={myAvailPlayerId} canSeeRoster={canSeeAvail} playersMap={playersMap} />
+      )}
 
       {/* ============ STAT TILES ============ */}
       {tiles.length > 0 && (
