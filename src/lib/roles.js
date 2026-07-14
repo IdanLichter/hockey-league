@@ -50,3 +50,19 @@ export async function revokeRole(id) {
   const { error } = await supabase.from('user_roles').delete().eq('id', id)
   if (error) throw error
 }
+
+/**
+ * Permanently delete a user account (admin only) via the admin_delete_user RPC.
+ * Frees the email (forcing re-signup) and cascades the profile + roles + posts +
+ * comments + likes + pending claims/submissions. The linked player record
+ * (stats/history) is preserved — only the account link is removed.
+ */
+export async function deleteUser(userId) {
+  const { error } = await supabase.rpc('admin_delete_user', { p_user_id: userId })
+  if (error) {
+    if (/cannot delete yourself/i.test(error.message || '')) throw new Error('cannot-delete-self')
+    if (/cannot delete an admin/i.test(error.message || '')) throw new Error('cannot-delete-admin')
+    if (/not authorized/i.test(error.message || '')) throw new Error('not-authorized')
+    throw error
+  }
+}

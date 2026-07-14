@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react"
-import { getProfiles, getAllRoles, grantRole, revokeRole, GRANTABLE_ROLES, ROLE_LABEL, TEAM_SCOPED } from "@/lib/roles"
-import { Award, X, Plus, RefreshCw, Check, Loader2, Search } from "lucide-react"
+import { getProfiles, getAllRoles, grantRole, revokeRole, deleteUser, GRANTABLE_ROLES, ROLE_LABEL, TEAM_SCOPED } from "@/lib/roles"
+import { Award, X, Plus, RefreshCw, Check, Loader2, Search, Trash2 } from "lucide-react"
+import { useAuth } from "@/lib/AuthContext"
 
 /**
  * Admin UI to grant/revoke user roles (player / coach / content_editor / judge),
@@ -9,6 +10,7 @@ import { Award, X, Plus, RefreshCw, Check, Loader2, Search } from "lucide-react"
  * `teamsMap`/`players` are only for names + team scoping.
  */
 export default function RolesAdmin({ teamsMap = {}, players = [] }) {
+  const { user } = useAuth()
   const [profiles, setProfiles] = useState([])
   const [roles, setRoles] = useState([])
   const [loading, setLoading] = useState(true)
@@ -16,6 +18,7 @@ export default function RolesAdmin({ teamsMap = {}, players = [] }) {
   const [busy, setBusy] = useState(false)
   const [form, setForm] = useState(null) // { profileId, role, teamId }
   const [search, setSearch] = useState("")
+  const [confirmDelete, setConfirmDelete] = useState(null) // profile id pending deletion
 
   const playersMap = useMemo(() => Object.fromEntries(players.map(p => [p.id, p])), [players])
   const teams = useMemo(() => Object.values(teamsMap).filter(Boolean), [teamsMap])
@@ -60,6 +63,18 @@ export default function RolesAdmin({ teamsMap = {}, players = [] }) {
     try { await revokeRole(id); await load() }
     catch { setError("שגיאה בהסרת התפקיד") }
     finally { setBusy(false) }
+  }
+
+  const doDelete = async (id) => {
+    setBusy(true); setError(null)
+    try { await deleteUser(id); setConfirmDelete(null); await load() }
+    catch (e) {
+      setError(
+        e?.message === "cannot-delete-admin" ? "אי אפשר למחוק חשבון מנהל"
+          : e?.message === "cannot-delete-self" ? "אי אפשר למחוק את החשבון שלך"
+          : "שגיאה במחיקת המשתמש"
+      )
+    } finally { setBusy(false) }
   }
 
   const openForm = (p) => {
@@ -128,7 +143,28 @@ export default function RolesAdmin({ teamsMap = {}, players = [] }) {
                     <p className="font-bold text-sm text-slate-900 dark:text-white truncate">{p.display_name || "משתמש"}</p>
                     <p className="text-[11px] text-slate-400 dark:text-slate-500">{linked ? `משויך ל${linked.first_name} ${linked.last_name}` : "ללא שיוך שחקן"}</p>
                   </div>
+                  {user?.id !== p.id && (
+                    <button onClick={() => { setConfirmDelete(confirmDelete === p.id ? null : p.id); setError(null) }}
+                      title="מחיקת משתמש"
+                      className="shrink-0 p-2 rounded-lg text-slate-300 dark:text-slate-600 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors">
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  )}
                 </div>
+
+                {confirmDelete === p.id && (
+                  <div className="mt-3 pt-3 border-t border-red-100 dark:border-red-900/40 flex items-center justify-between gap-2 flex-wrap">
+                    <span className="text-xs font-medium text-red-600 dark:text-red-400">למחוק את המשתמש לצמיתות? החשבון יימחק והוא יאלץ להירשם מחדש. פעולה בלתי הפיכה.</span>
+                    <div className="flex items-center gap-2">
+                      <button onClick={() => doDelete(p.id)} disabled={busy}
+                        className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg bg-red-500 text-white hover:bg-red-600 transition-colors disabled:opacity-50">
+                        {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />} כן, מחק
+                      </button>
+                      <button onClick={() => setConfirmDelete(null)} disabled={busy}
+                        className="text-xs font-semibold px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-600 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">ביטול</button>
+                    </div>
+                  </div>
+                )}
 
                 <div className="mt-3 flex flex-wrap gap-1.5 items-center">
                   {myRoles.map(r => (
