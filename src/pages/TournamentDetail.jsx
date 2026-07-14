@@ -6,6 +6,7 @@ import { useAuth } from "@/lib/AuthContext"
 import { AGE_LABEL } from "@/lib/ageGroups"
 import { TOURNAMENT_STATUS, dateRange } from "./Tournaments"
 import TournamentTeamsManager from "@/components/TournamentTeamsManager"
+import ScheduleGenerator from "@/components/ScheduleGenerator"
 import { Trophy, Calendar, MapPin, ArrowRight, RefreshCw, Users, Check, X } from "lucide-react"
 import { motion } from "framer-motion"
 import { format } from "date-fns"
@@ -44,6 +45,7 @@ export default function TournamentDetail() {
   }
 
   const reloadTeams = async () => { try { setTteams(await getTournamentTeams(id)) } catch { /* ignore */ } }
+  const reloadGames = async () => { try { setGames(await getTournamentGames(id)) } catch { /* ignore */ } }
   const respond = async (inviteId, accept) => {
     try { await respondTournamentInvite(inviteId, accept); await reloadTeams() }
     catch (e) { alert('שגיאה: ' + (e.message || e)) }
@@ -127,6 +129,11 @@ export default function TournamentDetail() {
       {/* Manager: invite & manage teams */}
       {isManager && (
         <TournamentTeamsManager tournamentId={id} ageGroup={tournament.age_group} rows={tteams} teams={teams} teamsMap={teamsMap} onChange={reloadTeams} />
+      )}
+
+      {/* Manager: generate the schedule from accepted teams */}
+      {isManager && (
+        <ScheduleGenerator tournament={tournament} teamIds={acceptedIds} teamsMap={teamsMap} existingGames={games.length} onChange={reloadGames} />
       )}
 
       {/* teams involved */}

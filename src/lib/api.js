@@ -273,6 +273,13 @@ export async function createGame(game) {
   return data
 }
 
+/** Insert many games at once (tournament schedule generation). */
+export async function createGames(games) {
+  const { data, error } = await supabase.from('games').insert(games).select()
+  if (error) throw error
+  return data
+}
+
 export async function updateGame(id, updates) {
   const { data, error } = await supabase.from('games').update(updates).eq('id', id).select().single()
   if (error) throw error
