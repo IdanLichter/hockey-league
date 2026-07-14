@@ -1,22 +1,34 @@
 import { useState, useEffect } from "react"
 import { Link } from "react-router-dom"
-import { getTeams, getPlayers } from "@/lib/api"
+import { getTeams, getPlayers, getMyTeamRequests } from "@/lib/api"
 import { standingsComparator } from "@/lib/utils"
-import { AGE_GROUPS, DEFAULT_AGE, AGE_LABEL, ageOf } from "@/lib/ageGroups"
-import { Users, Trophy, Target, Shield, ChevronDown, ChevronUp, Star, RefreshCw, ArrowLeft } from "lucide-react"
+import { AGE_GROUPS, DEFAULT_AGE, AGE_LABEL, ageOf, ageGroupsOf } from "@/lib/ageGroups"
+import { useAuth } from "@/lib/AuthContext"
+import CreateTeamModal from "@/components/CreateTeamModal"
+import { Users, Trophy, Target, Shield, ChevronDown, ChevronUp, Star, RefreshCw, ArrowLeft, Plus, Clock } from "lucide-react"
 import { Teams as TeamsIcon } from "@/components/icons/HockeyIcons"
 import { motion } from "framer-motion"
 import TeamLogo from "@/components/TeamLogo"
 
 export default function Teams() {
+  const { profile } = useAuth()
+  const isLinkedPlayer = !!profile?.player_id
   const [teams, setTeams] = useState([])
   const [players, setPlayers] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [expandedTeam, setExpandedTeam] = useState(null)
   const [ageTab, setAgeTab] = useState(DEFAULT_AGE)
+  const [showCreate, setShowCreate] = useState(false)
+  const [myPending, setMyPending] = useState([])
 
   useEffect(() => { loadData() }, [])
+  useEffect(() => { if (isLinkedPlayer) refreshMyRequests() }, [isLinkedPlayer])
+
+  const refreshMyRequests = async () => {
+    try { const r = await getMyTeamRequests(); setMyPending(r.filter(t => t.status === 'pending')) }
+    catch { /* ignore */ }
+  }
 
   const loadData = async () => {
     try {
@@ -49,8 +61,8 @@ export default function Teams() {
   }
 
   const isSenior = ageTab === DEFAULT_AGE
-  const countByAge = teams.reduce((acc, t) => { const a = ageOf(t); acc[a] = (acc[a] || 0) + 1; return acc }, {})
-  const visible = teams.filter(t => ageOf(t) === ageTab)
+  const countByAge = teams.reduce((acc, t) => { for (const a of ageGroupsOf(t)) acc[a] = (acc[a] || 0) + 1; return acc }, {})
+  const visible = teams.filter(t => ageGroupsOf(t).includes(ageTab))
   const sorted = isSenior
     ? [...visible].sort(standingsComparator)
     : [...visible].sort((a, b) => (a.name || '').localeCompare(b.name || '', 'he'))
@@ -58,13 +70,35 @@ export default function Teams() {
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-5xl mx-auto space-y-5">
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
-        <h1 className="page-title flex items-center gap-2.5">
-          <TeamsIcon className="w-7 h-7 text-orange-500" /> קבוצות
-        </h1>
-        <p className="page-subtitle mt-1">
-          {isSenior ? `${visible.length} קבוצות בליגה • עונת 2025-26` : `${visible.length} קבוצות • ${AGE_LABEL[ageTab]}`}
-        </p>
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h1 className="page-title flex items-center gap-2.5">
+              <TeamsIcon className="w-7 h-7 text-orange-500" /> קבוצות
+            </h1>
+            <p className="page-subtitle mt-1">
+              {isSenior ? `${visible.length} קבוצות בליגה • עונת 2025-26` : `${visible.length} קבוצות • ${AGE_LABEL[ageTab]}`}
+            </p>
+          </div>
+          {isLinkedPlayer && (
+            <button onClick={() => setShowCreate(true)}
+              className="shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-lg bg-orange-500 text-white text-sm font-semibold hover:bg-orange-600 transition-colors">
+              <Plus className="w-4 h-4" /> צור קבוצה
+            </button>
+          )}
+        </div>
+        {myPending.length > 0 && (
+          <div className="mt-3 card p-3 flex items-center gap-2.5 border-amber-200 dark:border-amber-800 bg-amber-50/60 dark:bg-amber-950/20">
+            <Clock className="w-4 h-4 text-amber-500 shrink-0" />
+            <p className="text-xs font-medium text-amber-700 dark:text-amber-400">
+              הקבוצה "{myPending[0].name}" ממתינה לאישור מנהל הליגה
+            </p>
+          </div>
+        )}
       </motion.div>
+
+      {showCreate && (
+        <CreateTeamModal onClose={() => setShowCreate(false)} onCreated={refreshMyRequests} />
+      )}
 
       {/* age-group tabs: the senior league + youth-tournament age categories */}
       <div className="flex items-center gap-2 overflow-x-auto nav-scroll -mx-1 px-1">

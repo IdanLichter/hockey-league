@@ -5,7 +5,7 @@ import {
   getTeams, getPlayers, getGames, getGameStats, getAdminUsers,
   createGame, updateGame, deleteGame,
   createPlayer, updatePlayer, deletePlayer,
-  updateTeam,
+  updateTeam, getPendingTeams, reviewTeam,
   createGameStat, deleteGameStatsByGameId,
   addAdminUser, removeAdminUser,
   getGameStatsByGameId,
@@ -60,7 +60,7 @@ export default function Admin() {
   const scopedTabIds = new Set([
     ...(isCoach ? ["players", "claims", "tournaments"] : []),
     ...(isJudgeRole ? ["games"] : []),
-    ...(isLeagueManager ? ["tournaments"] : []),
+    ...(isLeagueManager ? ["tournaments", "teams"] : []),
   ])
   // Full tournament management (create/edit/delete + approve requests) vs. the
   // coach's request-only view of the same tab.
@@ -164,7 +164,7 @@ export default function Admin() {
                 ? <TournamentsAdmin tournaments={tournaments} reload={loadData} />
                 : <TournamentRequests reload={loadData} />)}
               {currentTab === "players" && <PlayersAdmin players={players} teams={teams} teamsMap={teamsMap} reload={loadData} coachTeamIds={coachScoped ? coachTeamIds : null} />}
-              {currentTab === "teams" && <TeamsAdmin teams={teams} reload={loadData} />}
+              {currentTab === "teams" && <TeamsAdmin teams={teams} reload={loadData} reviewOnly={!isAdmin} />}
               {currentTab === "season" && <SeasonAdmin games={games} teams={teams} players={players} reload={loadData} />}
               {currentTab === "claims" && <><ClaimsReview teamsMap={teamsMap} coachTeamIds={coachScoped ? coachTeamIds : null} /><PlayerSubmissionsReview teamsMap={teamsMap} coachTeamIds={coachScoped ? coachTeamIds : null} />{isAdmin && <SuggestionsReview players={players} />}</>}
               {currentTab === "reports" && <ReportsReview />}
@@ -924,10 +924,24 @@ function PlayersAdmin({ players, teams, teamsMap, reload, coachTeamIds = null })
 }
 
 // ============ TEAMS ADMIN ============
-function TeamsAdmin({ teams, reload }) {
+function TeamsAdmin({ teams, reload, reviewOnly = false }) {
   const [editingTeam, setEditingTeam] = useState(null)
   const [saving, setSaving] = useState(false)
   const [form, setForm] = useState({})
+  const [pending, setPending] = useState([])
+  const [busyId, setBusyId] = useState(null)
+
+  const loadPending = async () => {
+    try { setPending(await getPendingTeams()) } catch { /* ignore */ }
+  }
+  useEffect(() => { loadPending() }, [])
+
+  const review = async (teamId, approve) => {
+    setBusyId(teamId)
+    try { await reviewTeam(teamId, approve); await loadPending(); await reload() }
+    catch (err) { alert('שגיאה: ' + (err.message || err)) }
+    finally { setBusyId(null) }
+  }
 
   const startEdit = (team) => {
     setForm({
@@ -952,6 +966,7 @@ function TeamsAdmin({ teams, reload }) {
     try {
       await updateTeam(editingTeam, {
         ...form,
+        age_groups: [form.age_group || DEFAULT_AGE],
         wins: Number(form.wins) || 0,
         losses: Number(form.losses) || 0,
         ties: Number(form.ties) || 0,
@@ -968,7 +983,37 @@ function TeamsAdmin({ teams, reload }) {
 
   return (
     <div className="space-y-3">
-      {teams.sort((a, b) => (b.points || 0) - (a.points || 0)).map(team => (
+      {pending.length > 0 && (
+        <div className="card p-4 space-y-2.5 border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-950/20">
+          <h3 className="flex items-center gap-2 text-sm font-bold text-amber-700 dark:text-amber-400">
+            <UserPlus className="w-4 h-4" /> קבוצות חדשות ממתינות לאישור
+          </h3>
+          {pending.map(t => (
+            <div key={t.id} className="flex items-center justify-between gap-3 bg-white dark:bg-slate-900 rounded-lg p-3">
+              <div className="min-w-0">
+                <p className="text-sm font-bold text-slate-900 dark:text-white truncate">{t.name}</p>
+                <p className="text-[11px] text-slate-400 dark:text-slate-500">
+                  {(t.age_groups || [t.age_group]).map(g => AGE_LABEL[g] || g).join(' · ')}{t.city ? ` · ${t.city}` : ''}
+                </p>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <button onClick={() => review(t.id, true)} disabled={busyId === t.id}
+                  className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg bg-emerald-500 text-white hover:bg-emerald-600 transition-colors disabled:opacity-50">
+                  <Check className="w-3.5 h-3.5" /> אישור
+                </button>
+                <button onClick={() => review(t.id, false)} disabled={busyId === t.id}
+                  className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-600 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors disabled:opacity-50">
+                  <X className="w-3.5 h-3.5" /> דחייה
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+      {reviewOnly && pending.length === 0 && (
+        <div className="card p-8 text-center text-sm text-slate-500 dark:text-slate-400">אין קבוצות חדשות ממתינות לאישור</div>
+      )}
+      {!reviewOnly && teams.sort((a, b) => (b.points || 0) - (a.points || 0)).map(team => (
         <div key={team.id} className="card overflow-hidden">
           <div className="flex items-center justify-between p-4">
             <div className="flex items-center gap-3">

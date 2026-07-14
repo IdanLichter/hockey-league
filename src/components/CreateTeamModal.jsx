@@ -1,0 +1,102 @@
+import { useState } from "react"
+import { X, Loader2, Users, CheckCircle2 } from "lucide-react"
+import { AGE_GROUPS } from "@/lib/ageGroups"
+import { requestTeam } from "@/lib/api"
+
+const inputCls = "w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500"
+
+/**
+ * Modal: a linked player proposes a new team. Files a PENDING team via the
+ * request_team RPC; a league-manager/admin approves it in Admin → קבוצות, which
+ * activates it and makes the creator its coach. Calls onCreated() so the caller
+ * can refresh its "my pending teams" state.
+ */
+export default function CreateTeamModal({ onClose, onCreated }) {
+  const [name, setName] = useState("")
+  const [city, setCity] = useState("")
+  const [groups, setGroups] = useState(["senior"])
+  const [saving, setSaving] = useState(false)
+  const [done, setDone] = useState(false)
+  const [error, setError] = useState(null)
+
+  const toggle = (g) => setGroups(cur => cur.includes(g) ? cur.filter(x => x !== g) : [...cur, g])
+  const canSubmit = name.trim() && groups.length > 0 && !saving
+
+  const submit = async () => {
+    if (!canSubmit) return
+    setSaving(true); setError(null)
+    try {
+      await requestTeam(name.trim(), groups, city.trim() || null)
+      setDone(true)
+      onCreated?.()
+    } catch (e) {
+      setError(e?.message === "not-linked-player"
+        ? "רק שחקן/ית משויכ/ת יכול/ה לפתוח קבוצה"
+        : "שגיאה בשליחת הבקשה, נסו שוב")
+    } finally { setSaving(false) }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={onClose}>
+      <div className="w-full max-w-md bg-white dark:bg-slate-900 rounded-2xl shadow-xl relative max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+        <button onClick={onClose} aria-label="סגור" className="absolute top-4 left-4 p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
+          <X className="w-5 h-5" />
+        </button>
+
+        {done ? (
+          <div className="text-center px-6 py-8">
+            <div className="w-14 h-14 rounded-full bg-emerald-100 dark:bg-emerald-900/40 flex items-center justify-center mx-auto mb-4">
+              <CheckCircle2 className="w-7 h-7 text-emerald-600 dark:text-emerald-400" />
+            </div>
+            <h3 className="text-lg font-extrabold text-slate-900 dark:text-white">הבקשה נשלחה 🏒</h3>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">
+              הקבוצה שלך ממתינה לאישור מנהל הליגה. ברגע שתאושר תופיע בעמוד הקבוצות ותהיו המאמן/ת שלה.
+            </p>
+            <button onClick={onClose} className="mt-5 w-full py-2.5 rounded-xl bg-orange-500 text-white font-semibold hover:bg-orange-600 transition-colors">סגירה</button>
+          </div>
+        ) : (
+          <div className="p-6">
+            <div className="flex items-center gap-2 mb-1">
+              <Users className="w-5 h-5 text-orange-500" />
+              <h3 className="text-lg font-extrabold text-slate-900 dark:text-white">פתיחת קבוצה חדשה</h3>
+            </div>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mb-5">הקבוצה תישלח לאישור מנהל הליגה. לאחר אישור תהיו המאמן/ת שלה.</p>
+
+            <div className="space-y-3.5">
+              <div>
+                <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1.5">שם הקבוצה</label>
+                <input value={name} onChange={e => setName(e.target.value.slice(0, 50))} className={inputCls} />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1.5">עיר (לא חובה)</label>
+                <input value={city} onChange={e => setCity(e.target.value.slice(0, 40))} className={inputCls} />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-2">קטגוריות גיל</label>
+                <div className="flex flex-wrap gap-2">
+                  {AGE_GROUPS.map(a => {
+                    const on = groups.includes(a.value)
+                    return (
+                      <button key={a.value} type="button" onClick={() => toggle(a.value)}
+                        className={`px-3 py-1.5 rounded-full text-sm font-semibold transition-colors ${on ? "bg-orange-500 text-white" : "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700"}`}>
+                        {a.label}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            </div>
+
+            {error && <p className="mt-3 text-sm text-red-600 dark:text-red-400">{error}</p>}
+
+            <button onClick={submit} disabled={!canSubmit}
+              className="mt-5 w-full py-2.5 rounded-xl bg-orange-500 text-white font-semibold hover:bg-orange-600 transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
+              {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Users className="w-4 h-4" />}
+              שליחה לאישור
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}

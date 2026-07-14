@@ -22,9 +22,53 @@ export async function getTeams(orderBy = 'points', ascending = false) {
   const { data, error } = await supabase
     .from('teams')
     .select('*')
+    .eq('status', 'active')
     .order(orderBy, { ascending })
   if (error) throw error
   return data
+}
+
+// ----- user-created teams (Package 1a) -----
+
+/** Teams awaiting league-manager/admin approval, oldest first. */
+export async function getPendingTeams() {
+  const { data, error } = await supabase
+    .from('teams').select('*').eq('status', 'pending')
+    .order('created_at', { ascending: true })
+  if (error) throw error
+  return data || []
+}
+
+/** A linked player proposes a new team (pending). Returns the new team id. */
+export async function requestTeam(name, ageGroups, city = null) {
+  const { data, error } = await supabase.rpc('request_team', {
+    p_name: name, p_age_groups: ageGroups, p_city: city || null,
+  })
+  if (error) {
+    if (/not a linked player/i.test(error.message || '')) throw new Error('not-linked-player')
+    throw error
+  }
+  return data
+}
+
+/** League-manager/admin approves (→ active, creator becomes coach) or rejects a team. */
+export async function reviewTeam(teamId, approve) {
+  const { error } = await supabase.rpc('review_team', { p_team_id: teamId, p_approve: approve })
+  if (error) {
+    if (/not authorized/i.test(error.message || '')) throw new Error('not-authorized')
+    throw error
+  }
+}
+
+/** The signed-in user's own team requests (any status), newest first. */
+export async function getMyTeamRequests() {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
+  const { data, error } = await supabase
+    .from('teams').select('*').eq('created_by', user.id)
+    .order('created_at', { ascending: false })
+  if (error) throw error
+  return data || []
 }
 
 export async function getPlayers(orderBy = 'goals', ascending = false) {
