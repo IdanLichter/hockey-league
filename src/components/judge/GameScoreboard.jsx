@@ -208,7 +208,7 @@ export default function GameScoreboard({ game, home, guest, players }) {
     if (game.status === "completed") return
     // Event counts are in the signature so a card/foul (which changes neither score
     // nor phase) still pushes a broadcast — that's what carries the play-by-play.
-    const sig = () => [engine.homeFinalScore, engine.guestFinalScore, engine.isRunning, engine.phase, engine.periodLabel, engine.goals.length, engine.strikes.length, engine.cardLog.length].join("|")
+    const sig = () => [engine.homeFinalScore, engine.guestFinalScore, engine.isRunning, engine.phase, engine.periodLabel, engine.goals.length, engine.strikes.length, engine.cardLog.length, engine.breaks.length].join("|")
     lastSig.current = sig()
     broadcastGameState(engine, game.id)
     return engine.subscribe(() => {

@@ -1,5 +1,5 @@
 import { supabase } from './supabase'
-import { TeamSide, CardType, Half } from './game/rules'
+import { TeamSide, CardType, Half, BreakKind } from './game/rules'
 
 /**
  * Live-game bridge between the judge's authoritative GameEngine and public
@@ -54,6 +54,10 @@ export function buildLiveEvents(engine) {
     evs.push({ id: c.id, seq: eventSeq(c.id), type: c.type === CardType.red ? 'red' : 'blue', side: eventSide(c.side), player: eventPlayerName(c.player), timeMS: c.timeMS ?? null, period: eventPeriod(c.half) })
   for (const s of engine.strikes || [])
     evs.push({ id: s.id, seq: eventSeq(s.id), type: 'foul', side: eventSide(s.side), player: eventPlayerName(s.player), timeMS: s.timeMS ?? null, period: eventPeriod(s.half) })
+  for (const b of engine.breaks || []) {
+    const isTimeout = b.kind === BreakKind.homeTimeout || b.kind === BreakKind.guestTimeout
+    evs.push({ id: b.id, seq: eventSeq(b.id), type: isTimeout ? 'timeout' : 'break', side: b.side ? eventSide(b.side) : null, player: null, timeMS: b.timeMS ?? null, period: eventPeriod(b.half) })
+  }
   evs.sort((a, b) => a.seq - b.seq)
   // Drop the internal seq from the payload; the array is already chronological.
   return evs.slice(-MAX_LIVE_EVENTS).map(({ seq, ...e }) => e)

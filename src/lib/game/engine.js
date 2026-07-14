@@ -50,6 +50,7 @@ export class GameEngine {
     this.strikes = []
     this.cards = []          // ACTIVE penalty cards (live countdown; pruned on expiry)
     this.cardLog = []        // every card ISSUED (never pruned) — source for the box score
+    this.breaks = []         // timeouts + period breaks, for the live play-by-play
     this.ejected = new Set()
     this.buzzSeq = 0
     this.lastBuzzKind = BuzzKind.manual
@@ -133,6 +134,11 @@ export class GameEngine {
     // break — so without this the game clock gains a little time on every timeout.
     this.clock.refresh()
     this._preBreakRemainingMS = this.clock.remainingMS
+    this.breaks.push({
+      id: uid(), kind,
+      side: kind === BreakKind.homeTimeout ? TeamSide.home : kind === BreakKind.guestTimeout ? TeamSide.guest : null,
+      timeMS: this._preBreakRemainingMS, half: this.currentHalf,
+    })
     this.breakKind = kind
     this.phase = Phase.breakTime
     this.clock.set(seconds * 1000)
@@ -165,7 +171,7 @@ export class GameEngine {
     this.breakKind = null
     this._pendingHalf = null
     this.result = null
-    this.goals = []; this.strikes = []; this.cards = []; this.cardLog = []; this.ejected = new Set()
+    this.goals = []; this.strikes = []; this.cards = []; this.cardLog = []; this.breaks = []; this.ejected = new Set()
     this.home = makeSide(this.home.name)
     this.guest = makeSide(this.guest.name)
     this.resetPassive()
@@ -382,7 +388,7 @@ export class GameEngine {
       settings: this.settings,
       phase: this.phase, currentHalf: this.currentHalf, breakKind: this.breakKind, result: this.result,
       home: this.home, guest: this.guest,
-      goals: this.goals, strikes: this.strikes, cards: this.cards, cardLog: this.cardLog,
+      goals: this.goals, strikes: this.strikes, cards: this.cards, cardLog: this.cardLog, breaks: this.breaks,
       ejected: [...this.ejected],
       clockRemainingMS: this.clock.remainingMS,
       passiveRemainingMS: this.passiveRemainingMS, passiveActive: this.passiveActive,
@@ -399,7 +405,7 @@ export class GameEngine {
     this.home = s.home || this.home
     this.guest = s.guest || this.guest
     this.goals = s.goals || []; this.strikes = s.strikes || []
-    this.cards = s.cards || []; this.cardLog = s.cardLog || []
+    this.cards = s.cards || []; this.cardLog = s.cardLog || []; this.breaks = s.breaks || []
     this.ejected = new Set(s.ejected || [])
     this.passiveRemainingMS = s.passiveRemainingMS ?? GameRules.passiveSeconds * 1000
     this.passiveActive = s.passiveActive ?? true

@@ -25,12 +25,12 @@ function remainingFrom(live) {
 
 function TeamPanel({ team, score, fallbackName }) {
   return (
-    <div className="flex-1 min-w-0 flex flex-col items-center gap-2 text-center">
-      <TeamLogo team={team} size={12} />
-      <span className="font-bold text-xs sm:text-sm text-slate-900 dark:text-white truncate w-full">
+    <div className="flex-1 min-w-0 flex flex-col items-center gap-2.5 text-center">
+      <TeamLogo team={team} size={14} />
+      <span className="font-bold text-sm sm:text-base text-slate-900 dark:text-white truncate w-full">
         {team?.name || fallbackName}
       </span>
-      <span className="text-4xl sm:text-6xl font-extrabold tabular-nums leading-none text-slate-900 dark:text-white">
+      <span className="text-5xl sm:text-7xl font-extrabold tabular-nums leading-none text-slate-900 dark:text-white">
         {score ?? 0}
       </span>
     </div>
@@ -38,28 +38,50 @@ function TeamPanel({ team, score, fallbackName }) {
 }
 
 const EVENT_META = {
-  goal: { icon: "⚽", label: "שער", accent: "text-emerald-600 dark:text-emerald-400" },
-  blue: { icon: "🟦", label: "כרטיס כחול", accent: "text-blue-600 dark:text-blue-400" },
-  red:  { icon: "🟥", label: "כרטיס אדום", accent: "text-red-600 dark:text-red-400" },
-  foul: { icon: "🚩", label: "עבירה", accent: "text-slate-500 dark:text-slate-400" },
+  goal:    { icon: "⚽", label: "שער", accent: "text-emerald-600 dark:text-emerald-400" },
+  blue:    { icon: "🟦", label: "כרטיס כחול", accent: "text-blue-600 dark:text-blue-400" },
+  red:     { icon: "🟥", label: "כרטיס אדום", accent: "text-red-600 dark:text-red-400" },
+  foul:    { icon: "🚩", label: "עבירה", accent: "text-slate-500 dark:text-slate-400" },
+  timeout: { icon: "⏱️", label: "פסק זמן", accent: "text-amber-600 dark:text-amber-400" },
+  break:   { icon: "⏸️", label: "מנוחה", accent: "text-slate-400 dark:text-slate-500" },
 }
 
 // One row in the live play-by-play. Events arrive fully resolved (player name +
 // team side + game-clock time + period) in live_game_state.state, so this stays dumb.
+// Events are aligned to their team's side of the scoreboard: home → right, away →
+// left. Period breaks (no team) render as a centered divider.
 function LiveEventRow({ ev, homeName, awayName }) {
   const meta = EVENT_META[ev.type] || EVENT_META.foul
-  const teamName = ev.side === "home" ? homeName : awayName
   const time = ev.timeMS != null ? clockString(ev.timeMS) : null
   const when = [ev.period, time].filter(Boolean).join(" · ")
-  return (
-    <div className="flex items-center gap-2.5 text-sm">
-      <span className="text-base leading-none shrink-0" aria-hidden>{meta.icon}</span>
-      <div className="min-w-0 flex-1 truncate">
-        <span className={`font-semibold ${meta.accent}`}>{meta.label}</span>
-        {ev.player && <span className="text-slate-700 dark:text-slate-200"> · {ev.player}</span>}
-        <span className="text-slate-400 dark:text-slate-500"> · {teamName}</span>
+
+  // Break / period boundary — no team, so render it centered as a divider.
+  if (ev.side == null) {
+    return (
+      <div className="flex items-center gap-2 py-0.5">
+        <div className="flex-1 h-px bg-slate-100 dark:bg-slate-700/60" />
+        <span className="shrink-0 text-[11px] font-semibold text-slate-400 dark:text-slate-500">
+          {meta.icon} {meta.label}{ev.period ? ` · מחצית ${ev.period}` : ""}
+        </span>
+        <div className="flex-1 h-px bg-slate-100 dark:bg-slate-700/60" />
       </div>
-      {when && <span className="shrink-0 text-[11px] tabular-nums text-slate-400 dark:text-slate-500">{when}</span>}
+    )
+  }
+
+  const isHome = ev.side === "home"
+  const teamName = isHome ? homeName : awayName
+  return (
+    <div className="flex">
+      <div className={`inline-flex items-start gap-2 max-w-[88%] rounded-xl px-3 py-2 bg-slate-50 dark:bg-slate-800/70 ${isHome ? "ml-auto" : "mr-auto"}`}>
+        <span className="text-lg leading-none shrink-0 mt-0.5" aria-hidden>{meta.icon}</span>
+        <div className="min-w-0 text-right">
+          <div className="text-sm">
+            <span className={`font-bold ${meta.accent}`}>{meta.label}</span>
+            {ev.player && <span className="text-slate-700 dark:text-slate-200"> · {ev.player}</span>}
+          </div>
+          <div className="text-[11px] text-slate-400 dark:text-slate-500">{teamName}{when ? ` · ${when}` : ""}</div>
+        </div>
+      </div>
     </div>
   )
 }
@@ -109,7 +131,7 @@ export default function LiveGame({ gameId, home, away, initial = null }) {
   const ended = live.phase === "over"
 
   return (
-    <div className="card relative overflow-hidden p-4 sm:p-6 ring-1 ring-orange-500/40">
+    <div className="card relative overflow-hidden p-5 sm:p-8 ring-1 ring-orange-500/40">
       {/* brand accent strip */}
       <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-l from-orange-500 to-orange-400" />
 
@@ -137,13 +159,13 @@ export default function LiveGame({ gameId, home, away, initial = null }) {
 
       {/* scoreboard: home (right) | clock | away (left) — each score standalone
           to sidestep the RTL away:home digit-pairing gotcha. */}
-      <div className="flex items-center gap-3 sm:gap-6">
+      <div className="flex items-center gap-2 sm:gap-4">
         <TeamPanel team={home} score={live.home_score} fallbackName="בית" />
-        <div className="shrink-0 flex flex-col items-center gap-1.5">
-          <div className={`font-mono font-extrabold tabular-nums leading-none text-3xl sm:text-5xl ${running ? "text-orange-500" : "text-slate-400 dark:text-slate-500"}`}>
+        <div className="shrink-0 flex flex-col items-center gap-2">
+          <div className={`font-mono font-extrabold tabular-nums leading-none text-5xl sm:text-8xl ${running ? "text-orange-500" : "text-slate-400 dark:text-slate-500"}`}>
             {clockString(remaining)}
           </div>
-          <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
+          <span className="text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
             {running ? "רץ" : ended ? "הסתיים" : "מושהה"}
           </span>
         </div>
