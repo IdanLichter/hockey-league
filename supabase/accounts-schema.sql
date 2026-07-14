@@ -38,7 +38,7 @@ create trigger profiles_set_updated_at
 create table public.user_roles (
   id         uuid primary key default gen_random_uuid(),
   user_id    uuid not null references public.profiles(id) on delete cascade,
-  role       text not null check (role in ('player','coach','content_editor','judge')),
+  role       text not null check (role in ('player','coach','content_editor','judge','league_manager')),
   team_id    uuid references public.teams(id) on delete set null,
   created_at timestamptz not null default now(),
   unique (user_id, role, team_id)

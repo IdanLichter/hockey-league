@@ -441,7 +441,7 @@ alter table user_roles add constraint user_roles_user_id_role_team_id_key UNIQUE
 alter table user_roles add constraint user_roles_pkey PRIMARY KEY (id);
 alter table user_roles add constraint user_roles_team_id_fkey FOREIGN KEY (team_id) REFERENCES teams(id) ON DELETE SET NULL;
 alter table user_roles add constraint user_roles_user_id_fkey FOREIGN KEY (user_id) REFERENCES profiles(id) ON DELETE CASCADE;
-alter table user_roles add constraint user_roles_role_check CHECK ((role = ANY (ARRAY['player'::text, 'coach'::text, 'content_editor'::text, 'judge'::text])));
+alter table user_roles add constraint user_roles_role_check CHECK ((role = ANY (ARRAY['player'::text, 'coach'::text, 'content_editor'::text, 'judge'::text, 'league_manager'::text])));
 
 
 -- ===== SECTION 4: INDEXES (excluding constraint-backed indexes) =====
