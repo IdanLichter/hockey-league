@@ -10,6 +10,7 @@ import { useTheme } from "@/lib/ThemeContext"
 import { getMyProfile, updateMyProfile, getPlayerPhotos, disconnectPairing } from "@/lib/profile"
 import { getMyPlayerSubmission } from "@/lib/playerSubmissions"
 import PlayerCardSubmission from "@/components/PlayerCardSubmission"
+import TeamMembershipCard from "@/components/TeamMembershipCard"
 import MedicalCertificateCard from "@/components/MedicalCertificateCard"
 import { RoleBadges, deriveRoleItems } from "@/components/RoleBadges"
 
@@ -54,6 +55,14 @@ export default function Profile() {
       .finally(() => alive && setLoading(false))
     return () => { alive = false }
   }, [user, authLoading])
+
+  const reloadProfile = () => {
+    getMyProfile().then(d => {
+      setData(d)
+      if (d?.player) setPendingSubmission(null)
+      else getMyPlayerSubmission().then(setPendingSubmission).catch(() => {})
+    }).catch(() => {})
+  }
 
   const doDisconnect = async () => {
     setDisconnecting(true)
@@ -150,6 +159,7 @@ export default function Profile() {
             </div>
             <ChevronLeft className="w-5 h-5 text-slate-300 dark:text-slate-600 group-hover:text-orange-500 transition-colors shrink-0" />
           </Link>
+          <TeamMembershipCard player={player} onChange={reloadProfile} />
           <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-700/50">
             {confirmDisconnect ? (
               <div className="flex items-center justify-between gap-2 flex-wrap">

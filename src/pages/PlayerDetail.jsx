@@ -9,6 +9,7 @@ import { ArrowRight, Shirt, Shield, Calendar, RefreshCw, UserPlus, Check, Clock,
 import { motion } from "framer-motion"
 import { format } from "date-fns"
 import TeamLogo from "@/components/TeamLogo"
+import TeamMembershipCard from "@/components/TeamMembershipCard"
 import { RoleBadge, deriveRoleItems } from "@/components/RoleBadges"
 import { BRAND_ORANGE } from '@/lib/brand'
 import { useSeo } from '@/lib/seo'
@@ -299,6 +300,13 @@ export default function PlayerDetail() {
         </div>
       )}
       {claimErr && <p className="text-xs text-red-500 -mt-3">{claimErr}</p>}
+
+      {owned && (
+        <div className="card p-4">
+          <h3 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide">הקבוצה שלי</h3>
+          <TeamMembershipCard player={player} onChange={() => getPlayers().then(ps => setPlayer(ps.find(p => p.id === id) || null)).catch(() => {})} />
+        </div>
+      )}
 
       {/* Season totals */}
       <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}>

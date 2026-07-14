@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react"
 import { useParams, Link } from "react-router-dom"
 import { getTeams, getPlayers, getGames } from "@/lib/api"
+import { useAuth } from "@/lib/AuthContext"
+import { requestTeamJoin } from "@/lib/teamMembership"
 import { standingsComparator } from "@/lib/utils"
 import { FRIENDLY_GAME_TYPE } from "@/lib/leagueStats"
 import { ArrowRight, Users, Trophy, Target, Shield, Calendar, RefreshCw } from "lucide-react"
@@ -11,6 +13,8 @@ import { useSeo } from "@/lib/seo"
 
 export default function TeamDetail() {
   const { id } = useParams()
+  const { profile } = useAuth()
+  const [joinState, setJoinState] = useState(null)
   const [teams, setTeams] = useState([])
   const [players, setPlayers] = useState([])
   const [games, setGames] = useState([])
@@ -34,6 +38,12 @@ export default function TeamDetail() {
       setTeams(t); setPlayers(p); setGames(g)
     } catch (err) { console.error(err); setError("שגיאה בטעינת הנתונים") }
     finally { setLoading(false) }
+  }
+
+  const doJoin = async () => {
+    setJoinState('sending')
+    try { await requestTeamJoin(id); setJoinState('sent') }
+    catch (e) { setJoinState(e?.message === 'join-already-pending' ? 'pending' : 'error') }
   }
 
   if (loading) {
@@ -66,6 +76,8 @@ export default function TeamDetail() {
   const teamsMap = Object.fromEntries(teams.map(t => [t.id, t]))
   const rank = [...teams].sort(standingsComparator).findIndex(t => t.id === id) + 1
   const roster = players.filter(p => p.team_id === id).sort((a, b) => (b.goals || 0) - (a.goals || 0))
+  const isLinkedPlayer = !!profile?.player_id
+  const onThisTeam = isLinkedPlayer && roster.some(p => p.id === profile.player_id)
   const gd = (team.goals_for || 0) - (team.goals_against || 0)
 
   const tiles = [
@@ -122,11 +134,23 @@ export default function TeamDetail() {
 
       {/* Roster */}
       <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="card overflow-hidden">
-        <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
+        <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between gap-3">
           <h2 className="flex items-center gap-2 font-bold text-sm text-slate-900 dark:text-white">
             <Users className="w-4 h-4 text-orange-500" /> סגל
           </h2>
-          <span className="text-[11px] text-slate-400 dark:text-slate-500 font-medium">{roster.length} שחקנים</span>
+          <div className="flex items-center gap-3 shrink-0">
+            {isLinkedPlayer && !onThisTeam && (
+              joinState === 'sent'
+                ? <span className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">הבקשה נשלחה ✓</span>
+                : joinState === 'pending'
+                  ? <span className="text-[11px] font-semibold text-amber-600 dark:text-amber-400">בקשה ממתינה</span>
+                  : <button onClick={doJoin} disabled={joinState === 'sending'}
+                      className="text-[11px] font-semibold px-2.5 py-1 rounded-lg bg-orange-500 text-white hover:bg-orange-600 transition-colors disabled:opacity-50">
+                      {joinState === 'sending' ? 'שולח…' : 'בקש להצטרף'}
+                    </button>
+            )}
+            <span className="text-[11px] text-slate-400 dark:text-slate-500 font-medium">{roster.length} שחקנים</span>
+          </div>
         </div>
         <div className="p-3 sm:p-4 space-y-1">
           {roster.length === 0 && <p className="text-center text-slate-400 dark:text-slate-500 py-8 text-sm">אין שחקנים</p>}

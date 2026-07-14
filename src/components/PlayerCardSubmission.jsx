@@ -37,7 +37,7 @@ export default function PlayerCardSubmission({ onClose, onSubmitted }) {
     setSaving(true); setError(null)
     try {
       await createPlayerSubmission({
-        teamId: form.teamId,
+        teamId: form.teamId === "__free__" ? null : form.teamId,
         firstName: form.firstName.trim(),
         lastName: form.lastName.trim(),
         jerseyNumber: form.jerseyNumber ? parseInt(form.jerseyNumber, 10) : null,
@@ -68,7 +68,7 @@ export default function PlayerCardSubmission({ onClose, onSubmitted }) {
             </div>
             <h3 className="text-lg font-extrabold text-slate-900 dark:text-white">הבקשה נשלחה 🏒</h3>
             <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">
-              כרטיס השחקן שלך ממתין לאישור המאמן של הקבוצה. תופיע/י בליגה מרגע שהבקשה תאושר.
+              כרטיס השחקן שלך נשלח לאישור. תופיע/י בליגה מרגע שהבקשה תאושר.
             </p>
             <button onClick={onClose} className="mt-5 w-full py-2.5 rounded-xl bg-orange-500 text-white font-semibold hover:bg-orange-600 transition-colors">
               סגירה
@@ -81,13 +81,14 @@ export default function PlayerCardSubmission({ onClose, onSubmitted }) {
               <h3 className="text-lg font-extrabold text-slate-900 dark:text-white">צור כרטיס שחקן</h3>
             </div>
             <p className="text-sm text-slate-500 dark:text-slate-400 mb-5">
-              מלא/י את הפרטים ושלח/י לאישור המאמן של הקבוצה שלך.
+              מלא/י את הפרטים. בחירת קבוצה תישלח לאישור המאמן שלה; ללא קבוצה — לאישור מנהל הליגה.
             </p>
 
             <div className="space-y-3.5">
               <Field label="קבוצה">
                 <select value={form.teamId} onChange={e => set("teamId", e.target.value)} className={inputCls}>
                   <option value="">בחר/י קבוצה…</option>
+                  <option value="__free__">שחקן/ית חופשי/ה — ללא קבוצה</option>
                   {teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
                 </select>
               </Field>
