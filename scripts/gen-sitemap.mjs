@@ -48,6 +48,8 @@ const HUBS = [
   ['/players', 'weekly', '0.8'],
   ['/media', 'weekly', '0.6'],
   ['/final-four', 'weekly', '0.6'],
+  ['/tournaments', 'weekly', '0.5'],
+  ['/app', 'monthly', '0.4'],
   ['/archive', 'monthly', '0.5'],
   ['/privacy', 'yearly', '0.2'],
 ]

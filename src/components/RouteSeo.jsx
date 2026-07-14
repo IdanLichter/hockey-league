@@ -20,6 +20,9 @@ const ROUTES = {
   '/players': { title: 'שחקנים', description: 'כל השחקנים בליגת הרולר הוקי הישראלית' },
   '/media': { title: 'מדיה', description: 'תמונות ורגעים מהמשחקים' },
   '/final-four': { title: 'פיינל פור', description: 'שלב הפיינל פור של ליגת הרולר הוקי' },
+  '/tournaments': { title: 'טורנירים', description: 'טורנירים לקבוצות הנוער בליגת הרולר הוקי הישראלית' },
+  '/app': { title: 'הורדת האפליקציה', description: 'האפליקציה הרשמית של ליגת הרולר הוקי — טבלה, משחקים וסטטיסטיקות ל-iOS ו-Android' },
+  '/creators': { title: 'אזור יוצרי תוכן', description: 'אזור יוצרי התוכן של ליגת הרולר הוקי הישראלית' },
   '/archive': { title: 'ארכיון', description: 'עונות קודמות של ליגת הרולר הוקי הישראלית' },
   '/privacy': { title: 'מדיניות פרטיות' },
 }

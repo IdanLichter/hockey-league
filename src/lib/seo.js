@@ -17,7 +17,7 @@ export const DEFAULT_DESCRIPTION = 'ליגת רולר הוקי - טבלה, מש�
 const DEFAULT_IMAGE = `${SITE_URL}/logos/main-logo.png`
 
 // Gated tooling: no public content, must never land in a search index.
-export const NOINDEX_PREFIXES = ['/admin', '/judge', '/me']
+export const NOINDEX_PREFIXES = ['/admin', '/judge', '/me', '/creators']
 
 function upsertMeta(selector, attr, name, content) {
   let el = document.head.querySelector(selector)
