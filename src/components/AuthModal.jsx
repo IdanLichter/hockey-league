@@ -97,7 +97,7 @@ export default function AuthModal() {
             <div className="w-14 h-14 rounded-full bg-emerald-100 dark:bg-emerald-900/40 flex items-center justify-center mx-auto mb-4">
               <Mail className="w-7 h-7 text-emerald-600 dark:text-emerald-400" />
             </div>
-            <h3 className="text-lg font-extrabold text-slate-900 dark:text-white">כמעט על הקרח 🏒</h3>
+            <h3 className="text-lg font-extrabold text-slate-900 dark:text-white">כמעט על המגרש 🏒</h3>
             <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">
               שלחנו קישור אימות ל־<span className="font-semibold text-slate-700 dark:text-slate-300">{email}</span>. לחצו עליו — ואתם בהרכב.
             </p>
