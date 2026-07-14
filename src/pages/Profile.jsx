@@ -10,6 +10,7 @@ import { useTheme } from "@/lib/ThemeContext"
 import { getMyProfile, updateMyProfile, getPlayerPhotos, disconnectPairing } from "@/lib/profile"
 import { getMyPlayerSubmission } from "@/lib/playerSubmissions"
 import PlayerCardSubmission from "@/components/PlayerCardSubmission"
+import MedicalCertificateCard from "@/components/MedicalCertificateCard"
 import { RoleBadges, deriveRoleItems } from "@/components/RoleBadges"
 
 const sizedUrl = (url, w = 600) => (url ? url.replace(/=w\d+(-h\d+)?.*$/, `=w${w}`) : url)
@@ -216,6 +217,8 @@ export default function Profile() {
           </div>
         </div>
       )}
+
+      {isPlayer && player && <MedicalCertificateCard playerId={player.id} />}
 
       {/* Role quick-links */}
       {(isJudge || isAdmin) && (
