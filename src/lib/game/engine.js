@@ -205,7 +205,7 @@ export class GameEngine {
 
   // ---- penalty cards ----
   addCard(side, player, type) {
-    const card = { id: uid(), side, player, type, remainingS: cardBaseSeconds(type), half: this.currentHalf }
+    const card = { id: uid(), side, player, type, remainingS: cardBaseSeconds(type), timeMS: this.clock.remainingMS, half: this.currentHalf }
     // A red card replaces the player's ACTIVE card (countdown) and ejects them,
     // but both cards still count in the box score (cardLog keeps them).
     if (type === CardType.red && player?.id != null) {

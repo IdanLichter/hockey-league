@@ -37,6 +37,33 @@ function TeamPanel({ team, score, fallbackName }) {
   )
 }
 
+const EVENT_META = {
+  goal: { icon: "⚽", label: "שער", accent: "text-emerald-600 dark:text-emerald-400" },
+  blue: { icon: "🟦", label: "כרטיס כחול", accent: "text-blue-600 dark:text-blue-400" },
+  red:  { icon: "🟥", label: "כרטיס אדום", accent: "text-red-600 dark:text-red-400" },
+  foul: { icon: "🚩", label: "עבירה", accent: "text-slate-500 dark:text-slate-400" },
+}
+
+// One row in the live play-by-play. Events arrive fully resolved (player name +
+// team side + game-clock time + period) in live_game_state.state, so this stays dumb.
+function LiveEventRow({ ev, homeName, awayName }) {
+  const meta = EVENT_META[ev.type] || EVENT_META.foul
+  const teamName = ev.side === "home" ? homeName : awayName
+  const time = ev.timeMS != null ? clockString(ev.timeMS) : null
+  const when = [ev.period, time].filter(Boolean).join(" · ")
+  return (
+    <div className="flex items-center gap-2.5 text-sm">
+      <span className="text-base leading-none shrink-0" aria-hidden>{meta.icon}</span>
+      <div className="min-w-0 flex-1 truncate">
+        <span className={`font-semibold ${meta.accent}`}>{meta.label}</span>
+        {ev.player && <span className="text-slate-700 dark:text-slate-200"> · {ev.player}</span>}
+        <span className="text-slate-400 dark:text-slate-500"> · {teamName}</span>
+      </div>
+      {when && <span className="shrink-0 text-[11px] tabular-nums text-slate-400 dark:text-slate-500">{when}</span>}
+    </div>
+  )
+}
+
 export default function LiveGame({ gameId, home, away, initial = null }) {
   const [live, setLive] = useState(initial)
   const [loading, setLoading] = useState(!initial)
@@ -122,6 +149,18 @@ export default function LiveGame({ gameId, home, away, initial = null }) {
         </div>
         <TeamPanel team={away} score={live.away_score} fallbackName="חוץ" />
       </div>
+
+      {/* Live play-by-play — goals, cards and fouls the judge broadcasts. */}
+      {Array.isArray(live.state?.events) && live.state.events.length > 0 && (
+        <div className="mt-5 pt-4 border-t border-slate-100 dark:border-slate-700/50">
+          <h3 className="text-[11px] font-bold uppercase tracking-wide text-slate-400 dark:text-slate-500 mb-2.5">מהלך המשחק</h3>
+          <div className="space-y-1.5 max-h-64 overflow-y-auto">
+            {[...live.state.events].reverse().map((ev, i) => (
+              <LiveEventRow key={ev.id || i} ev={ev} homeName={home?.name || "בית"} awayName={away?.name || "חוץ"} />
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -1,4 +1,5 @@
 import { supabase } from './supabase'
+import { TeamSide, CardType, Half } from './game/rules'
 
 /**
  * Live-game bridge between the judge's authoritative GameEngine and public
@@ -14,6 +15,49 @@ import { supabase } from './supabase'
  * remaining time locally. That's why broadcasts fire only on SIGNIFICANT
  * changes (score / running / phase / period), not ~20×/sec.
  */
+
+// ---- live play-by-play ----------------------------------------------------
+// The engine already records every goal, foul and card with player + game clock.
+// We forward a compact, chronologically-ordered slice into live_game_state.state
+// so spectators see a running feed, not just score + clock. Event ids encode a
+// global monotonic counter (`e<session>-<n>`), which gives a stable order across
+// the separate goals / strikes / cardLog arrays.
+const MAX_LIVE_EVENTS = 40
+
+function eventSeq(id) {
+  const m = /-(\d+)$/.exec(id || '')
+  return m ? parseInt(m[1], 10) : 0
+}
+function eventPlayerName(p) {
+  if (!p) return null
+  return p.name || [p.first_name, p.last_name].filter(Boolean).join(' ').trim() || null
+}
+function eventPeriod(half) {
+  switch (half) {
+    case Half.first: return '1'
+    case Half.second: return '2'
+    case Half.third: return '3'
+    case Half.ot1: return 'הארכה 1'
+    case Half.ot2: return 'הארכה 2'
+    default: return ''
+  }
+}
+const eventSide = (side) => (side === TeamSide.home ? 'home' : 'away')
+
+// The compact event list broadcast to spectators (most recent MAX kept, in order).
+export function buildLiveEvents(engine) {
+  if (!engine) return []
+  const evs = []
+  for (const g of engine.goals || [])
+    evs.push({ id: g.id, seq: eventSeq(g.id), type: 'goal', side: eventSide(g.side), player: eventPlayerName(g.player), timeMS: g.timeMS ?? null, period: eventPeriod(g.half) })
+  for (const c of engine.cardLog || [])
+    evs.push({ id: c.id, seq: eventSeq(c.id), type: c.type === CardType.red ? 'red' : 'blue', side: eventSide(c.side), player: eventPlayerName(c.player), timeMS: c.timeMS ?? null, period: eventPeriod(c.half) })
+  for (const s of engine.strikes || [])
+    evs.push({ id: s.id, seq: eventSeq(s.id), type: 'foul', side: eventSide(s.side), player: eventPlayerName(s.player), timeMS: s.timeMS ?? null, period: eventPeriod(s.half) })
+  evs.sort((a, b) => a.seq - b.seq)
+  // Drop the internal seq from the payload; the array is already chronological.
+  return evs.slice(-MAX_LIVE_EVENTS).map(({ seq, ...e }) => e)
+}
 
 // Map an engine snapshot onto the RPC args and upsert. Best-effort: a failed
 // broadcast must never break live scoring for the judge, so errors are swallowed.
@@ -32,7 +76,7 @@ export async function broadcastGameState(engine, gameId) {
       p_is_running: running,
       p_period: engine.periodLabel,
       p_phase: engine.phase,
-      p_state: {},
+      p_state: { events: buildLiveEvents(engine) },
     })
     if (error) throw error
   } catch (e) {
