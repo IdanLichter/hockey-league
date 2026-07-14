@@ -1,0 +1,130 @@
+import { useState, useEffect } from "react"
+import { X, Loader2, UserPlus, CheckCircle2 } from "lucide-react"
+import { getTeams } from "@/lib/api"
+import { createPlayerSubmission } from "@/lib/playerSubmissions"
+
+const inputCls = "w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500"
+
+function Field({ label, children }) {
+  return (
+    <div>
+      <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1.5">{label}</label>
+      {children}
+    </div>
+  )
+}
+
+/**
+ * Modal: a logged-in user proposes their own player card for a team. On submit it
+ * files a PENDING player_submission; the team's coach (or an admin) approves it in
+ * the admin "בקשות" tab, which creates the real players row and links this account.
+ * Calls onSubmitted() so the caller can refresh its pending-submission state.
+ */
+export default function PlayerCardSubmission({ onClose, onSubmitted }) {
+  const [teams, setTeams] = useState([])
+  const [form, setForm] = useState({ teamId: "", firstName: "", lastName: "", jerseyNumber: "", position: "", age: "", note: "" })
+  const [saving, setSaving] = useState(false)
+  const [done, setDone] = useState(false)
+  const [error, setError] = useState(null)
+
+  useEffect(() => { getTeams("name", true).then(setTeams).catch(() => setTeams([])) }, [])
+
+  const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
+  const canSubmit = form.teamId && form.firstName.trim() && form.lastName.trim() && !saving
+
+  const submit = async () => {
+    if (!canSubmit) return
+    setSaving(true); setError(null)
+    try {
+      await createPlayerSubmission({
+        teamId: form.teamId,
+        firstName: form.firstName.trim(),
+        lastName: form.lastName.trim(),
+        jerseyNumber: form.jerseyNumber ? parseInt(form.jerseyNumber, 10) : null,
+        position: form.position.trim() || null,
+        age: form.age ? parseInt(form.age, 10) : null,
+        note: form.note.trim() || null,
+      })
+      setDone(true)
+      onSubmitted?.()
+    } catch (e) {
+      setError(e?.message === "submission-already-pending"
+        ? "כבר יש לך בקשה ממתינה לאישור"
+        : "שגיאה בשליחת הבקשה, נסו שוב")
+    } finally { setSaving(false) }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={onClose}>
+      <div className="w-full max-w-md bg-white dark:bg-slate-900 rounded-2xl shadow-xl relative max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+        <button onClick={onClose} aria-label="סגור" className="absolute top-4 left-4 p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
+          <X className="w-5 h-5" />
+        </button>
+
+        {done ? (
+          <div className="text-center px-6 py-8">
+            <div className="w-14 h-14 rounded-full bg-emerald-100 dark:bg-emerald-900/40 flex items-center justify-center mx-auto mb-4">
+              <CheckCircle2 className="w-7 h-7 text-emerald-600 dark:text-emerald-400" />
+            </div>
+            <h3 className="text-lg font-extrabold text-slate-900 dark:text-white">הבקשה נשלחה 🏒</h3>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">
+              כרטיס השחקן שלך ממתין לאישור המאמן של הקבוצה. תופיע/י בליגה מרגע שהבקשה תאושר.
+            </p>
+            <button onClick={onClose} className="mt-5 w-full py-2.5 rounded-xl bg-orange-500 text-white font-semibold hover:bg-orange-600 transition-colors">
+              סגירה
+            </button>
+          </div>
+        ) : (
+          <div className="p-6">
+            <div className="flex items-center gap-2 mb-1">
+              <UserPlus className="w-5 h-5 text-orange-500" />
+              <h3 className="text-lg font-extrabold text-slate-900 dark:text-white">צור כרטיס שחקן</h3>
+            </div>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mb-5">
+              מלא/י את הפרטים ושלח/י לאישור המאמן של הקבוצה שלך.
+            </p>
+
+            <div className="space-y-3.5">
+              <Field label="קבוצה">
+                <select value={form.teamId} onChange={e => set("teamId", e.target.value)} className={inputCls}>
+                  <option value="">בחר/י קבוצה…</option>
+                  {teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                </select>
+              </Field>
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="שם פרטי">
+                  <input value={form.firstName} onChange={e => set("firstName", e.target.value.slice(0, 40))} className={inputCls} />
+                </Field>
+                <Field label="שם משפחה">
+                  <input value={form.lastName} onChange={e => set("lastName", e.target.value.slice(0, 40))} className={inputCls} />
+                </Field>
+              </div>
+              <div className="grid grid-cols-3 gap-3">
+                <Field label="מספר">
+                  <input value={form.jerseyNumber} onChange={e => set("jerseyNumber", e.target.value.replace(/\D/g, "").slice(0, 2))} inputMode="numeric" className={inputCls} />
+                </Field>
+                <Field label="גיל">
+                  <input value={form.age} onChange={e => set("age", e.target.value.replace(/\D/g, "").slice(0, 2))} inputMode="numeric" className={inputCls} />
+                </Field>
+                <Field label="עמדה">
+                  <input value={form.position} onChange={e => set("position", e.target.value.slice(0, 20))} className={inputCls} />
+                </Field>
+              </div>
+              <Field label="הערה למאמן (לא חובה)">
+                <textarea value={form.note} onChange={e => set("note", e.target.value.slice(0, 200))} rows={2} className={inputCls} />
+              </Field>
+            </div>
+
+            {error && <p className="mt-3 text-sm text-red-600 dark:text-red-400">{error}</p>}
+
+            <button onClick={submit} disabled={!canSubmit}
+              className="mt-5 w-full py-2.5 rounded-xl bg-orange-500 text-white font-semibold hover:bg-orange-600 transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
+              {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />}
+              שליחה לאישור
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}

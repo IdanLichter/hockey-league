@@ -8,6 +8,8 @@ import {
 import { useAuth } from "@/lib/AuthContext"
 import { useTheme } from "@/lib/ThemeContext"
 import { getMyProfile, updateMyProfile, getPlayerPhotos, disconnectPairing } from "@/lib/profile"
+import { getMyPlayerSubmission } from "@/lib/playerSubmissions"
+import PlayerCardSubmission from "@/components/PlayerCardSubmission"
 import { RoleBadges, deriveRoleItems } from "@/components/RoleBadges"
 
 const sizedUrl = (url, w = 600) => (url ? url.replace(/=w\d+(-h\d+)?.*$/, `=w${w}`) : url)
@@ -25,6 +27,8 @@ export default function Profile() {
   const [photos, setPhotos] = useState([])
   const [confirmDisconnect, setConfirmDisconnect] = useState(false)
   const [disconnecting, setDisconnecting] = useState(false)
+  const [pendingSubmission, setPendingSubmission] = useState(null)
+  const [showCreateCard, setShowCreateCard] = useState(false)
 
   useEffect(() => {
     let alive = true
@@ -38,9 +42,11 @@ export default function Profile() {
         setName(d?.profile?.display_name || "")
         setAvatar(d?.profile?.avatar_url || "")
         if (d?.player) {
+          setPendingSubmission(null)
           getPlayerPhotos(d.player.id).then(ph => alive && setPhotos(ph)).catch(() => {})
         } else {
           setPhotos([])
+          getMyPlayerSubmission().then(s => alive && setPendingSubmission(s)).catch(() => {})
         }
       })
       .catch(() => alive && setData(null))
@@ -176,20 +182,38 @@ export default function Profile() {
             </p>
           </div>
         </div>
-      ) : (
-        <div className="card p-4 flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3 min-w-0">
-            <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center shrink-0">
-              <UserPlus className="w-5 h-5 text-orange-500" />
-            </div>
-            <div className="min-w-0">
-              <p className="text-sm font-bold text-slate-900 dark:text-white">שיחקת בליגה?</p>
-              <p className="text-[11px] text-slate-400 dark:text-slate-500">שייכו את החשבון לפרופיל השחקן שלכם וקבלו גישה לסטטיסטיקות שלכם</p>
-            </div>
+      ) : pendingSubmission ? (
+        <div className="card p-4 flex items-center gap-3 border-amber-200 dark:border-amber-800 bg-amber-50/60 dark:bg-amber-950/20">
+          <Clock className="w-5 h-5 text-amber-500 shrink-0" />
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-amber-700 dark:text-amber-400">כרטיס השחקן שלך ממתין לאישור המאמן</p>
+            <p className="text-[11px] text-amber-600/80 dark:text-amber-500/80 truncate">
+              {pendingSubmission.first_name} {pendingSubmission.last_name}{pendingSubmission.teams?.name ? ` · ${pendingSubmission.teams.name}` : ""}
+            </p>
           </div>
-          <Link to="/players" className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg bg-orange-500 text-white hover:bg-orange-600 transition-colors shrink-0">
-            מצא/י את הפרופיל
-          </Link>
+        </div>
+      ) : (
+        <div className="card p-4 space-y-3">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center shrink-0">
+                <UserPlus className="w-5 h-5 text-orange-500" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm font-bold text-slate-900 dark:text-white">שיחקת בליגה?</p>
+                <p className="text-[11px] text-slate-400 dark:text-slate-500">שייכו את החשבון לפרופיל השחקן שלכם וקבלו גישה לסטטיסטיקות שלכם</p>
+              </div>
+            </div>
+            <Link to="/players" className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg bg-orange-500 text-white hover:bg-orange-600 transition-colors shrink-0">
+              מצא/י את הפרופיל
+            </Link>
+          </div>
+          <div className="pt-3 border-t border-slate-100 dark:border-slate-700/50 flex items-center justify-between gap-3">
+            <p className="text-[11px] text-slate-400 dark:text-slate-500">עדיין אין לך כרטיס שחקן בליגה?</p>
+            <button onClick={() => setShowCreateCard(true)} className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border border-orange-200 dark:border-orange-900/50 text-orange-600 dark:text-orange-400 hover:bg-orange-50 dark:hover:bg-orange-950/30 transition-colors shrink-0">
+              <UserPlus className="w-3.5 h-3.5" /> צור כרטיס שחקן
+            </button>
+          </div>
         </div>
       )}
 
@@ -285,6 +309,13 @@ export default function Profile() {
             תמונות שזוהו בהן הפנים שלך מאלבומי המשחקים · לחיצה פותחת את התמונה המקורית
           </p>
         </motion.div>
+      )}
+
+      {showCreateCard && (
+        <PlayerCardSubmission
+          onClose={() => setShowCreateCard(false)}
+          onSubmitted={() => getMyPlayerSubmission().then(setPendingSubmission).catch(() => {})}
+        />
       )}
     </div>
   )
