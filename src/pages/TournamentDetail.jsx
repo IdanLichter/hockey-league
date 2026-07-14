@@ -1,10 +1,12 @@
 import { useState, useEffect } from "react"
 import { useParams, Link } from "react-router-dom"
-import { getTournamentById, getTournamentGames } from "@/lib/tournaments"
+import { getTournamentById, getTournamentGames, getTournamentTeams, respondTournamentInvite } from "@/lib/tournaments"
 import { getTeams } from "@/lib/api"
+import { useAuth } from "@/lib/AuthContext"
 import { AGE_LABEL } from "@/lib/ageGroups"
 import { TOURNAMENT_STATUS, dateRange } from "./Tournaments"
-import { Trophy, Calendar, MapPin, ArrowRight, RefreshCw, Users } from "lucide-react"
+import TournamentTeamsManager from "@/components/TournamentTeamsManager"
+import { Trophy, Calendar, MapPin, ArrowRight, RefreshCw, Users, Check, X } from "lucide-react"
 import { motion } from "framer-motion"
 import { format } from "date-fns"
 import TeamLogo from "@/components/TeamLogo"
@@ -16,9 +18,12 @@ const statusLabel = {
 
 export default function TournamentDetail() {
   const { id } = useParams()
+  const { isAdmin, isLeagueManager, coachTeamIds } = useAuth()
   const [tournament, setTournament] = useState(null)
   const [games, setGames] = useState([])
+  const [teams, setTeams] = useState([])
   const [teamsMap, setTeamsMap] = useState({})
+  const [tteams, setTteams] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
@@ -27,12 +32,21 @@ export default function TournamentDetail() {
   const load = async () => {
     try {
       setLoading(true); setError(null)
-      const [tour, gs, teams] = await Promise.all([getTournamentById(id), getTournamentGames(id), getTeams()])
+      const [tour, gs, ts, tt] = await Promise.all([
+        getTournamentById(id), getTournamentGames(id), getTeams(), getTournamentTeams(id).catch(() => []),
+      ])
       if (!tour) { setError("הטורניר לא נמצא"); return }
-      setTournament(tour); setGames(gs)
-      setTeamsMap(Object.fromEntries(teams.map(x => [x.id, x])))
+      setTournament(tour); setGames(gs); setTeams(ts)
+      setTeamsMap(Object.fromEntries(ts.map(x => [x.id, x])))
+      setTteams(tt)
     } catch (e) { console.error(e); setError("שגיאה בטעינת הטורניר") }
     finally { setLoading(false) }
+  }
+
+  const reloadTeams = async () => { try { setTteams(await getTournamentTeams(id)) } catch { /* ignore */ } }
+  const respond = async (inviteId, accept) => {
+    try { await respondTournamentInvite(inviteId, accept); await reloadTeams() }
+    catch (e) { alert('שגיאה: ' + (e.message || e)) }
   }
 
   if (loading) {
@@ -63,7 +77,11 @@ export default function TournamentDetail() {
 
   const st = TOURNAMENT_STATUS[tournament.status] || TOURNAMENT_STATUS.active
   const range = dateRange(tournament)
-  const teamIds = [...new Set(games.flatMap(g => [g.home_team_id, g.away_team_id]).filter(Boolean))]
+  const acceptedIds = tteams.filter(r => r.status === 'accepted').map(r => r.team_id)
+  const derivedIds = games.flatMap(g => [g.home_team_id, g.away_team_id]).filter(Boolean)
+  const teamIds = [...new Set([...acceptedIds, ...derivedIds])]
+  const isManager = isAdmin || isLeagueManager
+  const myInvites = tteams.filter(r => r.status === 'invited' && Array.isArray(coachTeamIds) && coachTeamIds.includes(r.team_id))
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-3xl mx-auto space-y-5">
@@ -88,6 +106,28 @@ export default function TournamentDetail() {
           </div>
         </div>
       </motion.div>
+
+      {/* Coach: respond to a tournament invite for your team */}
+      {myInvites.map(inv => {
+        const t = inv.teams || teamsMap[inv.team_id]
+        return (
+          <div key={inv.id} className="card p-4 flex items-center justify-between gap-3 border-amber-200 dark:border-amber-800 bg-amber-50/60 dark:bg-amber-950/20">
+            <div className="flex items-center gap-2 min-w-0">
+              <TeamLogo team={t} size={7} />
+              <span className="text-sm font-semibold text-amber-700 dark:text-amber-400 truncate">הוזמנתם לטורניר עם {t?.name || "הקבוצה"}</span>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <button onClick={() => respond(inv.id, true)} className="flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-lg bg-emerald-500 text-white hover:bg-emerald-600 transition-colors"><Check className="w-3.5 h-3.5" /> אשר</button>
+              <button onClick={() => respond(inv.id, false)} className="flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-600 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"><X className="w-3.5 h-3.5" /> דחה</button>
+            </div>
+          </div>
+        )
+      })}
+
+      {/* Manager: invite & manage teams */}
+      {isManager && (
+        <TournamentTeamsManager tournamentId={id} ageGroup={tournament.age_group} rows={tteams} teams={teams} teamsMap={teamsMap} onChange={reloadTeams} />
+      )}
 
       {/* teams involved */}
       {teamIds.length > 0 && (

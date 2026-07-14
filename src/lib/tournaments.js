@@ -95,3 +95,33 @@ export async function cancelTournamentRequest(id) {
   const { error } = await supabase.from('tournaments').delete().eq('id', id)
   if (error) throw error
 }
+
+// ----- team invitations (Package 2) -----
+// A manager (league-manager/admin) invites teams; the team's coach accepts/declines.
+// RLS scopes visibility: anon sees only accepted participants; managers/coaches see more.
+
+export async function getTournamentTeams(tournamentId) {
+  const { data, error } = await supabase
+    .from('tournament_teams')
+    .select('*, teams(id, name, logo_url, age_groups)')
+    .eq('tournament_id', tournamentId)
+    .order('created_at', { ascending: true })
+  if (error) throw error
+  return data || []
+}
+
+export async function inviteTeamToTournament(tournamentId, teamId) {
+  const { data, error } = await supabase.rpc('invite_team_to_tournament', { p_tournament_id: tournamentId, p_team_id: teamId })
+  if (error) { if (/not authorized/i.test(error.message || '')) throw new Error('not-authorized'); throw error }
+  return data
+}
+
+export async function respondTournamentInvite(id, accept) {
+  const { error } = await supabase.rpc('respond_tournament_invite', { p_id: id, p_accept: accept })
+  if (error) { if (/not authorized/i.test(error.message || '')) throw new Error('not-authorized'); throw error }
+}
+
+export async function removeTournamentTeam(id) {
+  const { error } = await supabase.from('tournament_teams').delete().eq('id', id)
+  if (error) throw error
+}
