@@ -7,6 +7,7 @@ import { AGE_LABEL } from "@/lib/ageGroups"
 import { TOURNAMENT_STATUS, dateRange } from "./Tournaments"
 import TournamentTeamsManager from "@/components/TournamentTeamsManager"
 import ScheduleGenerator from "@/components/ScheduleGenerator"
+import TournamentStandings from "@/components/TournamentStandings"
 import { Trophy, Calendar, MapPin, ArrowRight, RefreshCw, Users, Check, X } from "lucide-react"
 import { motion } from "framer-motion"
 import { format } from "date-fns"
@@ -155,6 +156,9 @@ export default function TournamentDetail() {
           </div>
         </div>
       )}
+
+      {/* standings (round-robin / group play) */}
+      <TournamentStandings teamIds={teamIds} games={games} teamsMap={teamsMap} />
 
       {/* games / results */}
       <div className="card p-5">
