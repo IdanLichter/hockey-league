@@ -18,6 +18,10 @@ import {
 let _uid = 0
 const _session = Math.random().toString(36).slice(2, 8)
 const uid = () => `e${_session}-${++_uid}`
+// Numeric suffix of an event id (`e<session>-<n>`). The live feed orders events by
+// this, so restore() must keep _uid ahead of any restored event — the counter
+// restarts each session and its suffix would otherwise collide with older events.
+const _suffixOf = (id) => { const m = /-(\d+)$/.exec(id || ''); return m ? +m[1] : 0 }
 
 const HE = {
   halftime: 'מנוחה',
@@ -406,6 +410,11 @@ export class GameEngine {
     this.guest = s.guest || this.guest
     this.goals = s.goals || []; this.strikes = s.strikes || []
     this.cards = s.cards || []; this.cardLog = s.cardLog || []; this.breaks = s.breaks || []
+    // Keep the id counter ahead of every restored event so post-restore events
+    // sort AFTER them in the live feed (the counter restarts each session).
+    for (const e of [...this.goals, ...this.strikes, ...this.cardLog, ...this.breaks]) {
+      const n = _suffixOf(e.id); if (n > _uid) _uid = n
+    }
     this.ejected = new Set(s.ejected || [])
     this.passiveRemainingMS = s.passiveRemainingMS ?? GameRules.passiveSeconds * 1000
     this.passiveActive = s.passiveActive ?? true
