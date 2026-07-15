@@ -38,42 +38,42 @@ export function Rink({ mono, ...props }) {
   )
 }
 
-// The league table — "טבלה": rows with rank markers + a leader accent.
+// The league table — "טבלה": ranked rows; the leader's marker is the puck.
 export function Standings({ mono, ...props }) {
   const a = mono ? "currentColor" : O
   return (
     <Svg {...props}>
       <rect x="3.5" y="4.5" width="17" height="15" rx="2.6" />
-      <path d="M3.5 9.4 H20.5 M3.5 14.4 H20.5" />
-      <circle cx="6.8" cy="7" r="1" />
-      <circle cx="6.8" cy="11.9" r="1" />
-      <circle cx="6.8" cy="16.9" r="1" />
-      <circle cx="17.4" cy="7" r="1.5" fill={a} stroke="none" />
+      <circle cx="7.2" cy="8.2" r="1.5" fill={a} stroke="none" />
+      <path d="M10 8.2 H17" />
+      <circle cx="7.2" cy="12" r="1.1" />
+      <path d="M10 12 H17" />
+      <circle cx="7.2" cy="15.8" r="1.1" />
+      <path d="M10 15.8 H14.8" />
     </Svg>
   )
 }
 
-// Crossed sticks over the puck — "משחקים".
+// Crossed sticks over the puck — "משחקים": two shafts form an X, blades hook up.
 export function Crossed({ mono, ...props }) {
   const a = mono ? "currentColor" : O
   return (
     <Svg {...props}>
-      <path d="M5 5 C 8 9, 10 13, 10.5 18" />
-      <path d="M19 5 C 16 9, 14 13, 13.5 18" />
-      <path d="M8 18.4 C 9 20, 15 20, 16 18.4" />
-      <circle cx="12" cy="18.7" r="1.7" fill={a} stroke="none" />
+      <path d="M5.4 5.4 L14.8 14.8 C15.7 15.7 17.2 15.6 17.8 14.6" />
+      <path d="M18.6 5.4 L9.2 14.8 C8.3 15.7 6.8 15.6 6.2 14.6" />
+      <circle cx="12" cy="18" r="1.7" fill={a} stroke="none" />
     </Svg>
   )
 }
 
-// Two team crests — "קבוצות".
+// Two team crests (shields) — "קבוצות".
 export function Teams({ mono, ...props }) {
   const a = mono ? "currentColor" : O
   return (
     <Svg {...props}>
-      <path d="M8.4 4.4 C 5.8 4.9, 5.8 6.6, 5.8 8.2 C 5.8 11, 8.4 12.4, 8.4 12.4 C 8.4 12.4, 11 11, 11 8.2 C 11 6.6, 11 4.9, 8.4 4.4 Z" />
-      <path d="M15.6 7.6 C 13 8.1, 13 9.8, 13 11.4 C 13 14.2, 15.6 15.6, 15.6 15.6 C 15.6 15.6, 18.2 14.2, 18.2 11.4 C 18.2 9.8, 18.2 8.1, 15.6 7.6 Z" />
-      <circle cx="15.6" cy="10.9" r="1.4" fill={a} stroke="none" />
+      <path d="M5 4.4 H10 V8.6 C10 10.8 7.5 12.3 7.5 12.3 C7.5 12.3 5 10.8 5 8.6 Z" />
+      <path d="M12.2 6.9 H17.2 V11.1 C17.2 13.3 14.7 14.9 14.7 14.9 C14.7 14.9 12.2 13.3 12.2 11.1 Z" />
+      <circle cx="14.7" cy="10.5" r="1.4" fill={a} stroke="none" />
     </Svg>
   )
 }
