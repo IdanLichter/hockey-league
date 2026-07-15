@@ -3,7 +3,7 @@ import { useParams, Link } from "react-router-dom"
 import { getGameById, getGameStatsByGameId, getTeams, getPlayers, getReferees, getGames } from "@/lib/api"
 import { getLiveGame } from "@/lib/live"
 import { useAuth } from "@/lib/AuthContext"
-import { ArrowRight, ArrowLeft, Calendar, Clock, MapPin, Shield, Trophy, Users, Flame, Swords, TrendingUp, RefreshCw, Radio } from "lucide-react"
+import { ArrowRight, ArrowLeft, Calendar, CalendarClock, Clock, MapPin, Shield, Trophy, Users, Flame, Swords, TrendingUp, RefreshCw, Radio } from "lucide-react"
 import { motion } from "framer-motion"
 import { format } from "date-fns"
 import TeamLogo from "@/components/TeamLogo"
@@ -13,6 +13,8 @@ import GameAvailability from "@/components/GameAvailability"
 import { TeamLink, PlayerLink } from "@/components/EntityLinks"
 import { useSeo } from "@/lib/seo"
 import { countsForStats, FRIENDLY_GAME_TYPE } from "@/lib/leagueStats"
+import GameChangeRequestModal from "@/components/GameChangeRequestModal"
+import { getMyGameChangeRequest, cancelGameChangeRequest } from "@/lib/gameRequests"
 
 const statusCfg = {
   scheduled: { label: "מתוכנן", cls: "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300" },
@@ -51,6 +53,9 @@ export default function GameDetail() {
   const [live, setLive] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [myRequest, setMyRequest] = useState(null)   // this coach's latest change request for the game
+  const [showChangeModal, setShowChangeModal] = useState(false)
+  const [cancelling, setCancelling] = useState(false)
 
   // Computed before the early returns so the hooks below (useSeo) always run.
   const teamsMap = Object.fromEntries(teams.map(t => [t.id, t]))
@@ -67,6 +72,24 @@ export default function GameDetail() {
   })
 
   useEffect(() => { loadData() }, [id])
+
+  // A coach of either team may have an outstanding change request for this game.
+  // Refetch when the game or the viewer's coach scope resolves (auth loads async).
+  const refreshMyRequest = () => getMyGameChangeRequest(id).then(setMyRequest).catch(() => {})
+  useEffect(() => {
+    const coachOfThis = game && (coachTeamIds || []).some(tid => tid === game.home_team_id || tid === game.away_team_id)
+    if (coachOfThis) refreshMyRequest()
+    else setMyRequest(null)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [game?.id, (coachTeamIds || []).join(',')])
+
+  const cancelMyRequest = async () => {
+    if (!myRequest) return
+    setCancelling(true)
+    try { await cancelGameChangeRequest(myRequest.id); await refreshMyRequest() }
+    catch (e) { alert(e.message || 'שגיאה בביטול הבקשה') }
+    finally { setCancelling(false) }
+  }
 
   const loadData = async () => {
     try {
@@ -184,6 +207,11 @@ export default function GameDetail() {
   const homeForm = formBefore(game.home_team_id)
   const awayForm = formBefore(game.away_team_id)
 
+  // A coach of either team may request a reschedule while the game is still
+  // upcoming (scheduled or already postponed). Managers/admins edit games directly.
+  const isTeamCoach = (coachTeamIds || []).some(tid => tid === game.home_team_id || tid === game.away_team_id)
+  const canRequestChange = isTeamCoach && (game.status === 'scheduled' || game.status === 'postponed')
+
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-3xl mx-auto space-y-5">
       <div className="flex items-center justify-between gap-3">
@@ -263,6 +291,53 @@ export default function GameDetail() {
           </div>
         )}
       </motion.div>
+
+      {/* ===== COACH: request a reschedule (date/venue) → manager approves ===== */}
+      {canRequestChange && (
+        <div className="card p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-slate-900 dark:text-white flex items-center gap-2">
+              <CalendarClock className="w-4 h-4 text-brand" /> שינוי מועד או מגרש
+            </p>
+            {myRequest?.status === 'pending' ? (
+              <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
+                בקשתך ממתינה לאישור מנהל הליגה
+                {myRequest.proposed_date && <> · {format(new Date(myRequest.proposed_date), "d/M/yyyy HH:mm")}</>}
+                {myRequest.proposed_venue && <> · {myRequest.proposed_venue}</>}
+              </p>
+            ) : myRequest?.status === 'rejected' ? (
+              <p className="text-xs text-red-500 mt-1">
+                בקשתך האחרונה נדחתה{myRequest.decision_note ? ` — ${myRequest.decision_note}` : ''}. ניתן לשלוח בקשה חדשה.
+              </p>
+            ) : myRequest?.status === 'approved' ? (
+              <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-1">בקשתך האחרונה אושרה — המשחק עודכן.</p>
+            ) : (
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">הבקשה תישלח למנהל הליגה לאישור</p>
+            )}
+          </div>
+          <div className="shrink-0">
+            {myRequest?.status === 'pending' ? (
+              <button onClick={cancelMyRequest} disabled={cancelling}
+                className="text-xs font-semibold px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-600 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors disabled:opacity-50">
+                {cancelling ? 'מבטל…' : 'ביטול הבקשה'}
+              </button>
+            ) : (
+              <button onClick={() => setShowChangeModal(true)}
+                className="flex items-center gap-1.5 text-xs font-bold px-4 py-2 rounded-xl bg-brand text-brand-fg hover:bg-brand-hover transition-colors">
+                <CalendarClock className="w-3.5 h-3.5" /> בקשת שינוי
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {showChangeModal && (
+        <GameChangeRequestModal
+          game={game} home={home} away={away}
+          onClose={() => setShowChangeModal(false)}
+          onSubmitted={refreshMyRequest}
+        />
+      )}
 
       {/* ===== VIDEO / VOD (the live stream is shown up top while in-progress) ===== */}
       {!showLive && <GameVideo game={game} home={home} away={away} players={players} />}

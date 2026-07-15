@@ -16,7 +16,7 @@ import {
 import {
   Shield, Calendar, UserCheck, Users, Settings, LogOut, Trash2, Plus,
   Pencil, X, Check, Save, ChevronDown, UserPlus, Crown, Trophy,
-  Archive, AlertTriangle, Image, Flag
+  Archive, AlertTriangle, Image, Flag, CalendarClock
 } from "lucide-react"
 import { motion } from "framer-motion"
 import TeamLogo from "@/components/TeamLogo"
@@ -33,6 +33,7 @@ import MedicalReview from "@/components/admin/MedicalReview"
 import SuggestionsReview from "@/components/admin/SuggestionsReview"
 import RolesAdmin from "@/components/admin/RolesAdmin"
 import ReportsReview from "@/components/admin/ReportsReview"
+import GameChangeRequestsReview from "@/components/admin/GameChangeRequestsReview"
 import WhatsNew from "@/components/admin/WhatsNew"
 import ClustersAdmin from "@/components/admin/ClustersAdmin"
 import { Award, Images } from "lucide-react"
@@ -45,6 +46,7 @@ const tabs = [
   { id: "tournaments", label: "טורנירים", icon: Trophy },
   { id: "season", label: "עונה", icon: Archive },
   { id: "claims", label: "בקשות", icon: UserPlus },
+  { id: "game_requests", label: "בקשות משחקים", icon: CalendarClock },
   { id: "reports", label: "דיווחים", icon: Flag },
   { id: "clusters", label: "קבוצות תמונות", icon: Images },
   { id: "roles", label: "תפקידים", icon: Award },
@@ -63,7 +65,7 @@ export default function Admin() {
   const scopedTabIds = new Set([
     ...(isCoach ? ["players", "claims", "tournaments"] : []),
     ...(isJudgeRole ? ["games"] : []),
-    ...(isLeagueManager ? ["tournaments", "teams"] : []),
+    ...(isLeagueManager ? ["tournaments", "teams", "game_requests"] : []),
   ])
   // Full tournament management (create/edit/delete + approve requests) vs. the
   // coach's request-only view of the same tab.
@@ -173,6 +175,7 @@ export default function Admin() {
               {currentTab === "teams" && <TeamsAdmin teams={teams} reload={loadData} reviewOnly={!isAdmin} />}
               {currentTab === "season" && <SeasonAdmin games={games} teams={teams} players={players} reload={loadData} />}
               {currentTab === "claims" && <><ClaimsReview teamsMap={teamsMap} coachTeamIds={coachScoped ? coachTeamIds : null} /><PlayerSubmissionsReview teamsMap={teamsMap} coachTeamIds={coachScoped ? coachTeamIds : null} /><TeamJoinRequestsReview teamsMap={teamsMap} coachTeamIds={coachScoped ? coachTeamIds : null} /><MedicalReview coachTeamIds={coachScoped ? coachTeamIds : null} />{isAdmin && <SuggestionsReview players={players} />}</>}
+              {currentTab === "game_requests" && <GameChangeRequestsReview teamsMap={teamsMap} />}
               {currentTab === "reports" && <ReportsReview />}
               {currentTab === "clusters" && <ClustersAdmin players={players} />}
               {currentTab === "roles" && <RolesAdmin teamsMap={teamsMap} players={players} />}
