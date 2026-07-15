@@ -10,6 +10,21 @@
   ],
   "rewrites": [
     { "source": "/api/(.*)", "destination": "/api/$1" },
+    {
+      "source": "/players/:id",
+      "has": [{ "type": "header", "key": "user-agent", "value": ".*(facebookexternalhit|Facebot|Twitterbot|WhatsApp|Slackbot|LinkedInBot|TelegramBot|Discordbot|Pinterest|redditbot|Embedly|vkShare|Applebot|SkypeUriPreview|W3C_Validator).*" }],
+      "destination": "/api/og?type=players&id=:id"
+    },
+    {
+      "source": "/teams/:id",
+      "has": [{ "type": "header", "key": "user-agent", "value": ".*(facebookexternalhit|Facebot|Twitterbot|WhatsApp|Slackbot|LinkedInBot|TelegramBot|Discordbot|Pinterest|redditbot|Embedly|vkShare|Applebot|SkypeUriPreview|W3C_Validator).*" }],
+      "destination": "/api/og?type=teams&id=:id"
+    },
+    {
+      "source": "/games/:id",
+      "has": [{ "type": "header", "key": "user-agent", "value": ".*(facebookexternalhit|Facebot|Twitterbot|WhatsApp|Slackbot|LinkedInBot|TelegramBot|Discordbot|Pinterest|redditbot|Embedly|vkShare|Applebot|SkypeUriPreview|W3C_Validator).*" }],
+      "destination": "/api/og?type=games&id=:id"
+    },
     { "source": "/(.*)", "destination": "/" }
   ]
 }
