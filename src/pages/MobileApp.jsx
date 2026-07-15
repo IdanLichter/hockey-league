@@ -6,8 +6,8 @@ import { Link } from "react-router-dom"
 // asset at this path (see vercel.json for the download headers). Bump the copy in
 // public/ + the VERSION label below whenever a new build ships.
 const APK_URL = "/rinkhockeyIL.apk"
-const APK_VERSION = "1.0 (7)"
-const APK_SIZE = "‎15MB"
+const APK_VERSION = "1.0 (10)"
+const APK_SIZE = "‎17MB"
 
 // iOS: submitted to the App Store, waiting on review approval. When it's live,
 // drop the App Store URL here and flip IOS_LIVE to true — the button lights up.
