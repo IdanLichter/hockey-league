@@ -122,8 +122,9 @@ export default function GameVideo({ game, home, away, players = [] }) {
 
   const gameId = game?.id
   const isLive = game?.status === "in_progress"
-  const canStream = isAdmin || isContentEditor || isJudgeRole ||
-    coachTeamIds?.includes(game?.home_team_id) || coachTeamIds?.includes(game?.away_team_id)
+  // Video is managed by content creators (content_editor) + admin only — mirrors
+  // the can_stream_game() backend gate. (Was admin/editor/judge/coach.)
+  const canStream = isContentEditor || isAdmin
   const canMark = isAdmin || isContentEditor
 
   const load = useCallback(async () => {
