@@ -1,11 +1,11 @@
 import { useState, useEffect } from "react"
 import { useAuth } from "@/lib/AuthContext"
-import { useNavigate } from "react-router-dom"
+import { useNavigate, Link } from "react-router-dom"
 import {
   getTeams, getPlayers, getGames, getGameStats, getAdminUsers,
   createGame, updateGame, deleteGame,
   createPlayer, updatePlayer, deletePlayer,
-  updateTeam, getPendingTeams, reviewTeam,
+  updateTeam, createTeam, deleteTeam, getPendingTeams, reviewTeam,
   createGameStat, deleteGameStatsByGameId,
   addAdminUser, removeAdminUser,
   getGameStatsByGameId,
@@ -63,7 +63,7 @@ export default function Admin() {
   const canManage = isAdmin || isCoach || isJudgeRole || isLeagueManager
   const coachScoped = !isAdmin && isCoach          // team-scope the players/claims tabs
   const scopedTabIds = new Set([
-    ...(isCoach ? ["players", "claims", "tournaments"] : []),
+    ...(isCoach ? ["players", "claims", "tournaments", "games"] : []),
     ...(isJudgeRole ? ["games"] : []),
     ...(isLeagueManager ? ["tournaments", "teams", "game_requests"] : []),
   ])
@@ -167,12 +167,16 @@ export default function Admin() {
             </div>
           ) : (
             <>
-              {currentTab === "games" && <GamesAdmin games={games} teams={teams} players={players} teamsMap={teamsMap} gameStats={gameStats} tournaments={tournaments} membersByTeam={membersByTeam} reload={loadData} />}
+              {currentTab === "games" && (
+                (!isAdmin && !isJudgeRole && isCoach)
+                  ? <CoachGamesView games={games} teamsMap={teamsMap} coachTeamIds={coachTeamIds} />
+                  : <GamesAdmin games={games} teams={teams} players={players} teamsMap={teamsMap} gameStats={gameStats} tournaments={tournaments} membersByTeam={membersByTeam} reload={loadData} />
+              )}
               {currentTab === "tournaments" && (canManageTournaments
                 ? <TournamentsAdmin tournaments={tournaments} reload={loadData} />
                 : <TournamentRequests reload={loadData} />)}
               {currentTab === "players" && <PlayersAdmin players={players} teams={teams} teamsMap={teamsMap} membersByPlayer={membersByPlayer} reload={loadData} coachTeamIds={coachScoped ? coachTeamIds : null} />}
-              {currentTab === "teams" && <TeamsAdmin teams={teams} reload={loadData} reviewOnly={!isAdmin} />}
+              {currentTab === "teams" && <TeamsAdmin teams={teams} reload={loadData} reviewOnly={!isAdmin && !isLeagueManager} />}
               {currentTab === "season" && <SeasonAdmin games={games} teams={teams} players={players} reload={loadData} />}
               {currentTab === "claims" && <><ClaimsReview teamsMap={teamsMap} coachTeamIds={coachScoped ? coachTeamIds : null} /><PlayerSubmissionsReview teamsMap={teamsMap} coachTeamIds={coachScoped ? coachTeamIds : null} /><TeamJoinRequestsReview teamsMap={teamsMap} coachTeamIds={coachScoped ? coachTeamIds : null} /><MedicalReview coachTeamIds={coachScoped ? coachTeamIds : null} />{isAdmin && <SuggestionsReview players={players} />}</>}
               {currentTab === "game_requests" && <GameChangeRequestsReview teamsMap={teamsMap} />}
@@ -221,6 +225,56 @@ function AccessDenied() {
           </>
         )}
       </div>
+    </div>
+  )
+}
+
+// ============ COACH GAMES (read-only, scoped to the coach's team[s]) ============
+const GAME_STATUS_HE = {
+  scheduled: 'מתוכנן', waiting_result: 'ממתין לתוצאה', in_progress: 'חי',
+  completed: 'הסתיים', postponed: 'נדחה', cancelled: 'בוטל',
+}
+// A coach sees only games involving a team they coach, view-only. To change a
+// fixture they open the game page and file a change request (manager approves).
+function CoachGamesView({ games, teamsMap, coachTeamIds }) {
+  const ids = new Set(coachTeamIds || [])
+  const mine = games
+    .filter(g => ids.has(g.home_team_id) || ids.has(g.away_team_id))
+    .sort((a, b) => new Date(b.game_date) - new Date(a.game_date))
+  return (
+    <div className="space-y-3">
+      <div>
+        <h2 className="font-bold text-sm text-slate-900 dark:text-white">{mine.length} משחקים של הקבוצה שלי</h2>
+        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+          צפייה בלבד. לשינוי מועד או מגרש — היכנס/י לעמוד המשחק ושלח/י בקשה לאישור מנהל הליגה.
+        </p>
+      </div>
+      {mine.length === 0 ? (
+        <div className="card p-10 text-center text-sm text-slate-500 dark:text-slate-400">אין משחקים לקבוצה שלך</div>
+      ) : (
+        <div className="card overflow-hidden divide-y divide-slate-100 dark:divide-slate-700/50">
+          {mine.map(game => {
+            const done = game.status === 'completed' && game.home_score != null && game.away_score != null
+            return (
+              <Link key={game.id} to={`/games/${game.id}`}
+                className="flex items-center justify-between px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                <div className="flex items-center gap-2 min-w-0">
+                  <TeamLogo team={teamsMap[game.home_team_id]} size={7} />
+                  <span className="font-semibold text-xs text-slate-900 dark:text-white truncate max-w-[72px] sm:max-w-none">{teamsMap[game.home_team_id]?.name}</span>
+                  {/* RTL: away score first so each number sits beside its team (see rtl-score gotcha) */}
+                  <span className="text-xs font-bold text-slate-500 dark:text-slate-400 px-1 tabular-nums">{done ? `${game.away_score} : ${game.home_score}` : 'נגד'}</span>
+                  <span className="font-semibold text-xs text-slate-900 dark:text-white truncate max-w-[72px] sm:max-w-none">{teamsMap[game.away_team_id]?.name}</span>
+                  <TeamLogo team={teamsMap[game.away_team_id]} size={7} />
+                </div>
+                <div className="flex items-center gap-2 mr-3 shrink-0">
+                  <span className="text-[10px] text-slate-400 hidden sm:inline">{format(new Date(game.game_date), "d/M/yy HH:mm")}</span>
+                  <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400">{GAME_STATUS_HE[game.status] || game.status}</span>
+                </div>
+              </Link>
+            )
+          })}
+        </div>
+      )}
     </div>
   )
 }
@@ -1013,6 +1067,10 @@ function TeamsAdmin({ teams, reload, reviewOnly = false }) {
   const [form, setForm] = useState({})
   const [pending, setPending] = useState([])
   const [busyId, setBusyId] = useState(null)
+  const emptyCreate = { name: '', city: '', age_group: DEFAULT_AGE, home_venue: '', primary_color: BRAND_ORANGE }
+  const [showCreate, setShowCreate] = useState(false)
+  const [creating, setCreating] = useState(false)
+  const [createForm, setCreateForm] = useState(emptyCreate)
 
   const loadPending = async () => {
     try { setPending(await getPendingTeams()) } catch { /* ignore */ }
@@ -1064,8 +1122,74 @@ function TeamsAdmin({ teams, reload, reviewOnly = false }) {
     finally { setSaving(false) }
   }
 
+  const handleCreate = async () => {
+    if (!createForm.name.trim()) return
+    setCreating(true)
+    try {
+      await createTeam({ ...createForm, name: createForm.name.trim() })
+      setCreateForm(emptyCreate); setShowCreate(false)
+      await reload()
+    } catch (err) { alert('שגיאה: ' + (err.message || err)) }
+    finally { setCreating(false) }
+  }
+
+  const handleDelete = async (team) => {
+    if (!confirm(`למחוק את הקבוצה "${team.name}"? פעולה זו אינה הפיכה.`)) return
+    setBusyId(team.id)
+    try { await deleteTeam(team.id); await reload() }
+    catch (err) { alert(err.message || 'שגיאה במחיקת הקבוצה') }
+    finally { setBusyId(null) }
+  }
+
   return (
     <div className="space-y-3">
+      {!reviewOnly && (
+        <div className="flex items-center justify-between">
+          <h2 className="font-bold text-sm text-slate-900 dark:text-white">{teams.length} קבוצות</h2>
+          <button onClick={() => { setCreateForm(emptyCreate); setShowCreate(v => !v) }}
+            className="flex items-center gap-2 px-4 py-2 bg-orange-500 text-white text-sm font-semibold rounded-xl hover:bg-orange-600 transition-colors">
+            <Plus className="w-4 h-4" /> קבוצה חדשה
+          </button>
+        </div>
+      )}
+
+      {!reviewOnly && showCreate && (
+        <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} className="card p-4 space-y-3">
+          <h3 className="font-bold text-sm text-slate-900 dark:text-white">קבוצה חדשה</h3>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            <div>
+              <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1 block">שם <span className="text-red-500">*</span></label>
+              <input type="text" value={createForm.name} onChange={e => setCreateForm({ ...createForm, name: e.target.value })} className="filter-input w-full" />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1 block">עיר</label>
+              <input type="text" value={createForm.city} onChange={e => setCreateForm({ ...createForm, city: e.target.value })} className="filter-input w-full" />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1 block">קטגוריית גיל</label>
+              <select value={createForm.age_group} onChange={e => setCreateForm({ ...createForm, age_group: e.target.value })} className="filter-input w-full">
+                {AGE_GROUPS.map(a => <option key={a.value} value={a.value}>{a.label}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1 block">מגרש בית</label>
+              <input type="text" value={createForm.home_venue} onChange={e => setCreateForm({ ...createForm, home_venue: e.target.value })} className="filter-input w-full" />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1 block">צבע</label>
+              <input type="color" value={createForm.primary_color} onChange={e => setCreateForm({ ...createForm, primary_color: e.target.value })} className="filter-input w-full h-[42px] p-1" />
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <button onClick={handleCreate} disabled={creating || !createForm.name.trim()}
+              className="flex items-center gap-2 px-4 py-2 bg-orange-500 text-white text-xs font-semibold rounded-xl hover:bg-orange-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+              <Save className="w-3.5 h-3.5" /> {creating ? 'יוצר...' : 'צור קבוצה'}
+            </button>
+            <button onClick={() => setShowCreate(false)} className="px-3 py-2 text-xs font-semibold text-slate-500 hover:text-slate-700 transition-colors">ביטול</button>
+          </div>
+        </motion.div>
+      )}
+
       {pending.length > 0 && (
         <div className="card p-4 space-y-2.5 border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-950/20">
           <h3 className="flex items-center gap-2 text-sm font-bold text-amber-700 dark:text-amber-400">
@@ -1106,10 +1230,17 @@ function TeamsAdmin({ teams, reload, reviewOnly = false }) {
                 <p className="text-xs text-slate-500">{team.city} • {team.points} נקודות • {team.wins}נ {team.ties}ת {team.losses}ה</p>
               </div>
             </div>
-            <button onClick={() => editingTeam === team.id ? setEditingTeam(null) : startEdit(team)}
-              className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-600 transition-colors">
-              {editingTeam === team.id ? <X className="w-4 h-4" /> : <Pencil className="w-4 h-4" />}
-            </button>
+            <div className="flex items-center gap-1">
+              <button onClick={() => editingTeam === team.id ? setEditingTeam(null) : startEdit(team)}
+                className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-600 transition-colors">
+                {editingTeam === team.id ? <X className="w-4 h-4" /> : <Pencil className="w-4 h-4" />}
+              </button>
+              <button onClick={() => handleDelete(team)} disabled={busyId === team.id}
+                className="p-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/30 text-slate-400 hover:text-red-500 transition-colors disabled:opacity-50"
+                title="מחק קבוצה">
+                <Trash2 className="w-4 h-4" />
+              </button>
+            </div>
           </div>
 
           {editingTeam === team.id && (

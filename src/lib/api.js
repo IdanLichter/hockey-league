@@ -370,6 +370,40 @@ export async function updateTeam(id, updates) {
   return data
 }
 
+/** Admin/league-manager creates an active team directly (RLS: is_admin OR is_league_manager). */
+export async function createTeam(fields) {
+  const age = fields.age_group || 'senior'
+  const payload = {
+    name: fields.name,
+    city: fields.city || null,
+    home_venue: fields.home_venue || null,
+    age_group: age,
+    age_groups: [age],
+    status: 'active',
+  }
+  if (fields.primary_color) payload.primary_color = fields.primary_color   // else DB default (#f97316)
+  const { data, error } = await supabase.from('teams').insert(payload).select().single()
+  if (error) throw error
+  return data
+}
+
+/**
+ * Delete a team. A BEFORE DELETE trigger blocks teams that still have games
+ * (teams→games is ON DELETE CASCADE, so deleting one would erase its match
+ * history and skew standings). Surface that as an actionable Hebrew message.
+ */
+export async function deleteTeam(id) {
+  const { error } = await supabase.from('teams').delete().eq('id', id)
+  if (error) {
+    const m = error.message || ''
+    if (/cannot delete a team/i.test(m)) {
+      const n = (m.match(/with (\d+) game/) || [])[1]
+      throw new Error(`לא ניתן למחוק קבוצה עם ${n || ''} משחקים. הסר/י תחילה את המשחקים שלה.`)
+    }
+    throw error
+  }
+}
+
 // --- Game Stats ---
 export async function createGameStat(stat) {
   const { data, error } = await supabase.from('game_stats').insert(stat).select().single()
