@@ -5,6 +5,7 @@ import { getPlayerTeams, buildMemberMaps } from "@/lib/playerTeams"
 import { useAuth } from "@/lib/AuthContext"
 import { requestTeamJoin } from "@/lib/teamMembership"
 import { standingsComparator } from "@/lib/utils"
+import { ageOf, DEFAULT_AGE, AGE_LABEL } from "@/lib/ageGroups"
 import { FRIENDLY_GAME_TYPE } from "@/lib/leagueStats"
 import { ArrowRight, Users, Trophy, Target, Shield, Calendar, RefreshCw } from "lucide-react"
 import { motion } from "framer-motion"
@@ -76,7 +77,12 @@ export default function TeamDetail() {
 
   const team = teams.find(t => t.id === id)
   const teamsMap = Object.fromEntries(teams.map(t => [t.id, t]))
-  const rank = [...teams].sort(standingsComparator).findIndex(t => t.id === id) + 1
+  // League rank is senior only; a youth-tournament team isn't in the league
+  // table, so it shows its age-group badge instead of a bogus rank.
+  const isSeniorTeam = ageOf(team) === DEFAULT_AGE
+  const rank = isSeniorTeam
+    ? [...teams].filter(t => ageOf(t) === DEFAULT_AGE).sort(standingsComparator).findIndex(t => t.id === id) + 1
+    : null
   const { byTeam: membersByTeam } = buildMemberMaps(playerTeams, players)
   const roster = players.filter(p => membersByTeam.get(id)?.has(p.id)).sort((a, b) => (b.goals || 0) - (a.goals || 0))
   const isLinkedPlayer = !!profile?.player_id
@@ -107,7 +113,9 @@ export default function TeamDetail() {
           <div className="min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
               <h1 className="page-title truncate">{team.name}</h1>
-              <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-700 px-2 py-0.5 rounded-md">#{rank} בטבלה</span>
+              {isSeniorTeam
+                ? <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-700 px-2 py-0.5 rounded-md">#{rank} בטבלה</span>
+                : <span className="text-[11px] font-bold text-orange-600 dark:text-orange-400 bg-orange-100 dark:bg-orange-900/30 px-2 py-0.5 rounded-md">{AGE_LABEL[ageOf(team)]}</span>}
             </div>
             <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
               {team.city}{team.founded_year ? ` • נוסדה ${team.founded_year}` : ''}

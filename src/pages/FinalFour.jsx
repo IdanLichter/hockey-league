@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react"
 import { getTeams, getGames, getLeagueSetting } from "@/lib/api"
 import { standingsComparator } from "@/lib/utils"
+import { ageOf, DEFAULT_AGE } from "@/lib/ageGroups"
 import { Trophy, Crown, Calendar, RefreshCw } from "lucide-react"
 import { Trophy as TrophyIcon } from "@/components/icons/HockeyIcons"
 import { motion } from "framer-motion"
@@ -32,7 +33,7 @@ export default function FinalFour() {
 
   const teamsMap = Object.fromEntries(teams.map(t => [t.id, t]))
   const champion = championId ? teams.find(t => t.id === championId) || null : null
-  const sorted = [...teams].sort(standingsComparator)
+  const sorted = [...teams].filter(t => ageOf(t) === DEFAULT_AGE).sort(standingsComparator)
   const first = sorted[0]
 
   const playoffGames = games.filter(g => g.game_type === 'פלייאוף' || g.game_type === 'Final Four')

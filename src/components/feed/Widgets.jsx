@@ -2,6 +2,7 @@ import { Link } from "react-router-dom"
 import { Trophy, Calendar, Flame, MapPin, ChevronLeft } from "lucide-react"
 import { format } from "date-fns"
 import { standingsComparator } from "@/lib/utils"
+import { ageOf, DEFAULT_AGE } from "@/lib/ageGroups"
 import TeamLogo from "@/components/TeamLogo"
 
 const medal = (i) =>
@@ -32,7 +33,7 @@ function WidgetFooter({ to, label }) {
 }
 
 export function StandingsWidget({ teams = [] }) {
-  const top = [...teams].sort(standingsComparator).slice(0, 5)
+  const top = [...teams].filter(t => ageOf(t) === DEFAULT_AGE).sort(standingsComparator).slice(0, 5)
   return (
     <div className="card overflow-hidden">
       <WidgetHeader icon={<Trophy className="w-4 h-4 text-amber-500" />} title="טבלה" />

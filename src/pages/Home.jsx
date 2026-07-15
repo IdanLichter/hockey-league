@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react"
 import { getTeams } from "@/lib/api"
 import { standingsComparator } from "@/lib/utils"
+import { ageOf, DEFAULT_AGE } from "@/lib/ageGroups"
 import { Trophy, Users, Crown, Swords, RefreshCw } from "lucide-react"
 import { Standings } from "@/components/icons/HockeyIcons"
 import { motion } from "framer-motion"
@@ -25,7 +26,10 @@ export default function Home() {
 
   const diff = (t) => (t.goals_for || 0) - (t.goals_against || 0)
   const played = (t) => (t.wins || 0) + (t.losses || 0) + (t.ties || 0)
-  const sorted = [...teams].sort(standingsComparator)
+  // The league table is senior only; youth-tournament teams have their own
+  // standings on the tournament pages (they'd otherwise sit at 0 pts here).
+  const seniorTeams = teams.filter(t => ageOf(t) === DEFAULT_AGE)
+  const sorted = [...seniorTeams].sort(standingsComparator)
   const first = sorted[0] || null
 
   const matchups = sorted.length >= 7 ? [
@@ -253,7 +257,7 @@ export default function Home() {
         </motion.div>
       )}
 
-      {teams.length === 0 && !error && (
+      {seniorTeams.length === 0 && !error && (
         <div className="text-center py-16">
           <Users className="w-12 h-12 mx-auto text-slate-300 dark:text-slate-600 mb-3" />
           <h3 className="text-lg font-semibold text-slate-500 dark:text-slate-400">אין קבוצות רשומות</h3>
