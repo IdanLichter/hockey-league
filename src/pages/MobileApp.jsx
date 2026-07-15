@@ -9,10 +9,10 @@ const APK_URL = "/rinkhockeyIL.apk"
 const APK_VERSION = "1.0 (10)"
 const APK_SIZE = "‎17MB"
 
-// iOS: submitted to the App Store, waiting on review approval. When it's live,
-// drop the App Store URL here and flip IOS_LIVE to true — the button lights up.
-const IOS_LIVE = false
-const IOS_URL = "" // e.g. "https://apps.apple.com/app/id0000000000"
+// iOS: LIVE on the App Store since 2026-07-16 (v1.0, build 15 — READY_FOR_SALE).
+// Set IOS_LIVE=false to fall back to the "coming soon" state if ever pulled.
+const IOS_LIVE = true
+const IOS_URL = "https://apps.apple.com/app/id6789331513"
 
 const FEATURES = [
   { icon: Trophy, label: "טבלה ומשחקים בזמן אמת" },
@@ -125,8 +125,8 @@ export default function MobileApp() {
           )}
 
           <p className="mt-3 text-[12.5px] text-fg-muted leading-relaxed">
-            גרסת ה‑iPhone הוגשה ל‑App Store ונמצאת בבדיקת אפל. ברגע שתאושר — הקישור להורדה יופיע כאן.
-            בינתיים ניתן להשתמש באתר מהדפדפן בנייד.
+            גרסת ה‑iPhone זמינה עכשיו להורדה חינמית מ‑App Store. תומכת ב‑iPhone וב‑iPad.
+            אפשר גם להמשיך ולהשתמש באתר מהדפדפן בנייד.
           </p>
         </div>
       </div>
