@@ -191,7 +191,7 @@ export async function generateMatchDayPoster(games, teamsMap, options = {}) {
     ctx.font = `600 30px ${FONT}`
     const dateGrad = ctx.createLinearGradient(W / 2 - 200, 0, W / 2 + 200, 0)
     dateGrad.addColorStop(0, BRAND_ORANGE)
-    dateGrad.addColorStop(1, '#fb923c')
+    dateGrad.addColorStop(1, '#8AA0FF') // brand-light — lighter royal-blue endpoint
     ctx.fillStyle = dateGrad
     drawTextWithShadow(ctx, formatHebrewDate(games[0].game_date), W / 2, 225)
   }
@@ -266,7 +266,7 @@ export async function generateMatchDayPoster(games, teamsMap, options = {}) {
     ctx.arc(W / 2, centerY - 10, 28, 0, Math.PI * 2)
     const vsBg = ctx.createRadialGradient(W / 2, centerY - 10, 0, W / 2, centerY - 10, 28)
     vsBg.addColorStop(0, BRAND_ORANGE)
-    vsBg.addColorStop(1, '#ea580c')
+    vsBg.addColorStop(1, '#2E3EA8') // brand-hover — darker royal-blue edge
     ctx.fillStyle = vsBg
     ctx.fill()
     ctx.font = `800 22px ${FONT}`
