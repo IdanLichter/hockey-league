@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react"
 import { useParams, Link } from "react-router-dom"
 import { getPlayers, getTeams, getGames, getGameStats, getLeagueSetting, getPlayerRoleBadges } from "@/lib/api"
+import { getPlayerTeams, buildMemberMaps } from "@/lib/playerTeams"
+import { AGE_LABEL, DEFAULT_AGE, ageOf } from "@/lib/ageGroups"
 import { countsForStats, FRIENDLY_GAME_TYPE } from "@/lib/leagueStats"
 import { useAuth } from "@/lib/AuthContext"
 import { useSeasonMode } from "@/App"
@@ -21,6 +23,7 @@ export default function PlayerDetail() {
   const [teams, setTeams] = useState([])
   const [games, setGames] = useState([])
   const [gameStats, setGameStats] = useState([])
+  const [playerTeams, setPlayerTeams] = useState([])
   const [championId, setChampionId] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -63,13 +66,14 @@ export default function PlayerDetail() {
   const loadData = async () => {
     try {
       setLoading(true); setError(null)
-      const [players, t, g, gs, champ] = await Promise.all([
+      const [players, t, g, gs, champ, pt] = await Promise.all([
         getPlayers(), getTeams(), getGames(), getGameStats(),
         getLeagueSetting('champion_team_id').catch(() => null),
+        getPlayerTeams().catch(() => []),
       ])
       const p = players.find(pl => pl.id === id)
       if (!p) { setError("השחקן לא נמצא"); return }
-      setPlayer(p); setAllPlayers(players); setTeams(t); setGames(g); setGameStats(gs); setChampionId(champ)
+      setPlayer(p); setAllPlayers(players); setTeams(t); setGames(g); setGameStats(gs); setChampionId(champ); setPlayerTeams(pt)
     } catch (err) { console.error(err); setError("שגיאה בטעינת הנתונים") }
     finally { setLoading(false) }
   }
@@ -103,6 +107,12 @@ export default function PlayerDetail() {
   const teamsMap = Object.fromEntries(teams.map(t => [t.id, t]))
   const gamesMap = Object.fromEntries(games.map(g => [g.id, g]))
   const team = teamsMap[player.team_id]
+  // Every team the player belongs to (one per age group), senior/primary first.
+  const { byPlayer: membersByPlayer } = buildMemberMaps(playerTeams, allPlayers)
+  const myTeams = (membersByPlayer.get(player.id) || [])
+    .map(m => ({ team: teamsMap[m.team_id], age: m.age_group || ageOf(teamsMap[m.team_id]) }))
+    .filter(x => x.team)
+    .sort((a, b) => (a.age === DEFAULT_AGE ? -1 : b.age === DEFAULT_AGE ? 1 : 0))
   const isGK = player.position === 'Goalkeeper'
   const positionLabel = isGK ? 'שוער' : 'שחקן שדה'
 
@@ -226,10 +236,19 @@ export default function PlayerDetail() {
           )}
           <div className="min-w-0">
             <h1 className="page-title truncate">{player.first_name} {player.last_name}</h1>
-            <Link to={team ? `/teams/${team.id}` : '/teams'} className="flex items-center gap-2 mt-1.5 group w-fit">
-              <TeamLogo team={team} size={6} />
-              <span className="text-sm font-medium text-slate-500 dark:text-slate-400 group-hover:text-orange-500 transition-colors">{team?.name || '—'}</span>
-            </Link>
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1.5">
+              {myTeams.length ? myTeams.map(({ team: tm, age }) => (
+                <Link key={tm.id} to={`/teams/${tm.id}`} className="flex items-center gap-2 group w-fit">
+                  <TeamLogo team={tm} size={6} />
+                  <span className="text-sm font-medium text-slate-500 dark:text-slate-400 group-hover:text-orange-500 transition-colors">{tm.name}</span>
+                  {age !== DEFAULT_AGE && (
+                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">{AGE_LABEL[age]}</span>
+                  )}
+                </Link>
+              )) : (
+                <span className="text-sm font-medium text-slate-500 dark:text-slate-400">—</span>
+              )}
+            </div>
             <div className="flex flex-wrap items-center gap-1.5 mt-2.5">
               <span className={`stat-pill ${isGK ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400' : 'bg-slate-100 text-slate-500 dark:bg-slate-700 dark:text-slate-400'}`}>
                 <Shield className="w-3.5 h-3.5" /> {positionLabel}

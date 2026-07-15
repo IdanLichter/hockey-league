@@ -20,7 +20,8 @@ import {
 } from "lucide-react"
 import { motion } from "framer-motion"
 import TeamLogo from "@/components/TeamLogo"
-import { AGE_GROUPS, DEFAULT_AGE, AGE_LABEL } from "@/lib/ageGroups"
+import { AGE_GROUPS, DEFAULT_AGE, AGE_LABEL, ageOf } from "@/lib/ageGroups"
+import { getPlayerTeams, buildMemberMaps, setPlayerMemberships } from "@/lib/playerTeams"
 import { getTournaments, createTournament, updateTournament, deleteTournament, requestTournament, getMyTournamentRequests, reviewTournament, cancelTournamentRequest } from "@/lib/tournaments"
 import { format } from "date-fns"
 import { useSeasonMode } from "@/App"
@@ -83,6 +84,7 @@ export default function Admin() {
   const [gameStats, setGameStats] = useState([])
   const [adminUsers, setAdminUsers] = useState([])
   const [tournaments, setTournaments] = useState([])
+  const [playerTeams, setPlayerTeams] = useState([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -92,12 +94,13 @@ export default function Admin() {
 
   const loadData = async () => {
     try {
-      const [t, p, g, gs, au, tr] = await Promise.all([
+      const [t, p, g, gs, au, tr, pt] = await Promise.all([
         getTeams(), getPlayers(), getGames(), getGameStats(),
         getAdminUsers().catch(() => []),
-        getTournaments().catch(() => [])
+        getTournaments().catch(() => []),
+        getPlayerTeams().catch(() => [])
       ])
-      setTeams(t); setPlayers(p); setGames(g); setGameStats(gs); setAdminUsers(au); setTournaments(tr)
+      setTeams(t); setPlayers(p); setGames(g); setGameStats(gs); setAdminUsers(au); setTournaments(tr); setPlayerTeams(pt)
     } catch (err) { console.error(err) }
     finally { setLoading(false) }
   }
@@ -115,6 +118,7 @@ export default function Admin() {
   }
 
   const teamsMap = Object.fromEntries(teams.map(t => [t.id, t]))
+  const { byTeam: membersByTeam, byPlayer: membersByPlayer } = buildMemberMaps(playerTeams, players)
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto space-y-5">
@@ -161,11 +165,11 @@ export default function Admin() {
             </div>
           ) : (
             <>
-              {currentTab === "games" && <GamesAdmin games={games} teams={teams} players={players} teamsMap={teamsMap} gameStats={gameStats} tournaments={tournaments} reload={loadData} />}
+              {currentTab === "games" && <GamesAdmin games={games} teams={teams} players={players} teamsMap={teamsMap} gameStats={gameStats} tournaments={tournaments} membersByTeam={membersByTeam} reload={loadData} />}
               {currentTab === "tournaments" && (canManageTournaments
                 ? <TournamentsAdmin tournaments={tournaments} reload={loadData} />
                 : <TournamentRequests reload={loadData} />)}
-              {currentTab === "players" && <PlayersAdmin players={players} teams={teams} teamsMap={teamsMap} reload={loadData} coachTeamIds={coachScoped ? coachTeamIds : null} />}
+              {currentTab === "players" && <PlayersAdmin players={players} teams={teams} teamsMap={teamsMap} membersByPlayer={membersByPlayer} reload={loadData} coachTeamIds={coachScoped ? coachTeamIds : null} />}
               {currentTab === "teams" && <TeamsAdmin teams={teams} reload={loadData} reviewOnly={!isAdmin} />}
               {currentTab === "season" && <SeasonAdmin games={games} teams={teams} players={players} reload={loadData} />}
               {currentTab === "claims" && <><ClaimsReview teamsMap={teamsMap} coachTeamIds={coachScoped ? coachTeamIds : null} /><PlayerSubmissionsReview teamsMap={teamsMap} coachTeamIds={coachScoped ? coachTeamIds : null} /><TeamJoinRequestsReview teamsMap={teamsMap} coachTeamIds={coachScoped ? coachTeamIds : null} /><MedicalReview coachTeamIds={coachScoped ? coachTeamIds : null} />{isAdmin && <SuggestionsReview players={players} />}</>}
@@ -219,7 +223,7 @@ function AccessDenied() {
 }
 
 // ============ GAMES ADMIN ============
-function GamesAdmin({ games, teams, players, teamsMap, gameStats, tournaments = [], reload }) {
+function GamesAdmin({ games, teams, players, teamsMap, gameStats, tournaments = [], membersByTeam, reload }) {
   const [showForm, setShowForm] = useState(false)
   const [editingGame, setEditingGame] = useState(null)
   const [editingStats, setEditingStats] = useState(null)
@@ -497,6 +501,7 @@ function GamesAdmin({ games, teams, players, teamsMap, gameStats, tournaments = 
                   game={game}
                   players={players}
                   teamsMap={teamsMap}
+                  membersByTeam={membersByTeam}
                   existingStats={gameStats.filter(s => s.game_id === game.id)}
                   reload={reload}
                 />
@@ -519,12 +524,16 @@ function GamesAdmin({ games, teams, players, teamsMap, gameStats, tournaments = 
 }
 
 // ============ GAME STATS EDITOR ============
-function GameStatsEditor({ game, players, teamsMap, existingStats, reload }) {
+function GameStatsEditor({ game, players, teamsMap, membersByTeam, existingStats, reload }) {
   const [stats, setStats] = useState([])
   const [saving, setSaving] = useState(false)
 
-  const homePlayers = players.filter(p => p.team_id === game.home_team_id)
-  const awayPlayers = players.filter(p => p.team_id === game.away_team_id)
+  // Roster = every player who belongs to the team in ANY age group (a senior
+  // player rostered on a youth team can still be scored in that team's game),
+  // with a fallback to the primary team_id if memberships haven't loaded.
+  const onTeam = (p, tid) => membersByTeam?.get(tid)?.has(p.id) || p.team_id === tid
+  const homePlayers = players.filter(p => onTeam(p, game.home_team_id))
+  const awayPlayers = players.filter(p => onTeam(p, game.away_team_id))
 
   useEffect(() => {
     if (existingStats.length > 0) {
@@ -677,41 +686,55 @@ function GameStatsEditor({ game, players, teamsMap, existingStats, reload }) {
 }
 
 // ============ PLAYERS ADMIN ============
-function PlayersAdmin({ players, teams, teamsMap, reload, coachTeamIds = null }) {
-  // Non-admin coach: roster is filtered to their team(s) and the team field is
-  // locked to their team. Cosmetic scoping only — the players RLS policies are
-  // the real gate. Admins pass coachTeamIds={null} and see the unchanged UI.
+function PlayersAdmin({ players, teams, teamsMap, membersByPlayer = new Map(), reload, coachTeamIds = null }) {
+  // Non-admin coach: roster filtered to their team(s), team locked to their team
+  // (single-team, unchanged). Admins get the multi-age picker — a player may
+  // belong to ONE team per age group (senior league + each youth tournament).
   const coachScoped = Array.isArray(coachTeamIds) && coachTeamIds.length > 0
+  const multiAge = !coachScoped
   const teamOptions = coachScoped ? teams.filter(t => coachTeamIds.includes(t.id)) : teams
   const lockedTeamId = coachScoped && teamOptions.length === 1 ? teamOptions[0].id : ''
+
+  // Teams grouped by age group, for the admin per-age-group picker.
+  const teamsByAge = {}
+  for (const t of teamOptions) (teamsByAge[ageOf(t)] ||= []).push(t)
+  const ageGroupsWithTeams = AGE_GROUPS.filter(a => (teamsByAge[a.value] || []).length > 0)
+  const emptyByAge = () => Object.fromEntries(AGE_GROUPS.map(a => [a.value, '']))
+  const baseForm = () => ({
+    first_name: '', last_name: '', jersey_number: '', position: 'Field Player',
+    team_id: lockedTeamId, teamByAge: emptyByAge(), is_referee: false, is_core: false,
+    goals: 0, games_played: 0, blue_cards: 0, red_cards: 0
+  })
+
   const [showForm, setShowForm] = useState(false)
   const [editingPlayer, setEditingPlayer] = useState(null)
   const [saving, setSaving] = useState(false)
   const [searchTerm, setSearchTerm] = useState("")
   const [feedback, setFeedback] = useState(null) // { type: 'ok' | 'err', text } — makes save success/failure impossible to miss
-  const [form, setForm] = useState({
-    first_name: '', last_name: '', jersey_number: '', position: 'Field Player',
-    team_id: lockedTeamId, is_referee: false, is_core: false, goals: 0, games_played: 0,
-    blue_cards: 0, red_cards: 0
-  })
+  const [form, setForm] = useState(baseForm())
 
   const resetForm = () => {
-    setForm({
-      first_name: '', last_name: '', jersey_number: '', position: 'Field Player',
-      team_id: lockedTeamId, is_referee: false, is_core: false, goals: 0, games_played: 0,
-      blue_cards: 0, red_cards: 0
-    })
+    setForm(baseForm())
     setEditingPlayer(null)
     setShowForm(false)
   }
 
   const startEdit = (player) => {
+    const teamByAge = emptyByAge()
+    for (const m of (membersByPlayer.get(player.id) || [])) {
+      const a = m.age_group || ageOf(teamsMap[m.team_id])
+      if (a in teamByAge) teamByAge[a] = m.team_id
+    }
+    if (player.team_id && !teamByAge[ageOf(teamsMap[player.team_id])]) {
+      teamByAge[ageOf(teamsMap[player.team_id])] = player.team_id
+    }
     setForm({
       first_name: player.first_name || '',
       last_name: player.last_name || '',
       jersey_number: player.jersey_number ?? '',
       position: player.position || 'Field Player',
       team_id: player.team_id || '',
+      teamByAge,
       is_referee: player.is_referee || false,
       is_core: player.is_core || false,
       goals: player.goals || 0,
@@ -723,24 +746,42 @@ function PlayersAdmin({ players, teams, teamsMap, reload, coachTeamIds = null })
     setShowForm(true)
   }
 
+  // The teams selected across all age groups (admin) or the single locked team (coach).
+  const selectedTeamIds = multiAge
+    ? AGE_GROUPS.map(a => form.teamByAge[a.value]).filter(Boolean)
+    : (form.team_id ? [form.team_id] : [])
+  const hasTeam = selectedTeamIds.length > 0
+
   const handleSave = async () => {
     setSaving(true)
     setFeedback(null)
     const wasEditing = !!editingPlayer
     const savedName = `${form.first_name} ${form.last_name}`.trim()
     try {
-      const payload = {
-        ...form,
+      // Scalar fields only — team association is handled separately (below).
+      const scalar = {
+        first_name: form.first_name,
+        last_name: form.last_name,
+        position: form.position,
+        is_referee: form.is_referee,
+        is_core: form.is_core,
         jersey_number: form.jersey_number !== '' ? Number(form.jersey_number) : null,
         goals: Number(form.goals) || 0,
         games_played: Number(form.games_played) || 0,
         blue_cards: Number(form.blue_cards) || 0,
         red_cards: Number(form.red_cards) || 0,
       }
-      if (editingPlayer) {
-        await updatePlayer(editingPlayer, payload)
+      if (multiAge) {
+        // Memberships are the source of truth; setPlayerMemberships also
+        // normalises players.team_id to the senior (else first) selected team.
+        let playerId = editingPlayer
+        if (editingPlayer) await updatePlayer(editingPlayer, scalar)
+        else playerId = (await createPlayer(scalar)).id
+        await setPlayerMemberships(playerId, selectedTeamIds, teamsMap)
       } else {
-        await createPlayer(payload)
+        const payload = { ...scalar, team_id: form.team_id }
+        if (editingPlayer) await updatePlayer(editingPlayer, payload)
+        else await createPlayer(payload)
       }
       resetForm()
       await reload()
@@ -767,8 +808,14 @@ function PlayersAdmin({ players, teams, teamsMap, reload, coachTeamIds = null })
     } catch (err) { alert('שגיאה: ' + err.message) }
   }
 
+  // A coach sees a player on their roster whether it's the player's primary team
+  // or one of their multi-age memberships.
+  const onCoachTeam = (p) => coachScoped && (
+    coachTeamIds.includes(p.team_id) ||
+    (membersByPlayer.get(p.id) || []).some(m => coachTeamIds.includes(m.team_id))
+  )
   const filtered = players.filter(p =>
-    (!coachScoped || coachTeamIds.includes(p.team_id)) &&
+    (!coachScoped || onCoachTeam(p)) &&
     (!searchTerm || `${p.first_name} ${p.last_name}`.includes(searchTerm))
   )
 
@@ -827,13 +874,29 @@ function PlayersAdmin({ players, teams, teamsMap, reload, coachTeamIds = null })
                 <option value="Goalkeeper">שוער</option>
               </select>
             </div>
-            <div>
-              <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1 block">קבוצה</label>
-              <select value={form.team_id} onChange={e => setForm({ ...form, team_id: e.target.value })} className="filter-select w-full disabled:opacity-60 disabled:cursor-not-allowed" disabled={coachScoped && teamOptions.length === 1}>
-                <option value="">בחר קבוצה</option>
-                {teamOptions.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
-              </select>
-            </div>
+            {multiAge ? (
+              ageGroupsWithTeams.map(a => (
+                <div key={a.value}>
+                  <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1 block">
+                    קבוצה • {a.label}
+                  </label>
+                  <select value={form.teamByAge[a.value] || ''}
+                    onChange={e => setForm({ ...form, teamByAge: { ...form.teamByAge, [a.value]: e.target.value } })}
+                    className="filter-select w-full">
+                    <option value="">— ללא —</option>
+                    {(teamsByAge[a.value] || []).map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                  </select>
+                </div>
+              ))
+            ) : (
+              <div>
+                <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1 block">קבוצה</label>
+                <select value={form.team_id} onChange={e => setForm({ ...form, team_id: e.target.value })} className="filter-select w-full disabled:opacity-60 disabled:cursor-not-allowed" disabled={coachScoped && teamOptions.length === 1}>
+                  <option value="">בחר קבוצה</option>
+                  {teamOptions.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                </select>
+              </div>
+            )}
             <div className="flex items-center gap-4 pt-5">
               <label className="flex items-center gap-2 text-xs font-semibold text-slate-600 dark:text-slate-400 cursor-pointer">
                 <input type="checkbox" checked={form.is_core} onChange={e => setForm({ ...form, is_core: e.target.checked })}
@@ -868,16 +931,16 @@ function PlayersAdmin({ players, teams, teamsMap, reload, coachTeamIds = null })
           </div>
 
           <div className="flex flex-wrap items-center gap-2 pt-1">
-            <button onClick={handleSave} disabled={saving || !form.first_name || !form.last_name || !form.team_id}
+            <button onClick={handleSave} disabled={saving || !form.first_name || !form.last_name || !hasTeam}
               className="flex items-center gap-2 px-5 py-2.5 bg-orange-500 text-white text-sm font-semibold rounded-xl hover:bg-orange-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
               <Save className="w-4 h-4" /> {saving ? 'שומר...' : editingPlayer ? 'עדכן' : 'צור'}
             </button>
             <button onClick={resetForm} className="px-4 py-2.5 text-sm font-semibold text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 transition-colors">
               ביטול
             </button>
-            {(!form.first_name || !form.last_name || !form.team_id) && (
+            {(!form.first_name || !form.last_name || !hasTeam) && (
               <span className="text-xs font-medium text-amber-600 dark:text-amber-400">
-                חסר: {[!form.first_name && 'שם פרטי', !form.last_name && 'שם משפחה', !form.team_id && 'קבוצה'].filter(Boolean).join(', ')}
+                חסר: {[!form.first_name && 'שם פרטי', !form.last_name && 'שם משפחה', !hasTeam && 'קבוצה'].filter(Boolean).join(', ')}
               </span>
             )}
           </div>
@@ -901,6 +964,21 @@ function PlayersAdmin({ players, teams, teamsMap, reload, coachTeamIds = null })
                     {player.is_core && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400">C</span>}
                     {player.is_referee && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400">R</span>}
                   </div>
+                  {(() => {
+                    // Extra (non-senior) memberships — the senior team is already the logo above.
+                    const extra = (membersByPlayer.get(player.id) || [])
+                      .filter(m => (m.age_group || ageOf(teamsMap[m.team_id])) !== DEFAULT_AGE)
+                    if (!extra.length) return null
+                    return (
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {extra.map(m => (
+                          <span key={m.team_id} className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
+                            {AGE_LABEL[m.age_group || ageOf(teamsMap[m.team_id])]} · {teamsMap[m.team_id]?.name || '—'}
+                          </span>
+                        ))}
+                      </div>
+                    )
+                  })()}
                 </div>
               </div>
               <div className="flex items-center gap-3">

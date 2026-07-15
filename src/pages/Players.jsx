@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react"
 import { Link } from "react-router-dom"
 import { getPlayers, getTeams } from "@/lib/api"
+import { getPlayerTeams, buildMemberMaps } from "@/lib/playerTeams"
 import { UserCheck, Search, RefreshCw } from "lucide-react"
 import { Player as PlayerIcon } from "@/components/icons/HockeyIcons"
 import { motion } from "framer-motion"
@@ -9,6 +10,7 @@ import TeamLogo from "@/components/TeamLogo"
 export default function Players() {
   const [players, setPlayers] = useState([])
   const [teams, setTeams] = useState([])
+  const [playerTeams, setPlayerTeams] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [search, setSearch] = useState("")
@@ -21,19 +23,20 @@ export default function Players() {
   const loadData = async () => {
     try {
       setLoading(true); setError(null)
-      const [p, t] = await Promise.all([getPlayers(), getTeams()])
-      setPlayers(p); setTeams(t)
+      const [p, t, pt] = await Promise.all([getPlayers(), getTeams(), getPlayerTeams().catch(() => [])])
+      setPlayers(p); setTeams(t); setPlayerTeams(pt)
     } catch (err) { console.error(err); setError("שגיאה בטעינת הנתונים") }
     finally { setLoading(false) }
   }
 
   const teamsMap = Object.fromEntries(teams.map(t => [t.id, t]))
   const teamName = (id) => teamsMap[id]?.name || '—'
+  const { byTeam: membersByTeam } = buildMemberMaps(playerTeams, players)
 
   const filtered = players
     .filter(p => {
       if (search && !`${p.first_name} ${p.last_name}`.includes(search)) return false
-      if (teamFilter !== "all" && p.team_id !== teamFilter) return false
+      if (teamFilter !== "all" && !membersByTeam.get(teamFilter)?.has(p.id)) return false
       if (positionFilter !== "all" && p.position !== positionFilter) return false
       return true
     })

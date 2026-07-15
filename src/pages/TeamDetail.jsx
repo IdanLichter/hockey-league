@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react"
 import { useParams, Link } from "react-router-dom"
 import { getTeams, getPlayers, getGames } from "@/lib/api"
+import { getPlayerTeams, buildMemberMaps } from "@/lib/playerTeams"
 import { useAuth } from "@/lib/AuthContext"
 import { requestTeamJoin } from "@/lib/teamMembership"
 import { standingsComparator } from "@/lib/utils"
@@ -18,6 +19,7 @@ export default function TeamDetail() {
   const [teams, setTeams] = useState([])
   const [players, setPlayers] = useState([])
   const [games, setGames] = useState([])
+  const [playerTeams, setPlayerTeams] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
@@ -33,9 +35,9 @@ export default function TeamDetail() {
   const loadData = async () => {
     try {
       setLoading(true); setError(null)
-      const [t, p, g] = await Promise.all([getTeams(), getPlayers(), getGames()])
+      const [t, p, g, pt] = await Promise.all([getTeams(), getPlayers(), getGames(), getPlayerTeams().catch(() => [])])
       if (!t.find(tm => tm.id === id)) { setError("הקבוצה לא נמצאה"); return }
-      setTeams(t); setPlayers(p); setGames(g)
+      setTeams(t); setPlayers(p); setGames(g); setPlayerTeams(pt)
     } catch (err) { console.error(err); setError("שגיאה בטעינת הנתונים") }
     finally { setLoading(false) }
   }
@@ -75,7 +77,8 @@ export default function TeamDetail() {
   const team = teams.find(t => t.id === id)
   const teamsMap = Object.fromEntries(teams.map(t => [t.id, t]))
   const rank = [...teams].sort(standingsComparator).findIndex(t => t.id === id) + 1
-  const roster = players.filter(p => p.team_id === id).sort((a, b) => (b.goals || 0) - (a.goals || 0))
+  const { byTeam: membersByTeam } = buildMemberMaps(playerTeams, players)
+  const roster = players.filter(p => membersByTeam.get(id)?.has(p.id)).sort((a, b) => (b.goals || 0) - (a.goals || 0))
   const isLinkedPlayer = !!profile?.player_id
   const onThisTeam = isLinkedPlayer && roster.some(p => p.id === profile.player_id)
   const gd = (team.goals_for || 0) - (team.goals_against || 0)

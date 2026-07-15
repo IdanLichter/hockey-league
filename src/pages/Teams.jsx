@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react"
 import { Link } from "react-router-dom"
 import { getTeams, getPlayers, getMyTeamRequests } from "@/lib/api"
+import { getPlayerTeams, buildMemberMaps } from "@/lib/playerTeams"
 import { standingsComparator } from "@/lib/utils"
 import { AGE_GROUPS, DEFAULT_AGE, AGE_LABEL, ageOf, ageGroupsOf } from "@/lib/ageGroups"
 import { useAuth } from "@/lib/AuthContext"
@@ -15,6 +16,7 @@ export default function Teams() {
   const isLinkedPlayer = !!profile?.player_id
   const [teams, setTeams] = useState([])
   const [players, setPlayers] = useState([])
+  const [playerTeams, setPlayerTeams] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [expandedTeam, setExpandedTeam] = useState(null)
@@ -33,8 +35,8 @@ export default function Teams() {
   const loadData = async () => {
     try {
       setLoading(true); setError(null)
-      const [t, p] = await Promise.all([getTeams(), getPlayers()])
-      setTeams(t); setPlayers(p)
+      const [t, p, pt] = await Promise.all([getTeams(), getPlayers(), getPlayerTeams().catch(() => [])])
+      setTeams(t); setPlayers(p); setPlayerTeams(pt)
     } catch (err) { console.error(err); setError("שגיאה בטעינת הנתונים") }
     finally { setLoading(false) }
   }
@@ -61,6 +63,7 @@ export default function Teams() {
   }
 
   const isSenior = ageTab === DEFAULT_AGE
+  const { byTeam: membersByTeam } = buildMemberMaps(playerTeams, players)
   const countByAge = teams.reduce((acc, t) => { for (const a of ageGroupsOf(t)) acc[a] = (acc[a] || 0) + 1; return acc }, {})
   const visible = teams.filter(t => ageGroupsOf(t).includes(ageTab))
   const sorted = isSenior
@@ -123,7 +126,7 @@ export default function Teams() {
       ) : (
       <div className="space-y-3">
         {sorted.map((team, index) => {
-          const tp = players.filter(p => p.team_id === team.id)
+          const tp = players.filter(p => membersByTeam.get(team.id)?.has(p.id))
           const open = expandedTeam === team.id
           const topScorer = tp.filter(p => p.position === 'Field Player').sort((a, b) => (b.goals || 0) - (a.goals || 0))[0]
 
