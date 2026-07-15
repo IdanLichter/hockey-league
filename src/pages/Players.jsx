@@ -2,6 +2,7 @@ import { useState, useEffect } from "react"
 import { Link } from "react-router-dom"
 import { getPlayers, getTeams } from "@/lib/api"
 import { getPlayerTeams, buildMemberMaps } from "@/lib/playerTeams"
+import { ageOf, DEFAULT_AGE } from "@/lib/ageGroups"
 import { UserCheck, Search, RefreshCw } from "lucide-react"
 import { Player as PlayerIcon } from "@/components/icons/HockeyIcons"
 import { motion } from "framer-motion"
@@ -33,7 +34,14 @@ export default function Players() {
   const teamName = (id) => teamsMap[id]?.name || '—'
   const { byTeam: membersByTeam } = buildMemberMaps(playerTeams, players)
 
-  const filtered = players
+  // This is the senior-league directory. Youth-tournament players (whose primary
+  // team is a youth team) are browsed via the Teams page age tabs, not here.
+  // Free agents (no team) count as senior. team_id is senior-preferred, so a
+  // player on both a senior and a youth team still shows.
+  const seniorTeams = teams.filter(t => ageOf(t) === DEFAULT_AGE)
+  const seniorPlayers = players.filter(p => ageOf(teamsMap[p.team_id]) === DEFAULT_AGE)
+
+  const filtered = seniorPlayers
     .filter(p => {
       if (search && !`${p.first_name} ${p.last_name}`.includes(search)) return false
       if (teamFilter !== "all" && !membersByTeam.get(teamFilter)?.has(p.id)) return false
@@ -74,7 +82,7 @@ export default function Players() {
         <h1 className="page-title flex items-center gap-2.5">
           <PlayerIcon className="w-7 h-7 text-orange-500" /> שחקנים
         </h1>
-        <p className="page-subtitle mt-1">{players.length} שחקנים בליגה</p>
+        <p className="page-subtitle mt-1">{seniorPlayers.length} שחקנים בליגה</p>
       </motion.div>
 
       {/* Filters */}
@@ -86,7 +94,7 @@ export default function Players() {
         </div>
         <select value={teamFilter} onChange={e => setTeamFilter(e.target.value)} className="filter-select">
           <option value="all">כל הקבוצות</option>
-          {teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+          {seniorTeams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
         </select>
         <select value={positionFilter} onChange={e => setPositionFilter(e.target.value)} className="filter-select">
           <option value="all">כל העמדות</option>

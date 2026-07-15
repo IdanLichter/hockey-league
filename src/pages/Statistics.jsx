@@ -13,6 +13,7 @@ import {
   teamGoalDiff, teamAchievements, playerAchievements, goalkeeperCleanSheets,
   seasonMonths, monthStartMs, shortMonthLabel, countsForStats,
 } from "@/lib/leagueStats"
+import { ageOf, DEFAULT_AGE } from "@/lib/ageGroups"
 import { axisTicks } from "@/components/charts/chartUtils"
 import ChartCard, { SegToggle } from "@/components/charts/ChartCard"
 import LineChart from "@/components/charts/LineChart"
@@ -47,7 +48,15 @@ export default function Statistics() {
     try {
       setLoading(true); setError(null)
       const [t, p, g, r, s] = await Promise.all([getTeams(), getPlayers(), getGames(), getReferees(), getGameStats()])
-      setTeams(t); setPlayers(p); setGames(g); setReferees(r); setGameStats(s)
+      // Senior-league statistics only: youth-tournament teams/players don't belong
+      // in these leaderboards (youth has its own tournament pages). Games are
+      // already senior-only via countsForStats. team_id is senior-preferred, so a
+      // player on both a senior and a youth team still counts; free agents count.
+      const seniorTeams = t.filter(tm => ageOf(tm) === DEFAULT_AGE)
+      const seniorIds = new Set(seniorTeams.map(tm => tm.id))
+      setTeams(seniorTeams)
+      setPlayers(p.filter(pl => !pl.team_id || seniorIds.has(pl.team_id)))
+      setGames(g); setReferees(r); setGameStats(s)
     } catch (err) { console.error(err); setError("שגיאה בטעינת הנתונים") }
     finally { setLoading(false) }
   }
