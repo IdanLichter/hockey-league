@@ -32,10 +32,12 @@ const CF_TOKEN = Deno.env.get("CF_STREAM_TOKEN")!;
 const CF_API = "https://api.cloudflare.com/client/v4";
 
 // The function self-authorizes on the JWT, so "*" is safe here (it's a
-// Bearer-token API, not cookie-based).
+// Bearer-token API, not cookie-based). supabase-js functions.invoke() adds
+// x-client-info (+ apikey / x-supabase-api-version); the browser preflight
+// rejects ANY header not listed here, so mirror the standard Supabase set.
 const CORS: Record<string, string> = {
   "access-control-allow-origin": "*",
-  "access-control-allow-headers": "authorization, content-type",
+  "access-control-allow-headers": "authorization, x-client-info, apikey, content-type, x-supabase-api-version",
   "access-control-allow-methods": "POST, OPTIONS",
 };
 
