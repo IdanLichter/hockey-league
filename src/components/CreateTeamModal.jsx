@@ -1,7 +1,8 @@
-import { useState } from "react"
-import { X, Loader2, Users, CheckCircle2 } from "lucide-react"
+import { useState, useRef } from "react"
+import { X, Loader2, Users, CheckCircle2, Image as ImageIcon } from "lucide-react"
 import { AGE_GROUPS } from "@/lib/ageGroups"
-import { requestTeam } from "@/lib/api"
+import { requestTeam, uploadTeamLogo } from "@/lib/api"
+import TeamLogo from "@/components/TeamLogo"
 
 const inputCls = "w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500"
 
@@ -18,6 +19,17 @@ export default function CreateTeamModal({ onClose, onCreated }) {
   const [saving, setSaving] = useState(false)
   const [done, setDone] = useState(false)
   const [error, setError] = useState(null)
+  const [logoFile, setLogoFile] = useState(null)
+  const [logoPreview, setLogoPreview] = useState(null)
+  const fileRef = useRef(null)
+
+  const pickLogo = (e) => {
+    const f = e.target.files?.[0]
+    if (!f) return
+    if (!f.type?.startsWith("image/")) { setError("קובץ תמונה בלבד"); return }
+    if (f.size > 3 * 1024 * 1024) { setError("תמונה עד 3MB"); return }
+    setError(null); setLogoFile(f); setLogoPreview(URL.createObjectURL(f))
+  }
 
   const toggle = (g) => setGroups(cur => cur.includes(g) ? cur.filter(x => x !== g) : [...cur, g])
   const canSubmit = name.trim() && groups.length > 0 && !saving
@@ -26,7 +38,11 @@ export default function CreateTeamModal({ onClose, onCreated }) {
     if (!canSubmit) return
     setSaving(true); setError(null)
     try {
-      await requestTeam(name.trim(), groups, city.trim() || null)
+      const newId = await requestTeam(name.trim(), groups, city.trim() || null)
+      if (logoFile && newId) {
+        // crest is optional — a failed upload must not undo the already-created team request
+        try { await uploadTeamLogo(newId, logoFile) } catch { /* ignore */ }
+      }
       setDone(true)
       onCreated?.()
     } catch (e) {
@@ -83,6 +99,17 @@ export default function CreateTeamModal({ onClose, onCreated }) {
                       </button>
                     )
                   })}
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-2">סמל הקבוצה (לא חובה)</label>
+                <div className="flex items-center gap-3">
+                  <TeamLogo team={{ name, primary_color: "#3B4FC4", logo_url: logoPreview }} size={12} />
+                  <input ref={fileRef} type="file" accept="image/*" onChange={pickLogo} className="hidden" />
+                  <button type="button" onClick={() => fileRef.current?.click()}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-xs font-semibold hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">
+                    <ImageIcon className="w-3.5 h-3.5" /> {logoFile ? "החלפת סמל" : "העלאת סמל"}
+                  </button>
                 </div>
               </div>
             </div>

@@ -6,7 +6,7 @@ import { ageOf, DEFAULT_AGE } from "@/lib/ageGroups"
 import { UserCheck, Search, RefreshCw } from "lucide-react"
 import { Player as PlayerIcon } from "@/components/icons/HockeyIcons"
 import { motion } from "framer-motion"
-import TeamLogo from "@/components/TeamLogo"
+import PlayerAvatar from "@/components/PlayerAvatar"
 
 export default function Players() {
   const [players, setPlayers] = useState([])
@@ -32,7 +32,7 @@ export default function Players() {
 
   const teamsMap = Object.fromEntries(teams.map(t => [t.id, t]))
   const teamName = (id) => teamsMap[id]?.name || '—'
-  const { byTeam: membersByTeam } = buildMemberMaps(playerTeams, players)
+  const { byTeam: membersByTeam, byPlayer: teamsByPlayer } = buildMemberMaps(playerTeams, players)
 
   // This is the senior-league directory. Youth-tournament players (whose primary
   // team is a youth team) are browsed via the Teams page age tabs, not here.
@@ -119,11 +119,17 @@ export default function Players() {
             className="card-hover p-4 h-full"
           >
             <div className="flex items-start justify-between mb-3">
-              <div className="flex items-center gap-3">
-                <TeamLogo team={teamsMap[player.team_id]} size={10} />
-                <div>
-                  <h3 className="font-bold text-sm text-slate-900 dark:text-white">{player.first_name} {player.last_name}</h3>
-                  <p className="text-[11px] text-slate-400 dark:text-slate-500">{teamName(player.team_id)}</p>
+              <div className="flex items-center gap-3 min-w-0">
+                <PlayerAvatar player={player} team={teamsMap[player.team_id]} size={12} />
+                <div className="min-w-0">
+                  <h3 className="font-bold text-sm text-slate-900 dark:text-white truncate">{player.first_name} {player.last_name}</h3>
+                  <p className="text-[11px] text-slate-400 dark:text-slate-500 truncate">
+                    {(() => {
+                      const ids = [...(teamsByPlayer.get(player.id) || [])]
+                      const names = ids.map(tid => teamsMap[tid]?.name).filter(Boolean)
+                      return names.length ? names.join(' · ') : teamName(player.team_id)
+                    })()}
+                  </p>
                 </div>
               </div>
               <div className="flex gap-1">

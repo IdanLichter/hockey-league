@@ -23,6 +23,17 @@ export async function getMyJoinRequest() {
   return data
 }
 
+/** The linked player's current team memberships (team + age group) for the multi-age card. */
+export async function getMyMemberships(playerId) {
+  if (!playerId) return []
+  const { data, error } = await supabase
+    .from('player_teams')
+    .select('team_id, age_group, teams(id, name, logo_url, primary_color, age_group)')
+    .eq('player_id', playerId)
+  if (error) throw error
+  return data || []
+}
+
 export async function requestTeamJoin(teamId, note = null) {
   const { data, error } = await supabase.rpc('request_team_join', { p_team_id: teamId, p_note: note || null })
   if (error) {
@@ -46,6 +57,12 @@ export async function cancelTeamJoin(id) {
 /** Become a free agent (players.team_id → null). */
 export async function leaveTeam() {
   const { error } = await supabase.rpc('leave_team')
+  if (error) throw error
+}
+
+/** Leave one specific team (multi-age aware — keeps memberships in other age groups). */
+export async function leaveTeamById(teamId) {
+  const { error } = await supabase.rpc('leave_team_by_id', { p_team_id: teamId })
   if (error) throw error
 }
 

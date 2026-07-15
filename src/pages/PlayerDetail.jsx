@@ -11,6 +11,7 @@ import { ArrowRight, Shirt, Shield, Calendar, RefreshCw, UserPlus, Check, Clock,
 import { motion } from "framer-motion"
 import { format } from "date-fns"
 import TeamLogo from "@/components/TeamLogo"
+import PlayerAvatar from "@/components/PlayerAvatar"
 import TeamMembershipCard from "@/components/TeamMembershipCard"
 import { RoleBadge, deriveRoleItems } from "@/components/RoleBadges"
 import { BRAND_ORANGE } from '@/lib/brand'
@@ -27,7 +28,6 @@ export default function PlayerDetail() {
   const [championId, setChampionId] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
-  const [photoError, setPhotoError] = useState(false)
   const [logFilter, setLogFilter] = useState("all")
   const { user, loading: authLoading, openAuth } = useAuth()
   const { seasonMode } = useSeasonMode()
@@ -224,16 +224,7 @@ export default function PlayerDetail() {
       {/* Header */}
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="card p-5 sm:p-6">
         <div className="flex items-center gap-4">
-          {player.photo_url && !photoError ? (
-            <img src={player.photo_url} alt={`${player.first_name} ${player.last_name}`}
-              onError={() => setPhotoError(true)}
-              className="w-20 h-20 rounded-2xl object-cover shrink-0 bg-slate-100 dark:bg-slate-700" />
-          ) : (
-            <div className="w-20 h-20 rounded-2xl shrink-0 flex items-center justify-center text-white text-2xl font-extrabold"
-              style={{ backgroundColor: team?.primary_color || BRAND_ORANGE }}>
-              {player.first_name?.charAt(0) || '?'}
-            </div>
-          )}
+          <PlayerAvatar player={player} team={team} size={20} />
           <div className="min-w-0">
             <h1 className="page-title truncate">{player.first_name} {player.last_name}</h1>
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1.5">

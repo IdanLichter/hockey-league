@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Link } from "react-router-dom"
 import { motion } from "framer-motion"
 import {
@@ -7,7 +7,7 @@ import {
 } from "lucide-react"
 import { useAuth } from "@/lib/AuthContext"
 import { useTheme } from "@/lib/ThemeContext"
-import { getMyProfile, updateMyProfile, getPlayerPhotos, disconnectPairing } from "@/lib/profile"
+import { getMyProfile, updateMyProfile, getPlayerPhotos, disconnectPairing, uploadAvatar } from "@/lib/profile"
 import { getMyPlayerSubmission } from "@/lib/playerSubmissions"
 import PlayerCardSubmission from "@/components/PlayerCardSubmission"
 import TeamMembershipCard from "@/components/TeamMembershipCard"
@@ -31,6 +31,9 @@ export default function Profile() {
   const [disconnecting, setDisconnecting] = useState(false)
   const [pendingSubmission, setPendingSubmission] = useState(null)
   const [showCreateCard, setShowCreateCard] = useState(false)
+  const [uploadingAvatar, setUploadingAvatar] = useState(false)
+  const [avatarErr, setAvatarErr] = useState(null)
+  const avatarFileRef = useRef(null)
 
   useEffect(() => {
     let alive = true
@@ -84,6 +87,22 @@ export default function Profile() {
       setTimeout(() => setSaved(false), 2000)
     } catch { /* ignore */ }
     finally { setSaving(false) }
+  }
+
+  // Upload a photo file → avatars bucket → persist immediately (no URL pasting).
+  const onPickAvatar = async (e) => {
+    const f = e.target.files?.[0]
+    if (!f) return
+    if (!f.type?.startsWith("image/")) { setAvatarErr("קובץ תמונה בלבד"); return }
+    if (f.size > 4 * 1024 * 1024) { setAvatarErr("תמונה עד 4MB"); return }
+    setAvatarErr(null); setUploadingAvatar(true)
+    try {
+      const url = await uploadAvatar(f)
+      setAvatar(url)
+      await updateMyProfile({ avatar_url: url })
+      await refreshProfile()
+    } catch { setAvatarErr("שגיאה בהעלאה, נסו שוב") }
+    finally { setUploadingAvatar(false) }
   }
 
   // ---- signed-out ----
@@ -269,14 +288,40 @@ export default function Profile() {
         </div>
 
         <div>
-          <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1.5">כתובת תמונת פרופיל (URL)</label>
-          <input
-            value={avatar}
-            onChange={e => setAvatar(e.target.value)}
-            placeholder="https://…"
-            dir="ltr"
-            className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500 text-left"
-          />
+          <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1.5">תמונת פרופיל</label>
+          <div className="flex items-center gap-3">
+            {avatar ? (
+              <img src={avatar} alt="" className="w-16 h-16 rounded-2xl object-cover shrink-0 bg-slate-100 dark:bg-slate-700" />
+            ) : (
+              <div className="w-16 h-16 rounded-2xl shrink-0 flex items-center justify-center bg-orange-500 text-white text-xl font-extrabold">{initial}</div>
+            )}
+            <div className="flex flex-col gap-1.5">
+              <input ref={avatarFileRef} type="file" accept="image/*" onChange={onPickAvatar} className="hidden" />
+              <button type="button" onClick={() => avatarFileRef.current?.click()} disabled={uploadingAvatar}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-orange-500 text-white text-xs font-semibold hover:bg-orange-600 transition-colors disabled:opacity-50">
+                {uploadingAvatar ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Camera className="w-3.5 h-3.5" />}
+                {uploadingAvatar ? "מעלה…" : (avatar ? "החלפת תמונה" : "העלאת תמונה")}
+              </button>
+              {avatar && !uploadingAvatar && (
+                <button type="button"
+                  onClick={async () => { setAvatar(""); setAvatarErr(null); await updateMyProfile({ avatar_url: null }); await refreshProfile() }}
+                  className="text-[11px] font-semibold text-slate-400 hover:text-red-500 transition-colors self-start">
+                  הסרת תמונה
+                </button>
+              )}
+            </div>
+          </div>
+          {avatarErr && <p className="mt-1.5 text-xs text-red-600 dark:text-red-400">{avatarErr}</p>}
+          <details className="mt-2">
+            <summary className="text-[11px] text-slate-400 dark:text-slate-500 cursor-pointer select-none">או הדבקת כתובת תמונה (URL)</summary>
+            <input
+              value={avatar}
+              onChange={e => setAvatar(e.target.value)}
+              placeholder="https://…"
+              dir="ltr"
+              className="mt-1.5 w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500 text-left"
+            />
+          </details>
         </div>
 
         <button onClick={handleSave} disabled={saving}

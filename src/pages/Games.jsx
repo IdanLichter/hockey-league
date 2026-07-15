@@ -1,16 +1,21 @@
 import { useState, useEffect } from "react"
 import { Link } from "react-router-dom"
 import { getGames, getTeams, getPlayers, getReferees, getGameStatsByGameId } from "@/lib/api"
-import { Calendar, Clock, MapPin, Trophy, Shield, X, ChevronDown, ArrowLeft, RefreshCw } from "lucide-react"
+import { Calendar, Clock, MapPin, Trophy, Shield, X, ChevronDown, ArrowLeft, RefreshCw, Medal } from "lucide-react"
 import { Crossed } from "@/components/icons/HockeyIcons"
 import { motion, AnimatePresence } from "framer-motion"
 import { format } from "date-fns"
 import TeamLogo from "@/components/TeamLogo"
 import { PlayerLink } from "@/components/EntityLinks"
 import { FRIENDLY_GAME_TYPE } from "@/lib/leagueStats"
+import { AGE_GROUPS, DEFAULT_AGE, ageGroupsOf } from "@/lib/ageGroups"
 import LiveGameBanner from "@/components/LiveGameBanner"
 import { useLiveGames } from "@/lib/useLiveGames"
 import { Radio } from "lucide-react"
+
+// The tournaments filter isn't a game_type — it's "any game tagged with a
+// tournament_id". Kept distinct from the 4 real game_type values.
+const TOURNAMENTS_TAB = "__tournaments__"
 
 export default function Games() {
   const [games, setGames] = useState([])
@@ -20,6 +25,7 @@ export default function Games() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [activeCompetition, setActiveCompetition] = useState("ליגה")
+  const [ageTab, setAgeTab] = useState(DEFAULT_AGE)
   const [statusFilter, setStatusFilter] = useState("all")
   const [teamFilter, setTeamFilter] = useState("all")
   const [dateFilter, setDateFilter] = useState("")
@@ -36,8 +42,9 @@ export default function Games() {
     try {
       setLoading(true); setError(null)
       const [g, t, p, r] = await Promise.all([getGames(), getTeams(), getPlayers(), getReferees()])
-      // The senior schedule excludes youth-tournament games (they live on /tournaments).
-      setGames(g.filter(x => !x.tournament_id)); setTeams(t); setPlayers(p); setReferees(r)
+      // Keep tournament games too — the age tabs + טורנירים filter surface them
+      // (youth teams only ever play tournament games).
+      setGames(g); setTeams(t); setPlayers(p); setReferees(r)
     } catch (err) { console.error(err); setError("שגיאה בטעינת הנתונים") }
     finally { setLoading(false) }
   }
@@ -75,8 +82,21 @@ export default function Games() {
     postponed: { label: "נדחה", cls: "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300" },
   }
 
+  // Age groups that actually have a team (senior always shown); youth appear once
+  // their teams exist. A game belongs to an age group if either team is in it.
+  const presentAges = AGE_GROUPS.filter(a => a.value === DEFAULT_AGE || teams.some(t => ageGroupsOf(t).includes(a.value)))
+  const gameInAge = (g, age) => {
+    const h = teamsMap[g.home_team_id], a = teamsMap[g.away_team_id]
+    return (h && ageGroupsOf(h).includes(age)) || (a && ageGroupsOf(a).includes(age))
+  }
+  // League/playoff/friendly tabs show only non-tournament games; the טורנירים tab
+  // shows only tournament-tagged games. So tournament games never leak into the others.
+  const compMatch = (g) =>
+    activeCompetition === TOURNAMENTS_TAB ? !!g.tournament_id : (g.game_type === activeCompetition && !g.tournament_id)
+
   const filtered = games.filter(g => {
-    if (g.game_type !== activeCompetition) return false
+    if (!gameInAge(g, ageTab)) return false
+    if (!compMatch(g)) return false
     if (statusFilter !== "all" && g.status !== statusFilter) return false
     if (teamFilter !== "all" && g.home_team_id !== teamFilter && g.away_team_id !== teamFilter) return false
     if (dateFilter && format(new Date(g.game_date), 'yyyy-MM-dd') !== dateFilter) return false
@@ -300,6 +320,19 @@ export default function Games() {
         <p className="page-subtitle mt-1">לוח משחקים ותוצאות עונת 2025-26</p>
       </motion.div>
 
+      {/* Age-group tabs — senior by default; youth (u19/u17/u15) appear once they have a team */}
+      {presentAges.length > 1 && (
+        <div className="tab-bar w-full sm:w-auto overflow-x-auto">
+          {presentAges.map(a => (
+            <button key={a.value}
+              onClick={() => { setAgeTab(a.value); setActiveCompetition(a.value === DEFAULT_AGE ? "ליגה" : TOURNAMENTS_TAB) }}
+              className={ageTab === a.value ? "tab-active" : "tab-inactive"}>
+              {a.label}
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-2.5">
         <div className="tab-bar sm:w-auto">
@@ -312,6 +345,9 @@ export default function Games() {
           <button onClick={() => setActiveCompetition(FRIENDLY_GAME_TYPE)} className={activeCompetition === FRIENDLY_GAME_TYPE ? "tab-active" : "tab-inactive"}>
             <Crossed className="w-4 h-4" /> ידידותי
           </button>
+          <button onClick={() => setActiveCompetition(TOURNAMENTS_TAB)} className={activeCompetition === TOURNAMENTS_TAB ? "tab-active" : "tab-inactive"}>
+            <Medal className="w-4 h-4" /> טורנירים
+          </button>
         </div>
         <div className="flex gap-2 flex-1 flex-wrap">
           <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className="filter-select flex-1 min-w-[120px]">
@@ -322,7 +358,7 @@ export default function Games() {
           </select>
           <select value={teamFilter} onChange={e => setTeamFilter(e.target.value)} className="filter-select flex-1 min-w-[120px]">
             <option value="all">כל הקבוצות</option>
-            {teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+            {teams.filter(t => ageGroupsOf(t).includes(ageTab)).map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
           </select>
           <div className="relative flex-1 min-w-[130px]">
             <input type="date" value={dateFilter} onChange={e => setDateFilter(e.target.value)} className="filter-input w-full" />

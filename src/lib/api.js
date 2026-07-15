@@ -71,13 +71,67 @@ export async function getMyTeamRequests() {
   return data || []
 }
 
+// ----- coach/admin team editing (crest + details) -----
+
+/** Coach/admin edits a team's descriptive fields (competitive stats stay admin-only). */
+export async function updateTeamDetails(teamId, fields) {
+  const { error } = await supabase.rpc('update_team_details', {
+    p_team_id: teamId,
+    p_name: fields.name,
+    p_city: fields.city ?? null,
+    p_home_venue: fields.home_venue ?? null,
+    p_primary_color: fields.primary_color ?? null,
+    p_secondary_color: fields.secondary_color ?? null,
+    p_founded_year: fields.founded_year ?? null,
+  })
+  if (error) {
+    if (/not authorized/i.test(error.message || '')) throw new Error('not-authorized')
+    throw error
+  }
+}
+
+/**
+ * Upload a crest to the public `team-logos` bucket (path "<team_id>/<file>") and
+ * point teams.logo_url at its public URL via the set_team_logo RPC. Allowed for
+ * the team's coach, an admin, or the creator of a still-pending team. Returns the URL.
+ */
+export async function uploadTeamLogo(teamId, file) {
+  const ext = (file.name?.split('.').pop() || 'png').toLowerCase()
+  const path = `${teamId}/logo-${Date.now()}.${ext}`
+  const { error: upErr } = await supabase.storage
+    .from('team-logos')
+    .upload(path, file, { upsert: true, contentType: file.type || undefined })
+  if (upErr) throw upErr
+  const { data: pub } = supabase.storage.from('team-logos').getPublicUrl(path)
+  const url = pub?.publicUrl
+  const { error: rpcErr } = await supabase.rpc('set_team_logo', { p_team_id: teamId, p_url: url })
+  if (rpcErr) {
+    if (/not authorized/i.test(rpcErr.message || '')) throw new Error('not-authorized')
+    throw rpcErr
+  }
+  return url
+}
+
 export async function getPlayers(orderBy = 'goals', ascending = false) {
   const { data, error } = await supabase
     .from('players')
     .select('*')
     .order(orderBy, { ascending })
   if (error) throw error
-  return data
+  const players = data || []
+  // Attach the paired user's uploaded avatar (claimed cards only) so player cards
+  // can show the person's photo. Batched lookup — NOT a profiles↔players embed
+  // (embed-ambiguity gotcha); profiles has a public-read policy so anon gets it too.
+  try {
+    const { data: owners } = await supabase
+      .from('profiles').select('player_id, avatar_url')
+      .not('player_id', 'is', null).not('avatar_url', 'is', null)
+    if (owners?.length) {
+      const byPlayer = Object.fromEntries(owners.map(o => [o.player_id, o.avatar_url]))
+      for (const p of players) if (byPlayer[p.id]) p.owner_avatar_url = byPlayer[p.id]
+    }
+  } catch { /* avatar is enhancement-only; never break the players fetch */ }
+  return players
 }
 
 export async function getGames(orderBy = 'game_date', ascending = false) {

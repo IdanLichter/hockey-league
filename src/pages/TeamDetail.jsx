@@ -7,16 +7,18 @@ import { requestTeamJoin } from "@/lib/teamMembership"
 import { standingsComparator } from "@/lib/utils"
 import { ageOf, DEFAULT_AGE, AGE_LABEL } from "@/lib/ageGroups"
 import { FRIENDLY_GAME_TYPE } from "@/lib/leagueStats"
-import { ArrowRight, Users, Trophy, Target, Shield, Calendar, RefreshCw } from "lucide-react"
+import { ArrowRight, Users, Trophy, Target, Shield, Calendar, RefreshCw, Pencil } from "lucide-react"
 import { motion } from "framer-motion"
 import { format } from "date-fns"
 import TeamLogo from "@/components/TeamLogo"
+import TeamEditModal from "@/components/TeamEditModal"
 import { useSeo } from "@/lib/seo"
 
 export default function TeamDetail() {
   const { id } = useParams()
-  const { profile } = useAuth()
+  const { profile, isAdmin, coachTeamIds } = useAuth()
   const [joinState, setJoinState] = useState(null)
+  const [editing, setEditing] = useState(false)
   const [teams, setTeams] = useState([])
   const [players, setPlayers] = useState([])
   const [games, setGames] = useState([])
@@ -77,6 +79,7 @@ export default function TeamDetail() {
 
   const team = teams.find(t => t.id === id)
   const teamsMap = Object.fromEntries(teams.map(t => [t.id, t]))
+  const canEdit = !!team && (isAdmin || coachTeamIds.includes(team.id))
   // League rank is senior only; a youth-tournament team isn't in the league
   // table, so it shows its age-group badge instead of a bogus rank.
   const isSeniorTeam = ageOf(team) === DEFAULT_AGE
@@ -126,6 +129,12 @@ export default function TeamDetail() {
               <span><span className="font-bold text-red-500">{team.losses || 0}</span> <span className="text-[11px] text-slate-400">הפסדים</span></span>
             </div>
           </div>
+          {canEdit && (
+            <button onClick={() => setEditing(true)}
+              className="ms-auto self-start inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-xs font-semibold hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors shrink-0">
+              <Pencil className="w-3.5 h-3.5" /> עריכה
+            </button>
+          )}
         </div>
       </motion.div>
 
@@ -229,6 +238,8 @@ export default function TeamDetail() {
           })}
         </div>
       </motion.div>
+
+      {editing && <TeamEditModal team={team} onClose={() => setEditing(false)} onSaved={loadData} />}
     </div>
   )
 }

@@ -84,3 +84,20 @@ export async function updateMyProfile({ display_name, avatar_url }) {
   if (error) throw error
   return data
 }
+
+/**
+ * Upload a profile photo to the public `avatars` bucket (path "<user_id>/<file>")
+ * and return its public URL. The caller persists it to profiles.avatar_url via
+ * updateMyProfile — users upload a photo instead of pasting an image URL.
+ */
+export async function uploadAvatar(file) {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('not authenticated')
+  const ext = (file.name?.split('.').pop() || 'jpg').toLowerCase()
+  const path = `${user.id}/avatar-${Date.now()}.${ext}`
+  const { error: upErr } = await supabase.storage
+    .from('avatars').upload(path, file, { upsert: true, contentType: file.type || undefined })
+  if (upErr) throw upErr
+  const { data: pub } = supabase.storage.from('avatars').getPublicUrl(path)
+  return pub?.publicUrl
+}
