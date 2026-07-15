@@ -15,8 +15,9 @@ export default function Privacy() {
 
       <div className="card p-5 sm:p-6 space-y-6 text-slate-700 dark:text-slate-200 leading-relaxed text-[15px]">
         <Section title="מי אנחנו">
-          rinkhockeyIL היא האפליקציה הרשמית של ליגת ההוקי (אתר, iOS ו‑Android) — טבלה, משחקים,
-          סטטיסטיקות, פיד קהילתי וכלי שיפוט. מדיניות זו מסבירה איזה מידע נאסף וכיצד נעשה בו שימוש.
+          rinkhockeyIL היא אפליקציה קהילתית עצמאית לקהילת הוקי גלגליות חובבנית בישראל (אתר, iOS ו‑Android) —
+          טבלה, משחקים, סטטיסטיקות, פיד קהילתי וכלי שיפוט. היא אינה משויכת לאף ליגה, פדרציה או ארגון ספורט
+          רשמי ואינה מייצגת עצמה ככזו. מדיניות זו מסבירה איזה מידע נאסף וכיצד נעשה בו שימוש.
         </Section>
 
         <Section title="מידע שאנו אוספים">
@@ -66,7 +67,9 @@ export default function Privacy() {
         <div dir="ltr" className="text-sm text-slate-500 dark:text-slate-400 space-y-2">
           <p className="font-semibold text-slate-700 dark:text-slate-300">Privacy Policy (English summary)</p>
           <p>
-            rinkhockeyIL is the official app of the league (web, iOS, Android). We collect only your
+            rinkhockeyIL is an independent, community-made app for an amateur roller-hockey community
+            in Israel (web, iOS, Android). It is not affiliated with or endorsed by any league,
+            federation, or sports organization. We collect only your
             email + display name (for the account, via Supabase Auth) and content you post (posts,
             comments, likes). We do not collect location, do not track you across apps, show no ads,
             and never sell data. Data is stored with Supabase. You can delete your account and all
