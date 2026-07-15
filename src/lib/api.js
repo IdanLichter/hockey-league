@@ -340,10 +340,16 @@ export async function deleteGameStatsByGameId(gameId) {
 }
 
 // --- Admin Users ---
+// admin_users SELECT is locked to the caller's own row (so checkAdmin works
+// without leaking the admin list to every logged-in user). The full list comes
+// from the is_admin()-gated list_admins() RPC. Fall back to a direct read for
+// resilience (older/behind DB, or the RPC erroring).
 export async function getAdminUsers() {
-  const { data, error } = await supabase.from('admin_users').select('*').order('created_at')
-  if (error) throw error
-  return data
+  const { data, error } = await supabase.rpc('list_admins')
+  if (!error && Array.isArray(data)) return data
+  const res = await supabase.from('admin_users').select('*').order('created_at')
+  if (res.error) throw res.error
+  return res.data
 }
 
 export async function addAdminUser(email, name) {
