@@ -22,7 +22,7 @@ function Field({ label, children }) {
  */
 export default function PlayerCardSubmission({ onClose, onSubmitted }) {
   const [teams, setTeams] = useState([])
-  const [form, setForm] = useState({ teamId: "", firstName: "", lastName: "", jerseyNumber: "", position: "", age: "", note: "" })
+  const [form, setForm] = useState({ teamId: "", firstName: "", lastName: "", jerseyNumber: "", position: "Field Player", age: "", note: "" })
   const [saving, setSaving] = useState(false)
   const [done, setDone] = useState(false)
   const [error, setError] = useState(null)
@@ -108,7 +108,10 @@ export default function PlayerCardSubmission({ onClose, onSubmitted }) {
                   <input value={form.age} onChange={e => set("age", e.target.value.replace(/\D/g, "").slice(0, 2))} inputMode="numeric" className={inputCls} />
                 </Field>
                 <Field label="עמדה">
-                  <input value={form.position} onChange={e => set("position", e.target.value.slice(0, 20))} className={inputCls} />
+                  <select value={form.position} onChange={e => set("position", e.target.value)} className={inputCls}>
+                    <option value="Field Player">שחקן שדה</option>
+                    <option value="Goalkeeper">שוער</option>
+                  </select>
                 </Field>
               </div>
               <Field label="הערה למאמן (לא חובה)">
