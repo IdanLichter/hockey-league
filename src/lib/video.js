@@ -37,7 +37,7 @@ export async function getGameVideo(gameId) {
   if (!gameId) return null
   const { data: videos, error } = await supabase
     .from('game_videos')
-    .select('id, video_id, title, kind, clock_offset_seconds, is_primary, created_at')
+    .select('id, provider, video_id, cf_customer_code, title, kind, clock_offset_seconds, is_primary, created_at')
     .eq('game_id', gameId)
     .order('is_primary', { ascending: false })
     .order('created_at', { ascending: false })
@@ -67,6 +67,22 @@ export async function attachVideo(gameId, { url, kind = 'full', offset = 0 } = {
     .select('id, video_id, kind')
     .single()
   if (error) throw error
+  return data
+}
+
+// Streamer: start a Cloudflare Stream live broadcast from the browser camera.
+// The edge function enforces can_stream_game(), creates the live input, inserts
+// the public game_videos row (spectators' realtime shows the embed at once), and
+// returns { uid, whipUrl, whepUrl, cfCustomerCode }. The caller then publishes
+// the camera to whipUrl via publishWHIP(). Throws a Hebrew message on refusal.
+export async function goLiveCloudflare(gameId) {
+  const { data, error } = await supabase.functions.invoke('stream-golive', { body: { gameId } })
+  if (error) {
+    let reason = ''
+    try { reason = (await error.context?.json())?.error } catch { /* ignore */ }
+    if (reason === 'forbidden') throw new Error('אין לך הרשאה לשדר במשחק זה')
+    throw new Error('שגיאה בהתחלת השידור')
+  }
   return data
 }
 

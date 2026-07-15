@@ -1,11 +1,12 @@
 import { useState, useEffect, useRef, useCallback } from "react"
 import { motion } from "framer-motion"
-import { Video, Radio, Plus, Trash2, ExternalLink, Youtube, Tag } from "lucide-react"
+import { Video, Radio, Plus, Trash2, ExternalLink, Youtube, Tag, Camera, Square } from "lucide-react"
 import { useAuth } from "@/lib/AuthContext"
 import {
   getGameVideo, attachVideo, detachVideo, addMarker, deleteMarker,
-  subscribeGameVideo, parseYouTubeId, fmtClock,
+  subscribeGameVideo, parseYouTubeId, fmtClock, goLiveCloudflare,
 } from "@/lib/video"
+import { publishWHIP } from "@/lib/whip"
 
 // Marker kinds → Hebrew label + emoji + pill colour (reuses the StatPills palette).
 const KINDS = {
@@ -66,6 +67,48 @@ function YouTubePlayer({ videoId, onReady }) {
   )
 }
 
+// Spectator embed for a Cloudflare Stream live input. The customer code + uid on
+// the row are all we need — the same player shows the live broadcast and, after
+// it ends, the auto-recorded replay (viewers may need one reload to see the VOD).
+function CloudflarePlayer({ video }) {
+  const code = video.cf_customer_code
+  if (!code) {
+    return (
+      <div className="w-full aspect-video bg-black rounded-xl grid place-items-center text-slate-400 text-sm">
+        השידור נטען…
+      </div>
+    )
+  }
+  const src = `https://customer-${code}.cloudflarestream.com/${video.video_id}/iframe?autoplay=true&muted=true&preload=auto`
+  return (
+    <div className="relative w-full aspect-video bg-black rounded-xl overflow-hidden">
+      <iframe src={src} className="absolute inset-0 w-full h-full border-0" title="שידור"
+        allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;" allowFullScreen />
+    </div>
+  )
+}
+
+// The streamer's own view while broadcasting: the local camera preview (instant,
+// no round-trip) with a live pill and a stop control. Spectators meanwhile watch
+// the CloudflarePlayer embed.
+function LocalBroadcast({ previewRef, starting, onStop }) {
+  return (
+    <div className="space-y-3">
+      <div className="relative w-full aspect-video bg-black rounded-xl overflow-hidden">
+        <video ref={previewRef} autoPlay playsInline muted className="absolute inset-0 w-full h-full object-cover" />
+        <div className="absolute top-3 right-3 flex items-center gap-1.5 px-2 py-1 rounded-full bg-black/60 text-white text-xs font-semibold">
+          <Radio className="w-3.5 h-3.5 animate-pulse text-red-500" />
+          {starting ? "מתחבר…" : "משדר"}
+        </div>
+      </div>
+      <button onClick={onStop}
+        className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold text-white bg-slate-800 hover:bg-slate-900 transition-colors">
+        <Square className="w-4 h-4 fill-current" /> הפסק שידור
+      </button>
+    </div>
+  )
+}
+
 export default function GameVideo({ game, home, away, players = [] }) {
   const { user, isAdmin, isContentEditor, isJudgeRole, coachTeamIds, openAuth } = useAuth()
   const [video, setVideo] = useState(null)
@@ -73,6 +116,9 @@ export default function GameVideo({ game, home, away, players = [] }) {
   const [player, setPlayer] = useState(null)
   const [duration, setDuration] = useState(0)
   const [showAttach, setShowAttach] = useState(false)
+  const [broadcast, setBroadcast] = useState(null) // null | 'starting' | { stop }
+  const previewRef = useRef(null)
+  const sessionRef = useRef(null)
 
   const gameId = game?.id
   const isLive = game?.status === "in_progress"
@@ -105,6 +151,59 @@ export default function GameVideo({ game, home, away, players = [] }) {
     try { player.seekTo(sec, true); player.playVideo?.() } catch { /* ignore */ }
   }
 
+  // ---- Cloudflare browser broadcast (streamer side) ------------------------
+  // getUserMedia → mint a live input (edge fn gates + inserts the row) → publish
+  // the camera via WHIP. The row insert is what spectators see; this component
+  // keeps the session so the local preview survives the row refresh.
+  const startBroadcast = async () => {
+    setBroadcast("starting")
+    let stream
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: "environment" }, audio: true,
+      })
+    } catch {
+      alert("לא ניתן לגשת למצלמה/מיקרופון")
+      setBroadcast(null)
+      return
+    }
+    if (previewRef.current) {
+      previewRef.current.srcObject = stream
+      previewRef.current.muted = true
+      previewRef.current.play?.().catch(() => {})
+    }
+    try {
+      const { whipUrl } = await goLiveCloudflare(gameId)
+      if (!whipUrl) throw new Error("no whip url")
+      const session = await publishWHIP(whipUrl, stream)
+      sessionRef.current = session
+      setBroadcast(session)
+      load() // refresh the row (badge/kind); spectators already got the realtime insert
+    } catch (e) {
+      try { stream.getTracks().forEach((t) => t.stop()) } catch { /* ignore */ }
+      if (previewRef.current) previewRef.current.srcObject = null
+      alert(e?.message || "שגיאה בהתחלת השידור")
+      setBroadcast(null)
+    }
+  }
+
+  const stopBroadcast = async () => {
+    const session = sessionRef.current
+    sessionRef.current = null
+    setBroadcast(null)
+    const s = previewRef.current?.srcObject
+    if (s) { s.getTracks().forEach((t) => t.stop()); previewRef.current.srcObject = null }
+    try { await session?.stop?.() } catch { /* ignore */ }
+    load()
+  }
+
+  // Tear a live broadcast down if the streamer navigates away mid-stream.
+  useEffect(() => () => {
+    sessionRef.current?.stop?.()
+    const s = previewRef.current?.srcObject
+    if (s) s.getTracks?.().forEach((t) => t.stop())
+  }, [])
+
   if (loading) return null
   // Nothing to show and the viewer can't add one → render nothing at all.
   if (!video && !canStream) return null
@@ -113,7 +212,7 @@ export default function GameVideo({ game, home, away, players = [] }) {
     <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="card overflow-hidden">
       <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between gap-2">
         <h2 className="flex items-center gap-2 font-bold text-sm text-slate-900 dark:text-white">
-          {isLive && video
+          {(isLive && video) || broadcast
             ? <span className="flex items-center gap-1.5 text-red-600 dark:text-red-400"><Radio className="w-4 h-4 animate-pulse" /> שידור חי</span>
             : <><Video className="w-4 h-4 text-orange-500" /> וידאו מהמשחק</>}
         </h2>
@@ -126,9 +225,13 @@ export default function GameVideo({ game, home, away, players = [] }) {
       </div>
 
       <div className="p-4 sm:p-5 space-y-4">
-        {video ? (
+        {broadcast ? (
+          <LocalBroadcast previewRef={previewRef} starting={broadcast === "starting"} onStop={stopBroadcast} />
+        ) : video ? (
           <>
-            <YouTubePlayer videoId={video.video_id} onReady={onPlayerReady} />
+            {video.provider === "cloudflare"
+              ? <CloudflarePlayer video={video} />
+              : <YouTubePlayer videoId={video.video_id} onReady={onPlayerReady} />}
 
             {/* Proportional marker strip (hidden for live / unknown duration) */}
             {duration > 0 && video.markers.length > 0 && (
@@ -174,10 +277,19 @@ export default function GameVideo({ game, home, away, players = [] }) {
             </a>
           </>
         ) : (
-          <AttachCard
-            isLive={isLive} show={showAttach} setShow={setShowAttach}
-            onAttach={onAttach(gameId, isLive, load)} requireAuth={!user ? openAuth : null}
-          />
+          <div className="space-y-3">
+            {isLive && canStream && (
+              <button onClick={startBroadcast}
+                className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold text-white bg-red-500 hover:bg-red-600 transition-colors">
+                <Camera className="w-4 h-4" /> שדר עכשיו מהמצלמה
+              </button>
+            )}
+            <AttachCard
+              isLive={isLive} show={showAttach} setShow={setShowAttach}
+              onAttach={onAttach(gameId, isLive, load)} requireAuth={!user ? openAuth : null}
+              secondary={isLive && canStream}
+            />
+          </div>
         )}
       </div>
     </motion.div>
@@ -198,7 +310,7 @@ const onAttach = (gameId, isLive, reload) => async (url) => {
 }
 
 // "Go live" / "add video" card shown to streamers when a game has no video yet.
-function AttachCard({ isLive, show, setShow, onAttach, requireAuth }) {
+function AttachCard({ isLive, show, setShow, onAttach, requireAuth, secondary = false }) {
   const [url, setUrl] = useState("")
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState(null)
@@ -212,6 +324,16 @@ function AttachCard({ isLive, show, setShow, onAttach, requireAuth }) {
   }
 
   if (!show) {
+    // When the camera "go live" button is the primary CTA, this steps back to a
+    // quiet "or paste a YouTube link" affordance.
+    if (secondary) {
+      return (
+        <button onClick={() => setShow(true)}
+          className="w-full text-center text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors">
+          או הדבק קישור YouTube לשידור
+        </button>
+      )
+    }
     return (
       <button onClick={() => setShow(true)}
         className={`w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold text-white transition-colors ${isLive ? "bg-red-500 hover:bg-red-600" : "bg-orange-500 hover:bg-orange-600"}`}>
