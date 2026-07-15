@@ -80,7 +80,10 @@ export async function broadcastGameState(engine, gameId) {
       p_is_running: running,
       p_period: engine.periodLabel,
       p_phase: engine.phase,
-      p_state: { events: buildLiveEvents(engine) },
+      // events → spectator play-by-play; snapshot → the full engine state, so a judge
+      // who lost their local draft (different device / cleared storage) resumes THIS
+      // match instead of a fresh board. Spectators read events + columns, ignore snapshot.
+      p_state: { events: buildLiveEvents(engine), snapshot: engine.serialize() },
     })
     if (error) throw error
   } catch (e) {

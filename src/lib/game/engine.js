@@ -182,6 +182,15 @@ export class GameEngine {
     this._changed()
   }
 
+  // Never-touched board: no events recorded and still in the opening ready phase.
+  // Gates two safety checks — skipping an empty live broadcast, and rehydrating from
+  // a server snapshot without clobbering officiating already begun on this board.
+  isPristine() {
+    return this.phase === Phase.ready &&
+      this.goals.length === 0 && this.strikes.length === 0 &&
+      this.cardLog.length === 0 && this.breaks.length === 0
+  }
+
   // ---- scoring (event-based) ----
   addGoal(side, player = null) {
     this.goals.push({ id: uid(), side, player, timeMS: this.clock.remainingMS, half: this.currentHalf })

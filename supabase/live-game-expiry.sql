@@ -9,7 +9,7 @@
 -- This sweep reverts such games and clears their live rows. It is scheduled with
 -- pg_cron every 5 minutes; it is also safe to call by hand.
 
-create or replace function public.expire_stale_live_games(p_minutes int default 30)
+create or replace function public.expire_stale_live_games(p_minutes int default 20)
 returns int
 language plpgsql
 security definer

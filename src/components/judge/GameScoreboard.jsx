@@ -210,7 +210,10 @@ export default function GameScoreboard({ game, home, guest, players }) {
     // nor phase) still pushes a broadcast — that's what carries the play-by-play.
     const sig = () => [engine.homeFinalScore, engine.guestFinalScore, engine.isRunning, engine.phase, engine.periodLabel, engine.goals.length, engine.strikes.length, engine.cardLog.length, engine.breaks.length].join("|")
     lastSig.current = sig()
-    broadcastGameState(engine, game.id)
+    // Skip broadcasting an untouched board: it would flip the game to "live" and
+    // overwrite an existing live row (including a snapshot we might still recover
+    // from) before the judge acts. The first real change broadcasts via subscribe.
+    if (!engine.isPristine()) broadcastGameState(engine, game.id)
     return engine.subscribe(() => {
       const s = sig()
       if (s === lastSig.current) return

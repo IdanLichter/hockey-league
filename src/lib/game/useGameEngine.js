@@ -1,5 +1,6 @@
 import { useRef, useEffect, useSyncExternalStore } from 'react'
 import { GameEngine } from './engine'
+import { getLiveGame } from '../live'
 
 const LS = (id) => `judge-engine-${id}`
 const SAVE_EVERY_MS = 1000
@@ -14,14 +15,20 @@ const finished = new Set()
  * draft, drives a ~20fps tick while the clock/break is live, and re-renders on
  * every engine change. Persists a draft (at most once a second) so a refresh
  * mid-game loses nothing.
+ *
+ * If this browser has NO local draft but the game is still live on the server
+ * (the judge officiated from another device, or storage was cleared), it
+ * rehydrates the engine from the last broadcast snapshot instead of starting
+ * fresh — otherwise the next tap would reset a match the whole league is watching.
  */
 export function useGameEngine(game, home, guest) {
   const ref = useRef(null)
+  const hadDraft = useRef(false)
   if (!ref.current) {
     const e = new GameEngine({ homeName: home?.name || 'בית', guestName: guest?.name || 'חוץ' })
     try {
       const raw = localStorage.getItem(LS(game.id))
-      if (raw) e.restore(JSON.parse(raw))
+      if (raw) { e.restore(JSON.parse(raw)); hadDraft.current = true }
     } catch { /* ignore */ }
     ref.current = e
   }
@@ -36,12 +43,17 @@ export function useGameEngine(game, home, guest) {
   // Persist a draft, at most once a second. The engine bumps `version` on every 50ms
   // tick, and serializing the whole match 20×/sec janks the live scoreboard for no
   // durability gain — a trailing write keeps the saved clock within one second of live.
+  // A pristine (never-touched) board is never persisted, so an opened-but-unused tab
+  // can't leave behind a stale draft that blocks a later server-snapshot recovery.
   const save = useRef({ at: 0, timer: null })
+  const persist = () => {
+    if (finished.has(game.id) || engine.isPristine()) return
+    try { localStorage.setItem(LS(game.id), JSON.stringify(engine.serialize())) } catch { /* ignore */ }
+  }
   const write = () => {
     save.current.at = Date.now()
     save.current.timer = null
-    if (finished.has(game.id)) return
-    try { localStorage.setItem(LS(game.id), JSON.stringify(engine.serialize())) } catch { /* ignore */ }
+    persist()
   }
 
   // tick loop (20fps) — only advances while the clock/break is live
@@ -63,9 +75,27 @@ export function useGameEngine(game, home, guest) {
       if (!t.timer) return
       clearTimeout(t.timer)
       t.timer = null
-      if (finished.has(game.id)) return
-      try { localStorage.setItem(LS(game.id), JSON.stringify(engine.serialize())) } catch { /* ignore */ }
+      persist()
     }
+  }, [engine, game.id])
+
+  // Lost-draft / cross-device recovery. With no local draft, the fresh engine would
+  // silently reset a game that's still broadcasting live. Pull the last snapshot the
+  // server holds and resume it (paused) — but only while this board is still untouched,
+  // so we never clobber officiating the judge has already begun on this device.
+  const recovered = useRef(false)
+  useEffect(() => {
+    if (hadDraft.current || recovered.current || finished.has(game.id)) return
+    let cancelled = false
+    getLiveGame(game.id).then((row) => {
+      if (cancelled || recovered.current) return
+      const snap = row?.state?.snapshot
+      if (snap && engine.isPristine()) {
+        recovered.current = true
+        engine.restore(snap)
+      }
+    })
+    return () => { cancelled = true }
   }, [engine, game.id])
 
   return engine
