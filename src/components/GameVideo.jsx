@@ -89,8 +89,9 @@ function CloudflarePlayer({ video, isLive }) {
   useEffect(() => {
     if (mode !== "whep" || !code) return
     let cancelled = false
+    let attempts = 0
     setStatus("connecting")
-    ;(async () => {
+    const tryPlay = async () => {
       try {
         const iceServers = await getViewerIceServers()
         if (cancelled) return
@@ -100,9 +101,15 @@ function CloudflarePlayer({ video, isLive }) {
         sessionRef.current = session
         setStatus("playing")
       } catch {
-        if (!cancelled) setMode("iframe") // broadcast unreachable → recording / offline
+        if (cancelled) return
+        // The broadcast may not be live yet (Cloudflare 409 "not started"), or a
+        // transient hiccup — retry for ~35s before giving up to the recording.
+        attempts += 1
+        if (attempts < 12) setTimeout(tryPlay, 3000)
+        else setMode("iframe")
       }
-    })()
+    }
+    tryPlay()
     return () => { cancelled = true; sessionRef.current?.stop?.(); sessionRef.current = null }
   }, [mode, code, video.video_id])
 

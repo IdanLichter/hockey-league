@@ -29,22 +29,33 @@ export function waitForIceGathering(pc, ms = 8000) {
   })
 }
 
-// Resolve once media can actually flow (ICE connected); reject if it fails or
-// never connects. This is what turns a silent "handshake ok but no video" into a
-// visible error the UI can act on. Exported for the WHEP viewer path.
-export function waitForConnection(pc, ms = 15000) {
+// Resolve once media can actually flow (ICE/peer connected); reject on genuine
+// failure or after `ms`. Exported for the WHEP viewer path. We listen to BOTH
+// state events AND poll (belt-and-suspenders — a single missed event must never
+// leave a connected stream reported as failed, which is the bug this replaces),
+// and accept either iceConnectionState or the more reliable connectionState.
+export function waitForConnection(pc, ms = 30000) {
   return new Promise((resolve, reject) => {
-    const settle = (ok) => {
+    let done = false
+    const finish = (ok) => {
+      if (done) return
+      done = true
+      clearInterval(poll)
       clearTimeout(timer)
       pc.removeEventListener("iceconnectionstatechange", check)
+      pc.removeEventListener("connectionstatechange", check)
       ok ? resolve() : reject(new Error("ice-failed"))
     }
     const check = () => {
-      const s = pc.iceConnectionState
-      if (s === "connected" || s === "completed") settle(true)
-      else if (s === "failed" || s === "closed") settle(false)
+      const i = pc.iceConnectionState
+      const c = pc.connectionState
+      if (i === "connected" || i === "completed" || c === "connected") finish(true)
+      else if (c === "failed" || i === "failed" || i === "closed" || c === "closed") finish(false)
     }
-    const timer = setTimeout(() => settle(false), ms)
+    pc.addEventListener("iceconnectionstatechange", check)
+    pc.addEventListener("connectionstatechange", check)
+    const poll = setInterval(check, 400)
+    const timer = setTimeout(() => finish(false), ms)
     check() // in case it's already connected
   })
 }
