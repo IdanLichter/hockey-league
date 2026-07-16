@@ -139,6 +139,9 @@ export function AuthProvider({ children }) {
   // to unlock tournament management and, later, the coach-request approval flow.
   const isLeagueManager = roles.some(r => r.role === 'league_manager')
 
+  // Holds an actual medic role (RAW, does NOT pass for admins) — assignable to games.
+  const isMedic = roles.some(r => r.role === 'medic')
+
   // Who may create feed posts: league staff only — coach / content_editor /
   // judge(=referee) / league_manager / admin. Regular linked players & guests cannot.
   const canPost = isAdmin || coachTeamIds.length > 0 || isContentEditor || isJudgeRole || isLeagueManager
@@ -185,7 +188,7 @@ export function AuthProvider({ children }) {
 
   return (
     <AuthContext.Provider value={{
-      user, isAdmin, roles, hasRole, coachTeamIds, isJudgeRole, isContentEditor, isLeagueManager, canPost, profile, refreshProfile, loading, authOpen,
+      user, isAdmin, roles, hasRole, coachTeamIds, isJudgeRole, isContentEditor, isLeagueManager, isMedic, canPost, profile, refreshProfile, loading, authOpen,
       signInWithGoogle, signUpWithEmail, signInWithEmail, signOut,
       openAuth, closeAuth,
     }}>

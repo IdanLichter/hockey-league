@@ -14,6 +14,7 @@ import { TeamLink, PlayerLink } from "@/components/EntityLinks"
 import { useSeo } from "@/lib/seo"
 import { countsForStats, FRIENDLY_GAME_TYPE } from "@/lib/leagueStats"
 import GameChangeRequestModal from "@/components/GameChangeRequestModal"
+import OfficialSelfSubmit from "@/components/OfficialSelfSubmit"
 import { getMyGameChangeRequest, cancelGameChangeRequest } from "@/lib/gameRequests"
 
 const statusCfg = {
@@ -341,6 +342,9 @@ export default function GameDetail() {
           onSubmitted={refreshMyRequest}
         />
       )}
+
+      {/* ===== OFFICIAL SELF-SUBMIT (judge/medic apply for an upcoming game) ===== */}
+      <OfficialSelfSubmit game={game} />
 
       {/* ===== VIDEO / VOD (the live stream is shown up top while in-progress) ===== */}
       {!showLive && <GameVideo game={game} home={home} away={away} players={players} />}

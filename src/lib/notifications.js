@@ -122,6 +122,10 @@ export function notificationText(n) {
     case 'tournament_invite':          return `קבוצת ${d.team_name || ''} הוזמנה לטורניר ${d.tournament_name || ''}`
     case 'tournament_invite_accepted': return `קבוצת ${d.team_name || ''} אישרה השתתפות בטורניר ${d.tournament_name || ''} 🎉`
     case 'tournament_invite_declined': return `קבוצת ${d.team_name || ''} דחתה את ההזמנה לטורניר ${d.tournament_name || ''}`
+    case 'official_assigned':              return `שובצת כ${ROLE_LABEL[d.role] || 'בעל תפקיד'} למשחק`
+    case 'official_application':           return `${actorName(n)} הגיש/ה מועמדות כ${ROLE_LABEL[d.role] || 'בעל תפקיד'}`
+    case 'official_application_approved':  return `מועמדותך לשיבוץ כ${ROLE_LABEL[d.role] || 'בעל תפקיד'} אושרה 🎉`
+    case 'official_application_rejected':  return `מועמדותך לשיבוץ כ${ROLE_LABEL[d.role] || 'בעל תפקיד'} נדחתה`
     default:               return 'התראה חדשה'
   }
 }
@@ -153,6 +157,10 @@ export function notificationIcon(n) {
     case 'tournament_invite':          return '🏆'
     case 'tournament_invite_accepted': return '✅'
     case 'tournament_invite_declined': return '⛔'
+    case 'official_assigned':              return '⚖️'
+    case 'official_application':           return '📝'
+    case 'official_application_approved':  return '✅'
+    case 'official_application_rejected':  return '⛔'
     default:               return '🔔'
   }
 }
@@ -184,6 +192,10 @@ export function notificationHref(n) {
     case 'tournament_invite':
     case 'tournament_invite_accepted':
     case 'tournament_invite_declined': return n.entity_id ? `/tournaments/${n.entity_id}` : '/tournaments'
+    case 'official_assigned':
+    case 'official_application_approved':
+    case 'official_application_rejected': return n.entity_id ? `/games/${n.entity_id}` : '/games'
+    case 'official_application':          return '/admin'
     case 'post_like':
     case 'post_comment':
     default:               return '/'
