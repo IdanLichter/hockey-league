@@ -81,15 +81,19 @@ function CloudflarePlayer({ video, isLive }) {
   const code = video.cf_customer_code
   const videoRef = useRef(null)
   const sessionRef = useRef(null)
-  const [mode, setMode] = useState(isLive ? "whep" : "iframe")
+  const [mode, setMode] = useState("whep") // always try the live WHEP+TURN path first
   const [status, setStatus] = useState("connecting") // connecting | playing
 
-  useEffect(() => { setMode(isLive ? "whep" : "iframe") }, [isLive])
+  // Re-attempt the live path when the stream/liveness changes. We deliberately do
+  // NOT gate WHEP on game.status (it can be stale) — we just try WHEP, and fall
+  // back to the iframe (recording) only if there's no live broadcast to receive.
+  useEffect(() => { setMode("whep") }, [video.video_id, isLive])
 
   useEffect(() => {
     if (mode !== "whep" || !code) return
     let cancelled = false
     let attempts = 0
+    const maxAttempts = isLive ? 15 : 3 // live: ride out startup; VOD: fail fast to the recording
     setStatus("connecting")
     const tryPlay = async () => {
       try {
@@ -105,13 +109,13 @@ function CloudflarePlayer({ video, isLive }) {
         // The broadcast may not be live yet (Cloudflare 409 "not started"), or a
         // transient hiccup — retry for ~35s before giving up to the recording.
         attempts += 1
-        if (attempts < 12) setTimeout(tryPlay, 3000)
+        if (attempts < maxAttempts) setTimeout(tryPlay, 3000)
         else setMode("iframe")
       }
     }
     tryPlay()
     return () => { cancelled = true; sessionRef.current?.stop?.(); sessionRef.current = null }
-  }, [mode, code, video.video_id])
+  }, [mode, code, video.video_id, isLive])
 
   if (!code) {
     return (
