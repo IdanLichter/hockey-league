@@ -14,6 +14,7 @@ import { TeamLink, PlayerLink } from "@/components/EntityLinks"
 import { useSeo } from "@/lib/seo"
 import { countsForStats, FRIENDLY_GAME_TYPE } from "@/lib/leagueStats"
 import GameChangeRequestModal from "@/components/GameChangeRequestModal"
+import GameChangeOpponentCard from "@/components/GameChangeOpponentCard"
 import OfficialSelfSubmit from "@/components/OfficialSelfSubmit"
 import { getMyGameChangeRequest, cancelGameChangeRequest } from "@/lib/gameRequests"
 
@@ -215,6 +216,7 @@ export default function GameDetail() {
   // upcoming (scheduled or already postponed). Managers/admins edit games directly.
   const isTeamCoach = (coachTeamIds || []).some(tid => tid === game.home_team_id || tid === game.away_team_id)
   const canRequestChange = isTeamCoach && (game.status === 'scheduled' || game.status === 'postponed')
+  const gcOpen = ['pending', 'pending_opponent', 'pending_manager'].includes(myRequest?.status)
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-3xl mx-auto space-y-5">
@@ -303,10 +305,9 @@ export default function GameDetail() {
             <p className="text-sm font-semibold text-slate-900 dark:text-white flex items-center gap-2">
               <CalendarClock className="w-4 h-4 text-brand" /> שינוי מועד או מגרש
             </p>
-            {myRequest?.status === 'pending' ? (
+            {gcOpen ? (
               <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
-                בקשתך ממתינה לאישור מנהל הליגה
-                {myRequest.proposed_date && <> · {format(new Date(myRequest.proposed_date), "d/M/yyyy HH:mm")}</>}
+                בקשתך {myRequest.status === 'pending_opponent' ? 'ממתינה לאישור המאמן היריב' : 'ממתינה לאישור מנהל הליגה'}
                 {myRequest.proposed_venue && <> · {myRequest.proposed_venue}</>}
               </p>
             ) : myRequest?.status === 'rejected' ? (
@@ -320,7 +321,7 @@ export default function GameDetail() {
             )}
           </div>
           <div className="shrink-0">
-            {myRequest?.status === 'pending' ? (
+            {gcOpen ? (
               <button onClick={cancelMyRequest} disabled={cancelling}
                 className="text-xs font-semibold px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-600 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors disabled:opacity-50">
                 {cancelling ? 'מבטל…' : 'ביטול הבקשה'}
@@ -342,6 +343,9 @@ export default function GameDetail() {
           onSubmitted={refreshMyRequest}
         />
       )}
+
+      {/* ===== OPPONENT COACH: respond to a reschedule request (pick workable dates) ===== */}
+      <GameChangeOpponentCard game={game} coachTeamIds={coachTeamIds} onResponded={refreshMyRequest} />
 
       {/* ===== OFFICIAL SELF-SUBMIT (judge/medic apply for an upcoming game) ===== */}
       <OfficialSelfSubmit game={game} />

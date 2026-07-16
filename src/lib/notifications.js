@@ -107,6 +107,7 @@ export function notificationText(n) {
     case 'content_report': return `דווח תוכן${d.reason ? ` — ${d.reason}` : ''}`
     case 'game_result':    return `תוצאה: ${d.home_team || ''} ${d.home_score ?? ''}:${d.away_score ?? ''} ${d.away_team || ''}`
     case 'game_change_request':  return `${actorName(n)} מבקש/ת שינוי במשחק ${d.home_team || ''} נגד ${d.away_team || ''}${d.reason ? ` — ${d.reason}` : ''}`
+    case 'game_change_opponent': return `${actorName(n)} מבקש/ת שינוי מועד — יש לבחור מועד שמתאים לך${d.reason ? ` (${d.reason})` : ''}`
     case 'game_change_approved': return `בקשתך לשינוי המשחק ${d.home_team || ''} נגד ${d.away_team || ''} אושרה 🎉${d.decision_note ? ` — ${d.decision_note}` : ''}`
     case 'game_change_rejected': return `בקשתך לשינוי המשחק ${d.home_team || ''} נגד ${d.away_team || ''} נדחתה${d.decision_note ? ` — ${d.decision_note}` : ''}`
     case 'team_join_request':    return `${actorName(n)} מבקש/ת להצטרף לקבוצת ${d.team_name || ''}`
@@ -142,6 +143,7 @@ export function notificationIcon(n) {
     case 'content_report': return '🚩'
     case 'game_result':    return '⚽'
     case 'game_change_request':  return '🗓️'
+    case 'game_change_opponent': return '🗓️'
     case 'game_change_approved': return '✅'
     case 'game_change_rejected': return '⛔'
     case 'team_join_request':    return '🤝'
@@ -174,6 +176,7 @@ export function notificationHref(n) {
     case 'claim_request':
     case 'content_report': return '/admin'
     case 'game_change_request':  return '/admin'
+    case 'game_change_opponent':
     case 'game_result':
     case 'game_change_approved':
     case 'game_change_rejected':  return n.entity_id ? `/games/${n.entity_id}` : '/games'
