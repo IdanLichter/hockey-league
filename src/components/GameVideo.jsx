@@ -4,9 +4,10 @@ import { Video, Radio, Plus, Trash2, ExternalLink, Youtube, Tag, Camera, Square 
 import { useAuth } from "@/lib/AuthContext"
 import {
   getGameVideo, attachVideo, detachVideo, addMarker, deleteMarker,
-  subscribeGameVideo, parseYouTubeId, fmtClock, goLiveCloudflare,
+  subscribeGameVideo, parseYouTubeId, fmtClock, goLiveCloudflare, getViewerIceServers,
 } from "@/lib/video"
 import { publishWHIP } from "@/lib/whip"
+import { playWHEP } from "@/lib/whep"
 
 // Marker kinds → Hebrew label + emoji + pill colour (reuses the StatPills palette).
 const KINDS = {
@@ -67,11 +68,44 @@ function YouTubePlayer({ videoId, onReady }) {
   )
 }
 
-// Spectator embed for a Cloudflare Stream live input. The customer code + uid on
-// the row are all we need — the same player shows the live broadcast and, after
-// it ends, the auto-recorded replay (viewers may need one reload to see the VOD).
-function CloudflarePlayer({ video }) {
+// Spectator player for a Cloudflare Stream live input.
+//
+// While LIVE we play via WHEP (WebRTC) with OUR TURN relay — Cloudflare produces
+// no HLS for browser-published live, and its built-in player does WHEP without
+// TURN, so viewers on strict/mobile networks get a black spinner. Our WHEP+TURN
+// path works on any network (proven with a relay-only connection). For the
+// recorded REPLAY (not live) Cloudflare serves HLS, so the standard iframe is
+// fine and universal — we also fall back to it if the live WHEP can't connect
+// (e.g. the broadcast already ended).
+function CloudflarePlayer({ video, isLive }) {
   const code = video.cf_customer_code
+  const videoRef = useRef(null)
+  const sessionRef = useRef(null)
+  const [mode, setMode] = useState(isLive ? "whep" : "iframe")
+  const [status, setStatus] = useState("connecting") // connecting | playing
+
+  useEffect(() => { setMode(isLive ? "whep" : "iframe") }, [isLive])
+
+  useEffect(() => {
+    if (mode !== "whep" || !code) return
+    let cancelled = false
+    setStatus("connecting")
+    ;(async () => {
+      try {
+        const iceServers = await getViewerIceServers()
+        if (cancelled) return
+        const playUrl = `https://customer-${code}.cloudflarestream.com/${video.video_id}/webRTC/play`
+        const session = await playWHEP(playUrl, iceServers, videoRef.current)
+        if (cancelled) { session.stop(); return }
+        sessionRef.current = session
+        setStatus("playing")
+      } catch {
+        if (!cancelled) setMode("iframe") // broadcast unreachable → recording / offline
+      }
+    })()
+    return () => { cancelled = true; sessionRef.current?.stop?.(); sessionRef.current = null }
+  }, [mode, code, video.video_id])
+
   if (!code) {
     return (
       <div className="w-full aspect-video bg-black rounded-xl grid place-items-center text-slate-400 text-sm">
@@ -79,11 +113,25 @@ function CloudflarePlayer({ video }) {
       </div>
     )
   }
-  const src = `https://customer-${code}.cloudflarestream.com/${video.video_id}/iframe?autoplay=true&muted=true&preload=auto`
+
+  if (mode === "iframe") {
+    const src = `https://customer-${code}.cloudflarestream.com/${video.video_id}/iframe?autoplay=true&muted=true&preload=auto`
+    return (
+      <div className="relative w-full aspect-video bg-black rounded-xl overflow-hidden">
+        <iframe src={src} className="absolute inset-0 w-full h-full border-0" title="שידור"
+          allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;" allowFullScreen />
+      </div>
+    )
+  }
+
   return (
     <div className="relative w-full aspect-video bg-black rounded-xl overflow-hidden">
-      <iframe src={src} className="absolute inset-0 w-full h-full border-0" title="שידור"
-        allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;" allowFullScreen />
+      <video ref={videoRef} autoPlay playsInline muted controls className="absolute inset-0 w-full h-full object-contain bg-black" />
+      {status === "connecting" && (
+        <div className="absolute inset-0 grid place-items-center bg-black/60 text-white text-sm">
+          <span className="flex items-center gap-2"><Radio className="w-4 h-4 animate-pulse text-red-500" /> מתחבר לשידור…</span>
+        </div>
+      )}
     </div>
   )
 }
@@ -238,7 +286,7 @@ export default function GameVideo({ game, home, away, players = [] }) {
         ) : video ? (
           <>
             {video.provider === "cloudflare"
-              ? <CloudflarePlayer video={video} />
+              ? <CloudflarePlayer video={video} isLive={isLive} />
               : <YouTubePlayer videoId={video.video_id} onReady={onPlayerReady} />}
 
             {/* Proportional marker strip (hidden for live / unknown duration) */}

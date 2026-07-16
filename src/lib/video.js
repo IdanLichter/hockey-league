@@ -70,6 +70,20 @@ export async function attachVideo(gameId, { url, kind = 'full', offset = 0 } = {
   return data
 }
 
+// Viewer: fetch ICE servers (Cloudflare STUN + short-lived TURN) for WHEP
+// playback. Anon-callable (spectators aren't signed in). TURN is what lets a
+// viewer on a strict/mobile network watch the WebRTC-only live stream; falls
+// back to STUN-only if the endpoint is unreachable.
+export async function getViewerIceServers() {
+  try {
+    const { data, error } = await supabase.functions.invoke('turn-creds', { body: {} })
+    if (error) return null
+    return data?.iceServers || null
+  } catch {
+    return null
+  }
+}
+
 // Streamer: start a Cloudflare Stream live broadcast from the browser camera.
 // The edge function enforces can_stream_game(), creates the live input, inserts
 // the public game_videos row (spectators' realtime shows the embed at once), and

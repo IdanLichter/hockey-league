@@ -14,7 +14,8 @@ const DEFAULT_ICE = [{ urls: "stun:stun.cloudflare.com:3478" }]
 // Resolve when ICE gathering completes, or after `ms` (generous cap — mobile
 // networks can take a few seconds to gather a server-reflexive/relay candidate;
 // the old 2s cap was cutting gathering off and shipping a host-only offer).
-function waitForIceGathering(pc, ms = 8000) {
+// Exported for the WHEP viewer path (lib/whep.js).
+export function waitForIceGathering(pc, ms = 8000) {
   if (pc.iceGatheringState === "complete") return Promise.resolve()
   return new Promise((resolve) => {
     const finish = () => {
@@ -30,8 +31,8 @@ function waitForIceGathering(pc, ms = 8000) {
 
 // Resolve once media can actually flow (ICE connected); reject if it fails or
 // never connects. This is what turns a silent "handshake ok but no video" into a
-// visible error the UI can act on.
-function waitForConnection(pc, ms = 15000) {
+// visible error the UI can act on. Exported for the WHEP viewer path.
+export function waitForConnection(pc, ms = 15000) {
   return new Promise((resolve, reject) => {
     const settle = (ok) => {
       clearTimeout(timer)
