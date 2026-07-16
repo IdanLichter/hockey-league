@@ -34,6 +34,9 @@ function WidgetFooter({ to, label }) {
 
 export function StandingsWidget({ teams = [] }) {
   const top = [...teams].filter(t => ageOf(t) === DEFAULT_AGE).sort(standingsComparator).slice(0, 5)
+  // Points bar under each team: leader = 100%, others = points / leader points (right-anchored, RTL).
+  const leaderPts = top[0]?.points || 0
+  const barPct = (pts) => leaderPts > 0 ? Math.max(0, Math.min(100, ((pts || 0) / leaderPts) * 100)) : 0
   return (
     <div className="card overflow-hidden">
       <WidgetHeader icon={<Trophy className="w-4 h-4 text-amber-500" />} title="טבלה" />
@@ -42,13 +45,21 @@ export function StandingsWidget({ teams = [] }) {
           <p className="text-center text-xs text-slate-400 dark:text-slate-500 py-4">אין נתונים</p>
         )}
         {top.map((team, i) => (
-          <div key={team.id} className="flex items-center gap-2.5 px-1.5 py-1">
-            <span className={`w-5 h-5 rounded-md flex items-center justify-center text-[10px] font-bold shrink-0 ${medal(i)}`}>{i + 1}</span>
-            <Link to={`/teams/${team.id}`} className="flex items-center gap-2.5 flex-1 min-w-0 group">
-              <TeamLogo team={team} size={6} />
-              <span className="truncate text-sm font-semibold text-slate-900 dark:text-white group-hover:text-orange-500 transition-colors">{team.name}</span>
-            </Link>
-            <span className="bg-slate-900 dark:bg-orange-500 text-white text-[11px] font-bold px-2 py-0.5 rounded-md shrink-0">{team.points || 0}</span>
+          <div key={team.id} className="px-1.5 py-1">
+            <div className="flex items-center gap-2.5">
+              <span className={`w-5 h-5 rounded-md flex items-center justify-center text-[10px] font-bold shrink-0 ${medal(i)}`}>{i + 1}</span>
+              <Link to={`/teams/${team.id}`} className="flex items-center gap-2.5 flex-1 min-w-0 group">
+                <TeamLogo team={team} size={6} />
+                <span className="truncate text-sm font-semibold text-slate-900 dark:text-white group-hover:text-orange-500 transition-colors">{team.name}</span>
+              </Link>
+              <span className="bg-slate-900 dark:bg-orange-500 text-white text-[11px] font-bold px-2 py-0.5 rounded-md shrink-0">{team.points || 0}</span>
+            </div>
+            {/* Points bar: leader = full width, others scaled to their points ratio; grows right→left.
+                Inset ring gives a defined edge so even white/pale team colours stay visible. */}
+            <div className="relative mt-1.5 ms-7 h-1.5 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden">
+              <div className="absolute inset-y-0 right-0 rounded-full ring-1 ring-inset ring-black/15 dark:ring-white/20 transition-[width] duration-500"
+                   style={{ width: `${barPct(team.points || 0)}%`, backgroundColor: team.primary_color || "#94a3b8" }} />
+            </div>
           </div>
         ))}
       </div>

@@ -32,6 +32,10 @@ export default function Home() {
   const seniorTeams = teams.filter(t => ageOf(t) === DEFAULT_AGE)
   const sorted = [...seniorTeams].sort(standingsComparator)
   const first = sorted[0] || null
+  // Points bar under each team: the leader is always 100%, everyone else is
+  // (their points / leader points), drawn right-anchored (RTL) in the team's colour.
+  const leaderPts = first?.points || 0
+  const pointsBarPct = (pts) => leaderPts > 0 ? Math.max(0, Math.min(100, ((pts || 0) / leaderPts) * 100)) : 0
 
   const matchups = sorted.length >= 7 ? [
     { p1: 2, t1: sorted[1], p2: 7, t2: sorted[6], series: "A" },
@@ -163,6 +167,12 @@ export default function Home() {
                         <TeamLink team={team} className="font-bold text-fg-strong text-sm truncate hover:text-brand hover:underline underline-offset-2 decoration-brand/40 transition-colors">{team.name}</TeamLink>
                         {zone === "ff" && <span className="shrink-0 text-[10px] px-1.5 py-0.5 rounded font-bold bg-gold/[0.15] text-gold">FF</span>}
                         {zone === "po" && <span className="shrink-0 text-[10px] px-1.5 py-0.5 rounded font-bold bg-brand/[0.12] text-brand-strong dark:text-brand-light">PO</span>}
+                      </div>
+                      {/* Points bar: leader = full width, others scaled to their points ratio; grows right→left.
+                          Inset ring gives a defined edge so even white/pale team colours stay visible. */}
+                      <div className="relative mt-1.5 h-1.5 rounded-full bg-fg/[0.08] overflow-hidden" title={`${team.points || 0} נק׳`}>
+                        <div className="absolute inset-y-0 right-0 rounded-full ring-1 ring-inset ring-black/15 dark:ring-white/20 transition-[width] duration-500"
+                             style={{ width: `${pointsBarPct(team.points || 0)}%`, backgroundColor: team.primary_color || "#94a3b8" }} />
                       </div>
                     </td>
                     <td className="px-2 py-3 text-center tabular-nums text-fg-muted">{played(team)}</td>
