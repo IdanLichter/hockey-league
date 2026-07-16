@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react"
 import { Link } from "react-router-dom"
-import { getGames, getTeams } from "@/lib/api"
-import { Gavel, Calendar, MapPin, RefreshCw, ChevronLeft, Clock } from "lucide-react"
+import { getGames, getTeams, getPlayers } from "@/lib/api"
+import { getAvailabilityForOfficialBatch } from "@/lib/availability"
+import { Gavel, Calendar, MapPin, RefreshCw, ChevronLeft, Clock, Users, AlertTriangle } from "lucide-react"
 import { motion } from "framer-motion"
 import { format } from "date-fns"
 import TeamLogo from "@/components/TeamLogo"
@@ -17,6 +18,8 @@ const statusCfg = {
 function JudgePicker() {
   const [games, setGames] = useState([])
   const [teams, setTeams] = useState([])
+  const [players, setPlayers] = useState([])
+  const [availByGame, setAvailByGame] = useState({})
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
@@ -25,8 +28,13 @@ function JudgePicker() {
   const loadData = async () => {
     try {
       setLoading(true); setError(null)
-      const [g, t] = await Promise.all([getGames(), getTeams()])
-      setGames(g); setTeams(t)
+      const [g, t, p] = await Promise.all([getGames(), getTeams(), getPlayers()])
+      setGames(g); setTeams(t); setPlayers(p)
+      const upcomingIds = g.filter(x => OFFICIABLE.includes(x.status)).map(x => x.id)
+      const rows = await getAvailabilityForOfficialBatch(upcomingIds)
+      const map = {}
+      rows.forEach(r => { (map[r.game_id] ||= {})[r.player_id] = r.status })
+      setAvailByGame(map)
     } catch (e) { console.error(e); setError("שגיאה בטעינת הנתונים") }
     finally { setLoading(false) }
   }
@@ -56,6 +64,18 @@ function JudgePicker() {
   const officiable = games
     .filter(g => OFFICIABLE.includes(g.status))
     .sort((a, b) => new Date(a.game_date) - new Date(b.game_date))
+
+  // C3: attendance readiness per team, for the referee's upcoming games.
+  const teamAtt = (game, tid) => {
+    const avail = availByGame[game.id] || {}
+    const coming = players.filter(p => p.team_id === tid && avail[p.id] === "available")
+    return { count: coming.length, gk: coming.some(p => p.position === "Goalkeeper"), tooFew: coming.length < 4 }
+  }
+  const AttChip = ({ att }) => (
+    <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded ${att.tooFew ? "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300" : "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300"}`}>
+      <Users className="w-3 h-3" /> {att.count}{!att.gk && <AlertTriangle className="w-3 h-3 text-red-500" />}
+    </span>
+  )
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-3xl mx-auto space-y-5">
@@ -98,6 +118,13 @@ function JudgePicker() {
                       <span className="font-bold text-sm text-slate-900 dark:text-white truncate text-left">{away?.name || '—'}</span>
                     </div>
                   </div>
+                  {game.status === "scheduled" && (
+                    <div className="flex items-center justify-between gap-2 mt-2.5">
+                      <AttChip att={teamAtt(game, game.home_team_id)} />
+                      <span className="text-[10px] text-slate-400 dark:text-slate-500">מגיעים</span>
+                      <AttChip att={teamAtt(game, game.away_team_id)} />
+                    </div>
+                  )}
                   <div className="flex items-center gap-3 mt-3 pt-3 border-t border-slate-100 dark:border-slate-700/50 text-xs text-slate-500 dark:text-slate-400 flex-wrap">
                     <span className="flex items-center gap-1"><Calendar className="w-3.5 h-3.5" />{format(new Date(game.game_date), "d/M/yyyy")}</span>
                     <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5" />{format(new Date(game.game_date), "HH:mm")}</span>

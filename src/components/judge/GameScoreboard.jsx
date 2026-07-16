@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react"
 import { Link, useNavigate } from "react-router-dom"
 import { useGameEngine, clearEngineDraft } from "@/lib/game/useGameEngine"
 import { saveGameResult } from "@/lib/judge"
+import { getGameAvailabilityForOfficial } from "@/lib/availability"
 import { broadcastGameState, setGameStatus } from "@/lib/live"
 import { clockString } from "@/lib/game/format"
 import { Phase, TeamSide, CardType, GameFormat } from "@/lib/game/rules"
@@ -166,8 +167,15 @@ function ControlBtn({ icon: Icon, onClick, tint, label, fill = false }) {
 
 export default function GameScoreboard({ game, home, guest, players }) {
   const engine = useGameEngine(game, home, guest)
-  const homeRoster = players.filter(p => p.team_id === game.home_team_id).sort(byJersey)
-  const guestRoster = players.filter(p => p.team_id === game.away_team_id).sort(byJersey)
+  const [attendingIds, setAttendingIds] = useState(null) // Set of confirmed player_ids; null until loaded
+  const [showAllRoster, setShowAllRoster] = useState(false)
+  // C4: default the roster to confirmed attendees; the judge can switch to the full
+  // squad. GK clean-sheet detection always uses the FULL roster (see doSave).
+  const fullHomeRoster = players.filter(p => p.team_id === game.home_team_id).sort(byJersey)
+  const fullGuestRoster = players.filter(p => p.team_id === game.away_team_id).sort(byJersey)
+  const useAttending = !showAllRoster && attendingIds && attendingIds.size > 0
+  const homeRoster = useAttending ? fullHomeRoster.filter(p => attendingIds.has(p.id)) : fullHomeRoster
+  const guestRoster = useAttending ? fullGuestRoster.filter(p => attendingIds.has(p.id)) : fullGuestRoster
   const homeScore = engine.homeFinalScore
   const awayScore = engine.guestFinalScore
 
@@ -192,6 +200,15 @@ export default function GameScoreboard({ game, home, guest, players }) {
     document.addEventListener("fullscreenchange", h)
     return () => document.removeEventListener("fullscreenchange", h)
   }, [])
+
+  // Load who confirmed attendance → default the player picker to attendees (C4).
+  useEffect(() => {
+    let alive = true
+    getGameAvailabilityForOfficial(game.id).then(rows => {
+      if (alive) setAttendingIds(new Set(rows.filter(r => r.status === "available").map(r => r.player_id)))
+    }).catch(() => { if (alive) setAttendingIds(new Set()) })
+    return () => { alive = false }
+  }, [game.id])
 
   // Buzzer sound on every engine buzz (goal / card / foul / manual / period-end).
   const lastBuzz = useRef(-1)
@@ -264,7 +281,7 @@ export default function GameScoreboard({ game, home, guest, players }) {
     setSaving(true); setSaveErr(null)
     try {
       const map = new Map(engine.boxScore().map(r => [r.player_id, { clean_sheet: false, ...r }]))
-      for (const p of [...homeRoster, ...guestRoster]) {
+      for (const p of [...fullHomeRoster, ...fullGuestRoster]) {
         if (p.position !== "Goalkeeper") continue
         const conceded = p.team_id === game.home_team_id ? awayScore : homeScore
         const cs = conceded === 0
@@ -420,6 +437,11 @@ export default function GameScoreboard({ game, home, guest, players }) {
               ))}
               {picker.kind === "goal" && (
                 <button onClick={() => resolvePick(null)} className="w-full py-2 px-3 rounded-lg text-sm text-white/60 hover:bg-white/10 transition-colors">{HE.noPlayer}</button>
+              )}
+              {attendingIds && attendingIds.size > 0 && (
+                <button onClick={() => setShowAllRoster(v => !v)} className="w-full mt-1 py-2 px-3 rounded-lg text-xs text-white/50 hover:bg-white/10 transition-colors border-t border-white/10">
+                  {showAllRoster ? "הצג רק מי שאישר הגעה" : "הצג את כל הסגל"}
+                </button>
               )}
             </div>
           </div>

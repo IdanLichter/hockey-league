@@ -42,6 +42,25 @@ export async function getGameAvailability(gameId) {
   return data || []
 }
 
+/** Officials (judge/admin): availability for a game via a definer RPC (judges can't
+ *  read the table via RLS). Used to default the scoreboard roster to attendees. */
+export async function getGameAvailabilityForOfficial(gameId) {
+  if (!gameId) return []
+  const { data, error } = await supabase.rpc('game_availability_for_official', { p_game_id: gameId })
+  if (error) return []
+  return data || []
+}
+
+/** Officials (judge/admin): availability across several games via a definer RPC →
+ *  attendance chips on the referee page. Returns [{game_id, player_id, status}]. */
+export async function getAvailabilityForOfficialBatch(gameIds) {
+  const ids = (gameIds || []).filter(Boolean)
+  if (!ids.length) return []
+  const { data, error } = await supabase.rpc('game_availability_for_official_batch', { p_game_ids: ids })
+  if (error) return []
+  return data || []
+}
+
 /** Availability rows across several games (RLS-scoped) → for the games-list coach chips. */
 export async function getAvailabilityForGames(gameIds) {
   const ids = (gameIds || []).filter(Boolean)
