@@ -173,18 +173,25 @@ export default function GameVideo({ game, home, away, players = [] }) {
       previewRef.current.muted = true
       previewRef.current.play?.().catch(() => {})
     }
+    let data
     try {
-      const { whipUrl } = await goLiveCloudflare(gameId)
-      if (!whipUrl) throw new Error("no whip url")
-      const session = await publishWHIP(whipUrl, stream)
+      data = await goLiveCloudflare(gameId)
+      if (!data?.whipUrl) throw new Error("no whip url")
+      const session = await publishWHIP(data.whipUrl, stream, data.iceServers)
       sessionRef.current = session
       setBroadcast(session)
       load() // refresh the row (badge/kind); spectators already got the realtime insert
     } catch (e) {
       try { stream.getTracks().forEach((t) => t.stop()) } catch { /* ignore */ }
       if (previewRef.current) previewRef.current.srcObject = null
-      alert(e?.message || "שגיאה בהתחלת השידור")
+      // The edge fn already inserted the game_videos row; if the media never
+      // connected, remove it so spectators don't see a dead "live" embed.
+      if (data?.videoRowId) { try { await detachVideo(data.videoRowId) } catch { /* ignore */ } }
+      alert(e?.message === "ice-failed"
+        ? "החיבור לשידור נכשל — הרשת חוסמת את השידור. נסו רשת אחרת."
+        : (e?.message || "שגיאה בהתחלת השידור"))
       setBroadcast(null)
+      load()
     }
   }
 
