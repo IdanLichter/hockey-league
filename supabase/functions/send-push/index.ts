@@ -5,9 +5,10 @@
 // by end users. Auth is a shared secret in the `x-push-secret` header, compared
 // to the PUSH_WEBHOOK_SECRET env var — so verify_jwt is disabled for this fn.
 //
-// Two delivery channels, both best-effort:
-//   • web  → Web Push protocol (VAPID)           — npm:web-push
-//   • ios  → Apple Push Notification service      — hand-rolled JWT + HTTP/2 fetch
+// Three delivery channels, all best-effort:
+//   • web     → Web Push protocol (VAPID)         — npm:web-push
+//   • ios     → Apple Push Notification service    — hand-rolled JWT + HTTP/2 fetch
+//   • android → Firebase Cloud Messaging (HTTP v1) — service-account OAuth2 + fetch
 //
 // Dead subscriptions (410 Gone / BadDeviceToken / Unregistered) are pruned.
 // The Hebrew copy mirrors src/lib/notifications.js so a push reads exactly like
@@ -29,6 +30,16 @@ const APNS_KEY_ID = Deno.env.get("APNS_KEY_ID")!;
 const APNS_TEAM_ID = Deno.env.get("APNS_TEAM_ID")!;
 const APNS_BUNDLE_ID = Deno.env.get("APNS_BUNDLE_ID")!;
 const APNS_PRIVATE_KEY = Deno.env.get("APNS_PRIVATE_KEY")!; // .p8 contents (PKCS8 PEM)
+
+// FCM (Android) — OPTIONAL. Absent until Firebase is provisioned, so the function
+// keeps delivering web+iOS push before Android is wired (the android branch is
+// skipped when FCM_CONFIGURED is false). All three come from the Firebase
+// service-account JSON (Project settings → Service accounts → Generate new key).
+// A single-line env var stores the PEM with literal "\n" → un-escape to real NLs.
+const FCM_PROJECT_ID = Deno.env.get("FCM_PROJECT_ID") ?? "";
+const FCM_CLIENT_EMAIL = Deno.env.get("FCM_CLIENT_EMAIL") ?? "";
+const FCM_PRIVATE_KEY = (Deno.env.get("FCM_PRIVATE_KEY") ?? "").replace(/\\n/g, "\n");
+const FCM_CONFIGURED = !!(FCM_PROJECT_ID && FCM_CLIENT_EMAIL && FCM_PRIVATE_KEY);
 
 webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC, VAPID_PRIVATE);
 
@@ -56,11 +67,27 @@ function notificationText(n: NotificationRow, actorName: string): string {
     case "claim_request":  return `${d.claimant ?? "משתמש"} מבקש/ת להתחבר לשחקן ${d.player_name ?? ""}`;
     case "content_report": return `דווח תוכן${d.reason ? ` — ${d.reason}` : ""}`;
     case "game_result":    return `תוצאה: ${d.home_team ?? ""} ${d.home_score ?? ""}:${d.away_score ?? ""} ${d.away_team ?? ""}`;
+    case "game_change_request":  return `${actorName} מבקש/ת שינוי במשחק ${d.home_team ?? ""} נגד ${d.away_team ?? ""}${d.reason ? ` — ${d.reason}` : ""}`;
+    case "game_change_approved": return `בקשתך לשינוי המשחק ${d.home_team ?? ""} נגד ${d.away_team ?? ""} אושרה 🎉`;
+    case "game_change_rejected": return `בקשתך לשינוי המשחק ${d.home_team ?? ""} נגד ${d.away_team ?? ""} נדחתה`;
+    case "team_join_request":    return `${actorName} מבקש/ת להצטרף לקבוצת ${d.team_name ?? ""}`;
+    case "team_join_approved":   return `בקשתך להצטרף לקבוצת ${d.team_name ?? ""} אושרה 🎉`;
+    case "team_join_rejected":   return `בקשתך להצטרף לקבוצת ${d.team_name ?? ""} נדחתה`;
+    case "player_submission_request":  return `${actorName} הגיש/ה כרטיס שחקן חדש${d.candidate_name ? `: ${d.candidate_name}` : ""}${d.team_name ? ` — ${d.team_name}` : ""}`;
+    case "player_submission_approved": return `כרטיס השחקן ${d.candidate_name ?? ""} שהגשת אושר 🎉`;
+    case "player_submission_rejected": return `כרטיס השחקן ${d.candidate_name ?? ""} שהגשת נדחה`;
+    case "medical_submitted":    return `${d.player_name ?? actorName} העלה/תה אישור רפואי הממתין לאישור`;
+    case "medical_approved":     return `האישור הרפואי שלך אושר ✅`;
+    case "medical_rejected":     return `האישור הרפואי שלך נדחה — יש להעלות מחדש`;
+    case "tournament_invite":          return `קבוצת ${d.team_name ?? ""} הוזמנה לטורניר ${d.tournament_name ?? ""}`;
+    case "tournament_invite_accepted": return `קבוצת ${d.team_name ?? ""} אישרה השתתפות בטורניר ${d.tournament_name ?? ""} 🎉`;
+    case "tournament_invite_declined": return `קבוצת ${d.team_name ?? ""} דחתה את ההזמנה לטורניר ${d.tournament_name ?? ""}`;
     default:               return "התראה חדשה";
   }
 }
 
 function notificationHref(n: NotificationRow): string {
+  const d = n.data ?? {};
   switch (n.type) {
     case "claim_approved":
     case "claim_rejected": return n.entity_id ? `/players/${n.entity_id}` : "/me";
@@ -68,6 +95,21 @@ function notificationHref(n: NotificationRow): string {
     case "claim_request":
     case "content_report": return "/admin";
     case "game_result":    return n.entity_id ? `/games/${n.entity_id}` : "/games";
+    case "game_change_request":  return "/admin";
+    case "game_change_approved":
+    case "game_change_rejected": return n.entity_id ? `/games/${n.entity_id}` : "/games";
+    case "team_join_request":
+    case "player_submission_request":
+    case "medical_submitted":      return "/admin";
+    case "team_join_approved":
+    case "team_join_rejected":     return n.entity_id ? `/teams/${n.entity_id}` : "/me";
+    case "player_submission_approved": return d.player_id ? `/players/${d.player_id}` : "/me";
+    case "player_submission_rejected":
+    case "medical_approved":
+    case "medical_rejected":       return "/me";
+    case "tournament_invite":
+    case "tournament_invite_accepted":
+    case "tournament_invite_declined": return n.entity_id ? `/tournaments/${n.entity_id}` : "/tournaments";
     default:               return "/";
   }
 }
@@ -156,6 +198,89 @@ async function sendApns(
   return { ok: false, prune };
 }
 
+// ---- FCM HTTP v1 (Android) -------------------------------------------------
+// Google shut off the legacy server-key API (2024), so we use HTTP v1: mint an
+// OAuth2 access token from the service account (RS256 JWT → Google token endpoint),
+// cache it ~55 min, then POST the message. Reuses the b64url + pemToPkcs8 helpers.
+
+let fcmKeyPromise: Promise<CryptoKey> | null = null;
+function fcmSigningKey(): Promise<CryptoKey> {
+  if (!fcmKeyPromise) {
+    fcmKeyPromise = crypto.subtle.importKey(
+      "pkcs8", pemToPkcs8(FCM_PRIVATE_KEY),
+      { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" }, false, ["sign"],
+    );
+  }
+  return fcmKeyPromise;
+}
+
+let fcmToken: { access: string; exp: number } | null = null;
+async function fcmAccessToken(): Promise<string> {
+  const now = Math.floor(Date.now() / 1000);
+  if (fcmToken && now < fcmToken.exp - 300) return fcmToken.access; // reuse until 5 min before expiry
+  const header = b64urlFromString(JSON.stringify({ alg: "RS256", typ: "JWT" }));
+  const claims = b64urlFromString(JSON.stringify({
+    iss: FCM_CLIENT_EMAIL,
+    scope: "https://www.googleapis.com/auth/firebase.messaging",
+    aud: "https://oauth2.googleapis.com/token",
+    iat: now, exp: now + 3600,
+  }));
+  const signingInput = `${header}.${claims}`;
+  const sig = await crypto.subtle.sign(
+    { name: "RSASSA-PKCS1-v1_5" }, await fcmSigningKey(),
+    new TextEncoder().encode(signingInput),
+  );
+  const assertion = `${signingInput}.${b64urlFromBytes(new Uint8Array(sig))}`;
+  const res = await fetch("https://oauth2.googleapis.com/token", {
+    method: "POST",
+    headers: { "content-type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer",
+      assertion,
+    }),
+  });
+  if (!res.ok) throw new Error(`FCM token ${res.status} ${await res.text()}`);
+  const j = await res.json();
+  fcmToken = { access: j.access_token, exp: now + (j.expires_in ?? 3600) };
+  return fcmToken.access;
+}
+
+async function sendFcm(
+  deviceToken: string, title: string, body: string, url: string,
+): Promise<{ ok: boolean; prune: boolean }> {
+  const access = await fcmAccessToken();
+  // notification + data: the `notification` block makes Android render it in the
+  // tray even when the app is killed (reliable app-closed delivery); `data.url`
+  // carries the deep link (tap → launcher intent extras / onMessageReceived).
+  const message = {
+    message: {
+      token: deviceToken,
+      notification: { title, body },
+      data: { url, type: "bell" },
+      android: {
+        priority: "high",
+        notification: { channel_id: "rinkhockeyil_default", default_sound: true },
+      },
+    },
+  };
+  const res = await fetch(
+    `https://fcm.googleapis.com/v1/projects/${FCM_PROJECT_ID}/messages:send`,
+    {
+      method: "POST",
+      headers: { authorization: `Bearer ${access}`, "content-type": "application/json" },
+      body: JSON.stringify(message),
+    },
+  );
+  if (res.ok) return { ok: true, prune: false };
+  const reason = await res.text();
+  console.log(`FCM -> ${res.status} ${reason}`);
+  // Token permanently invalid → prune. UNREGISTERED (app uninstalled / token
+  // rotated) is a 404; a malformed token is a 400 with INVALID_ARGUMENT.
+  const prune = res.status === 404 || reason.includes("UNREGISTERED") ||
+    reason.includes("SENDER_ID_MISMATCH");
+  return { ok: false, prune };
+}
+
 // ---- types -----------------------------------------------------------------
 interface NotificationRow {
   id: string; user_id: string; type: string; actor_id: string | null;
@@ -163,7 +288,7 @@ interface NotificationRow {
   data: Record<string, any> | null;
 }
 interface PushSub {
-  id: string; platform: "web" | "ios"; endpoint: string;
+  id: string; platform: "web" | "ios" | "android"; endpoint: string;
   keys: { p256dh: string; auth: string } | null; environment: string | null;
 }
 
@@ -226,6 +351,11 @@ Deno.serve(async (req) => {
         sent++;
       } else if (s.platform === "ios") {
         const r = await sendApns(s.endpoint, s.environment, title, body, path, badge ?? 0);
+        if (r.ok) sent++;
+        if (r.prune) toPrune.push(s.id);
+      } else if (s.platform === "android") {
+        if (!FCM_CONFIGURED) return; // Firebase not provisioned yet → skip silently
+        const r = await sendFcm(s.endpoint, title, body, path);
         if (r.ok) sent++;
         if (r.prune) toPrune.push(s.id);
       }

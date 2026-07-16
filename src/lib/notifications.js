@@ -109,6 +109,18 @@ export function notificationText(n) {
     case 'game_change_request':  return `${actorName(n)} מבקש/ת שינוי במשחק ${d.home_team || ''} נגד ${d.away_team || ''}${d.reason ? ` — ${d.reason}` : ''}`
     case 'game_change_approved': return `בקשתך לשינוי המשחק ${d.home_team || ''} נגד ${d.away_team || ''} אושרה 🎉${d.decision_note ? ` — ${d.decision_note}` : ''}`
     case 'game_change_rejected': return `בקשתך לשינוי המשחק ${d.home_team || ''} נגד ${d.away_team || ''} נדחתה${d.decision_note ? ` — ${d.decision_note}` : ''}`
+    case 'team_join_request':    return `${actorName(n)} מבקש/ת להצטרף לקבוצת ${d.team_name || ''}`
+    case 'team_join_approved':   return `בקשתך להצטרף לקבוצת ${d.team_name || ''} אושרה 🎉`
+    case 'team_join_rejected':   return `בקשתך להצטרף לקבוצת ${d.team_name || ''} נדחתה`
+    case 'player_submission_request':  return `${actorName(n)} הגיש/ה כרטיס שחקן חדש${d.candidate_name ? `: ${d.candidate_name}` : ''}${d.team_name ? ` — ${d.team_name}` : ''}`
+    case 'player_submission_approved': return `כרטיס השחקן ${d.candidate_name || ''} שהגשת אושר 🎉`
+    case 'player_submission_rejected': return `כרטיס השחקן ${d.candidate_name || ''} שהגשת נדחה`
+    case 'medical_submitted':    return `${d.player_name || actorName(n)} העלה/תה אישור רפואי הממתין לאישור`
+    case 'medical_approved':     return `האישור הרפואי שלך אושר ✅`
+    case 'medical_rejected':     return `האישור הרפואי שלך נדחה — יש להעלות מחדש`
+    case 'tournament_invite':          return `קבוצת ${d.team_name || ''} הוזמנה לטורניר ${d.tournament_name || ''}`
+    case 'tournament_invite_accepted': return `קבוצת ${d.team_name || ''} אישרה השתתפות בטורניר ${d.tournament_name || ''} 🎉`
+    case 'tournament_invite_declined': return `קבוצת ${d.team_name || ''} דחתה את ההזמנה לטורניר ${d.tournament_name || ''}`
     default:               return 'התראה חדשה'
   }
 }
@@ -127,6 +139,18 @@ export function notificationIcon(n) {
     case 'game_change_request':  return '🗓️'
     case 'game_change_approved': return '✅'
     case 'game_change_rejected': return '⛔'
+    case 'team_join_request':    return '🤝'
+    case 'team_join_approved':   return '✅'
+    case 'team_join_rejected':   return '⛔'
+    case 'player_submission_request':  return '🆕'
+    case 'player_submission_approved': return '✅'
+    case 'player_submission_rejected': return '⛔'
+    case 'medical_submitted':    return '🩺'
+    case 'medical_approved':     return '🩺'
+    case 'medical_rejected':     return '⛔'
+    case 'tournament_invite':          return '🏆'
+    case 'tournament_invite_accepted': return '✅'
+    case 'tournament_invite_declined': return '⛔'
     default:               return '🔔'
   }
 }
@@ -143,6 +167,20 @@ export function notificationHref(n) {
     case 'game_result':
     case 'game_change_approved':
     case 'game_change_rejected':  return n.entity_id ? `/games/${n.entity_id}` : '/games'
+    // reviewers land on the /admin review tabs
+    case 'team_join_request':
+    case 'player_submission_request':
+    case 'medical_submitted':      return '/admin'
+    // the player / submitter lands where the outcome lives
+    case 'team_join_approved':
+    case 'team_join_rejected':     return n.entity_id ? `/teams/${n.entity_id}` : '/me'
+    case 'player_submission_approved': return n.data?.player_id ? `/players/${n.data.player_id}` : '/me'
+    case 'player_submission_rejected':
+    case 'medical_approved':
+    case 'medical_rejected':       return '/me'
+    case 'tournament_invite':
+    case 'tournament_invite_accepted':
+    case 'tournament_invite_declined': return n.entity_id ? `/tournaments/${n.entity_id}` : '/tournaments'
     case 'post_like':
     case 'post_comment':
     default:               return '/'
