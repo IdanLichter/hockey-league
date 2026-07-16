@@ -60,18 +60,21 @@ function EventPhoto({ photo, itemKey, candidates = [], onRefreshed }) {
   const [failed, setFailed] = useState(false)
   const imgRef = useRef(null)
   const [beamLeft, setBeamLeft] = useState(null)   // 0–1 horizontal center of the spotlight in the displayed image
+  const [objPosY, setObjPosY] = useState(null)     // 0–100 % object-position-y that keeps the face in frame
 
   // Re-sync when the parent re-resolves this card (e.g. after the overrides map updates).
   useEffect(() => { setCurrent(photo) }, [photo])
 
   // Only single-player achievement photos get the spotlight, and only when we know where
-  // the player's face is (faceCx is a 0–1 fraction of the original image width).
+  // the player's face is (faceCx/faceCy are 0–1 fractions of the original image w/h).
   const faceCx = current?.mode === "solo" && typeof current?.faceCx === "number" ? current.faceCx : null
+  const faceCy = current?.mode === "solo" && typeof current?.faceCy === "number" ? current.faceCy : null
 
-  // Map the face's horizontal position from image space into the displayed (object-cover
-  // cropped) box, so the beam lands on the player even when the sides are cropped away.
+  // Map the face from image space into the displayed (object-cover cropped) box, so the beam
+  // lands on the player horizontally and the vertical crop keeps the face in frame instead of
+  // slicing it off with the default center crop.
   useEffect(() => {
-    if (faceCx == null) { setBeamLeft(null); return }
+    if (faceCx == null && faceCy == null) { setBeamLeft(null); setObjPosY(null); return }
     const el = imgRef.current
     if (!el) return
     const measure = () => {
@@ -80,14 +83,25 @@ function EventPhoto({ photo, itemKey, candidates = [], onRefreshed }) {
       if (!cW || !cH || !nW || !nH) return
       const scale = Math.max(cW / nW, cH / nH)   // object-cover fills the box
       const dW = nW * scale                       // displayed image width (may exceed cW)
-      const offX = (cW - dW) / 2                   // object-position: center (50%)
-      setBeamLeft(Math.max(0, Math.min(1, (offX + faceCx * dW) / cW)))
+      const dH = nH * scale                        // displayed image height (may exceed cH)
+      if (faceCx != null) {
+        const offX = (cW - dW) / 2                 // object-position-x stays center (50%)
+        setBeamLeft(Math.max(0, Math.min(1, (offX + faceCx * dW) / cW)))
+      }
+      if (faceCy != null) {
+        // r = fraction of the image height that survives the crop. Choose the object-position-y
+        // that centers the face in that visible band: p = (faceCy − r/2) / (1 − r), clamped.
+        // r ≥ 1 means no vertical crop (e.g. narrow/mobile boxes) → leave it centered.
+        const r = cH / dH
+        const p = r >= 1 ? 0.5 : (faceCy - r / 2) / (1 - r)
+        setObjPosY(Math.max(0, Math.min(1, p)) * 100)
+      }
     }
     if (el.complete) measure()
     el.addEventListener("load", measure)
     window.addEventListener("resize", measure)
     return () => { el.removeEventListener("load", measure); window.removeEventListener("resize", measure) }
-  }, [faceCx, current?.photo_id])
+  }, [faceCx, faceCy, current?.photo_id])
 
   if (!current || !current.image_url) return null
 
@@ -121,6 +135,7 @@ function EventPhoto({ photo, itemKey, candidates = [], onRefreshed }) {
       <a href={current.detail_url} target="_blank" rel="noopener noreferrer"
          className="group block relative rounded-xl overflow-hidden bg-slate-900">
         <img ref={imgRef} src={sizedUrl(current.image_url)} alt="" loading="lazy"
+             style={objPosY != null ? { objectPosition: `50% ${objPosY}%` } : undefined}
              className="w-full max-h-80 object-cover transition-transform duration-500 group-hover:scale-[1.02]" />
         {cx100 != null && (
           <svg className="pointer-events-none absolute inset-0 h-full w-full" viewBox="0 0 100 100"
