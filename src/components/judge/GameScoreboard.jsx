@@ -239,6 +239,16 @@ export default function GameScoreboard({ game, home, guest, players }) {
     })
   }, [engine, game.id, game.status])
 
+  // Heartbeat: while the clock is running, re-broadcast every 10s so `updated_at`
+  // stays fresh. If the judge disconnects (tab closed / phone dead), the heartbeat
+  // stops and spectators freeze the clock ("ממתין לשופט") instead of it running
+  // down to 0 with nobody officiating (see LiveGame.jsx judgeGone()).
+  useEffect(() => {
+    if (game.status === "completed" || !engine.isRunning) return
+    const iv = setInterval(() => broadcastGameState(engine, game.id), 10000)
+    return () => clearInterval(iv)
+  }, [engine, engine.isRunning, game.id, game.status])
+
   const doAbandon = async () => {
     setAbandoning(true); setSaveErr(null)
     try {

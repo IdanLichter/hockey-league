@@ -17,14 +17,16 @@ set search_path = public
 as $$
 declare
   v_cutoff timestamptz := now() - make_interval(mins => greatest(p_minutes, 1));
+  -- The judge board heartbeats (updated_at refreshed ~every 10s while the clock runs).
+  -- A running row whose heartbeat has been dead this long is a disconnected zombie.
+  v_hb_cutoff timestamptz := now() - interval '15 minutes';
   v_count  int;
 begin
   -- "Stale" = the board stopped being driven:
-  --   paused  → no broadcast (updated_at frozen) for > p_minutes  (a real timeout
-  --             / period break is far shorter), OR
-  --   running → the deadline itself passed > p_minutes ago and nobody advanced the
-  --             period (a live running clock has clock_ends_at in the FUTURE, so it
-  --             is never matched — running games stay safe).
+  --   paused  → no broadcast (updated_at frozen) for > p_minutes, OR
+  --   running → the deadline passed > p_minutes ago, OR the heartbeat died > 15m ago
+  --             (the judge disconnected mid-period). Spectators freeze the clock much
+  --             sooner (see LiveGame.jsx judgeGone, ~25s); this just clears the row.
   --
   -- Revert status FIRST (while the join to the live row still exists). A game that
   -- finished normally has no live row, so this only touches abandoned boards. Keep
@@ -39,13 +41,13 @@ begin
      and g.status = 'in_progress'
      and (
        (l.is_running = false and l.updated_at < v_cutoff)
-       or (l.is_running = true and coalesce(l.clock_ends_at, l.updated_at) < v_cutoff)
+       or (l.is_running = true and (coalesce(l.clock_ends_at, l.updated_at) < v_cutoff or l.updated_at < v_hb_cutoff))
      );
 
   -- Then drop the stale live rows (same predicate).
   delete from public.live_game_state l
    where (l.is_running = false and l.updated_at < v_cutoff)
-      or (l.is_running = true and coalesce(l.clock_ends_at, l.updated_at) < v_cutoff);
+      or (l.is_running = true and (coalesce(l.clock_ends_at, l.updated_at) < v_cutoff or l.updated_at < v_hb_cutoff));
 
   get diagnostics v_count = row_count;
   return v_count;

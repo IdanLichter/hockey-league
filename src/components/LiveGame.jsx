@@ -23,6 +23,15 @@ function remainingFrom(live) {
   return Math.max(0, live.clock_remaining_ms ?? 0)
 }
 
+// The judge board heartbeats (~every 10s) while the clock runs. If `updated_at`
+// goes this stale, the judge has disconnected (tab closed / phone dead) — freeze
+// the clock instead of letting it run down to 0 with nobody officiating.
+const STALE_MS = 25000
+function judgeGone(live) {
+  if (!live?.is_running || !live?.updated_at) return false
+  return Date.now() - new Date(live.updated_at).getTime() > STALE_MS
+}
+
 function TeamPanel({ team, score, fallbackName }) {
   return (
     <div className="flex-1 min-w-0 flex flex-col items-center gap-2.5 text-center">
@@ -90,6 +99,7 @@ export default function LiveGame({ gameId, home, away, initial = null }) {
   const [live, setLive] = useState(initial)
   const [loading, setLoading] = useState(!initial)
   const [remaining, setRemaining] = useState(() => remainingFrom(initial))
+  const [stale, setStale] = useState(() => judgeGone(initial))
 
   // Initial fetch (skipped when the parent seeds `initial`) + realtime subscription.
   useEffect(() => {
@@ -107,12 +117,18 @@ export default function LiveGame({ gameId, home, away, initial = null }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gameId])
 
-  // Client-ticked clock. Re-syncs immediately on every new row, then ticks
-  // against the fixed deadline while running.
+  // Client-ticked clock. Re-syncs immediately on every new row, then ticks against
+  // the fixed deadline while running — unless the judge's heartbeat goes stale, in
+  // which case the clock freezes at its last value ("ממתין לשופט").
   useEffect(() => {
-    setRemaining(remainingFrom(live))
+    const tick = () => {
+      if (judgeGone(live)) { setStale(true); return } // freeze: stop updating remaining
+      setStale(false)
+      setRemaining(remainingFrom(live))
+    }
+    tick()
     if (!live?.is_running || !live?.clock_ends_at) return
-    const iv = setInterval(() => setRemaining(remainingFrom(live)), 200)
+    const iv = setInterval(tick, 200)
     return () => clearInterval(iv)
   }, [live])
 
@@ -129,6 +145,7 @@ export default function LiveGame({ gameId, home, away, initial = null }) {
 
   const running = !!live.is_running
   const ended = live.phase === "over"
+  const waiting = running && stale  // clock frozen: the judge's heartbeat went silent
 
   return (
     <div className="card relative overflow-hidden p-5 sm:p-8 ring-1 ring-orange-500/40">
@@ -162,11 +179,11 @@ export default function LiveGame({ gameId, home, away, initial = null }) {
       <div className="flex items-center gap-2 sm:gap-4">
         <TeamPanel team={home} score={live.home_score} fallbackName="בית" />
         <div className="shrink-0 flex flex-col items-center gap-2">
-          <div className={`font-mono font-extrabold tabular-nums leading-none text-5xl sm:text-8xl ${running ? "text-orange-500" : "text-slate-400 dark:text-slate-500"}`}>
+          <div className={`font-mono font-extrabold tabular-nums leading-none text-5xl sm:text-8xl ${running && !waiting ? "text-orange-500" : "text-slate-400 dark:text-slate-500"}`}>
             {clockString(remaining)}
           </div>
-          <span className="text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
-            {running ? "רץ" : ended ? "הסתיים" : "מושהה"}
+          <span className={`text-xs font-semibold uppercase tracking-wide ${waiting ? "text-amber-600 dark:text-amber-400" : "text-slate-400 dark:text-slate-500"}`}>
+            {waiting ? "ממתין לשופט" : running ? "רץ" : ended ? "הסתיים" : "מושהה"}
           </span>
         </div>
         <TeamPanel team={away} score={live.away_score} fallbackName="חוץ" />
