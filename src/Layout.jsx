@@ -70,14 +70,14 @@ export default function Layout({ children }) {
     { title: "טבלה", url: "/standings", icon: NavStandings },
     { title: "משחקים", url: "/games", icon: NavGames },
     { title: "סטטיסטיקות", url: "/statistics", icon: NavStats },
+    { title: "פיינל פור", url: "/final-four", icon: NavTrophy },
+    { title: "טורנירים", url: "/tournaments", icon: Swords },
     { title: "קבוצות", url: "/teams", icon: NavTeams },
     { title: "שחקנים", url: "/players", icon: NavPlayers },
     // Media / content-editor entry: plain users & admins keep "מדיה"; content
     // editors get "יוצרי תוכן" instead; admins see BOTH.
     ...((!isContentEditor || isAdmin) ? [{ title: "מדיה", url: "/media", icon: NavCamera }] : []),
     ...((isContentEditor || isAdmin) ? [{ title: "יוצרי תוכן", url: "/creators", icon: NavEdit }] : []),
-    { title: "Final Four", url: "/final-four", icon: NavTrophy },
-    { title: "טורנירים", url: "/tournaments", icon: Swords },
     // Archive lives in the management screen's season tab (/admin), not the main nav.
     ...(hasRole("judge") ? [{ title: "שיפוט", url: "/judge", icon: NavWhistle }] : []),
     ...((isAdmin || coachTeamIds.length > 0 || isJudgeRole || isLeagueManager) ? [{ title: "ניהול", url: "/admin", icon: NavClipboard }] : []),

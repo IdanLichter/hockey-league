@@ -7,12 +7,13 @@ import { requestTeamJoin } from "@/lib/teamMembership"
 import { standingsComparator } from "@/lib/utils"
 import { ageOf, DEFAULT_AGE, AGE_LABEL } from "@/lib/ageGroups"
 import { FRIENDLY_GAME_TYPE } from "@/lib/leagueStats"
-import { ArrowRight, Users, Trophy, Target, Shield, Calendar, RefreshCw, Pencil } from "lucide-react"
+import { ArrowRight, Users, Trophy, Target, Shield, Calendar, Clock, RefreshCw, Pencil, HeartPulse } from "lucide-react"
 import { motion } from "framer-motion"
 import { format } from "date-fns"
 import TeamLogo from "@/components/TeamLogo"
 import TeamEditModal from "@/components/TeamEditModal"
 import { useSeo } from "@/lib/seo"
+import { getApprovedMedicalPlayerIds } from "@/lib/medical"
 
 export default function TeamDetail() {
   const { id } = useParams()
@@ -23,6 +24,7 @@ export default function TeamDetail() {
   const [players, setPlayers] = useState([])
   const [games, setGames] = useState([])
   const [playerTeams, setPlayerTeams] = useState([])
+  const [medicalApproved, setMedicalApproved] = useState(new Set())
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
@@ -41,6 +43,13 @@ export default function TeamDetail() {
       const [t, p, g, pt] = await Promise.all([getTeams(), getPlayers(), getGames(), getPlayerTeams().catch(() => [])])
       if (!t.find(tm => tm.id === id)) { setError("הקבוצה לא נמצאה"); return }
       setTeams(t); setPlayers(p); setGames(g); setPlayerTeams(pt)
+      // Medical status is private — only fetch (and later render) it for this team's
+      // coach or an admin; RLS returns nothing for anyone else regardless.
+      if (isAdmin || coachTeamIds.includes(id)) {
+        const { byTeam } = buildMemberMaps(pt, p)
+        const rosterIds = p.filter(pl => byTeam.get(id)?.has(pl.id)).map(pl => pl.id)
+        setMedicalApproved(await getApprovedMedicalPlayerIds(rosterIds))
+      }
     } catch (err) { console.error(err); setError("שגיאה בטעינת הנתונים") }
     finally { setLoading(false) }
   }
@@ -102,6 +111,10 @@ export default function TeamDetail() {
   const results = games
     .filter(g => g.status === 'completed' && (g.home_team_id === id || g.away_team_id === id) && g.home_score != null)
     .sort((a, b) => new Date(b.game_date) - new Date(a.game_date))
+
+  const upcoming = games
+    .filter(g => ['scheduled', 'in_progress', 'waiting_result'].includes(g.status) && (g.home_team_id === id || g.away_team_id === id))
+    .sort((a, b) => new Date(a.game_date) - new Date(b.game_date))
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-3xl mx-auto space-y-5">
@@ -185,6 +198,11 @@ export default function TeamDetail() {
                   {player.position === 'Goalkeeper' ? 'GK' : 'FP'}
                 </span>
                 {player.is_referee && <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded shrink-0 bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400">REF</span>}
+                {canEdit && (
+                  medicalApproved.has(player.id)
+                    ? <span title="בדיקה רפואית מאושרת" className="inline-flex items-center shrink-0 px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400"><HeartPulse className="w-3 h-3" /></span>
+                    : <span title="אין בדיקה רפואית מאושרת" className="inline-flex items-center shrink-0 px-1.5 py-0.5 rounded bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400"><HeartPulse className="w-3 h-3" /></span>
+                )}
               </div>
               <div className="flex items-center gap-3 text-xs shrink-0">
                 {(player.goals || 0) > 0 && <span className="font-bold text-emerald-600 dark:text-emerald-400">{player.goals}⚽</span>}
@@ -194,6 +212,40 @@ export default function TeamDetail() {
           ))}
         </div>
       </motion.div>
+
+      {/* Upcoming games */}
+      {upcoming.length > 0 && (
+        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.13 }} className="card overflow-hidden">
+          <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-700">
+            <h2 className="flex items-center gap-2 font-bold text-sm text-slate-900 dark:text-white">
+              <Calendar className="w-4 h-4 text-orange-500" /> משחקים הבאים
+            </h2>
+          </div>
+          <div className="p-4 space-y-2">
+            {upcoming.map(game => {
+              const isHome = game.home_team_id === id
+              const opp = teamsMap[isHome ? game.away_team_id : game.home_team_id]
+              return (
+                <Link key={game.id} to={`/games/${game.id}`}
+                  className="flex items-center justify-between gap-3 p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors group">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <TeamLogo team={opp} size={8} />
+                    <div className="min-w-0">
+                      <p className="font-semibold text-sm text-slate-900 dark:text-white truncate group-hover:text-orange-500 transition-colors">{opp?.name || '—'}</p>
+                      <p className="text-[11px] text-slate-400 dark:text-slate-500">
+                        {format(new Date(game.game_date), "d/M/yyyy")} · {isHome ? 'בית' : 'חוץ'}{game.venue ? ` · ${game.venue}` : ''}
+                      </p>
+                    </div>
+                  </div>
+                  <span dir="ltr" className="inline-flex items-center gap-1 text-xs font-bold px-2 py-1 rounded-md bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400 shrink-0 tabular-nums">
+                    <Clock className="w-3 h-3" /> {format(new Date(game.game_date), "HH:mm")}
+                  </span>
+                </Link>
+              )
+            })}
+          </div>
+        </motion.div>
+      )}
 
       {/* Recent results */}
       <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} className="card overflow-hidden">

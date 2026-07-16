@@ -6,6 +6,7 @@ import { Trophy, Users, Crown, Swords, RefreshCw } from "lucide-react"
 import { Standings } from "@/components/icons/HockeyIcons"
 import { motion } from "framer-motion"
 import TeamLogo from "@/components/TeamLogo"
+import { TeamLink } from "@/components/EntityLinks"
 
 export default function Home() {
   const [teams, setTeams] = useState([])
@@ -80,7 +81,9 @@ export default function Home() {
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-[11px] font-extrabold uppercase tracking-wider text-brand-strong dark:text-brand-light">מובילת הליגה</p>
-              <h2 className="text-2xl font-black text-fg-strong tracking-tight truncate mt-0.5">{first.name}</h2>
+              <h2 className="text-2xl font-black text-fg-strong tracking-tight truncate mt-0.5">
+                <TeamLink team={first} className="hover:text-brand transition-colors">{first.name}</TeamLink>
+              </h2>
               <p className="muted text-sm mt-0.5">
                 {played(first)} משחקים · הפרש {diff(first) > 0 ? '+' : ''}{diff(first)}
               </p>
@@ -109,7 +112,7 @@ export default function Home() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="bg-slate-900 text-white text-[11px] uppercase tracking-wider">
+                <tr className="bg-brand-deep text-white text-[11px] uppercase tracking-wider">
                   <th scope="col" className="ps-4 pe-2 py-3 text-right font-bold w-12 whitespace-nowrap">#</th>
                   <th scope="col" className="px-3 py-3 text-right font-bold whitespace-nowrap">קבוצה</th>
                   <th scope="col" className="px-2 py-3 text-center font-bold whitespace-nowrap">מש׳</th>
@@ -134,7 +137,11 @@ export default function Home() {
                     animate={{ opacity: 1 }}
                     transition={{ delay: i * 0.03 }}
                     className={`group relative transition-colors before:absolute before:inset-y-0 before:right-0 before:w-1 ${stripe} ${
-                      i === 0 ? "bg-gold/[0.06] hover:bg-gold/[0.1]" : "hover:bg-surface-inset/70"
+                      i === 0
+                        ? "bg-gold/[0.08] hover:bg-gold/[0.14]"
+                        : i % 2 === 0
+                          ? "bg-surface-inset/40 hover:bg-surface-inset/80"
+                          : "hover:bg-surface-inset/50"
                     }`}
                   >
                     <td className="ps-4 pe-2 py-3">
@@ -149,7 +156,7 @@ export default function Home() {
                     <td className="px-3 py-3">
                       <div className="flex items-center gap-2.5 min-w-0">
                         <TeamLogo team={team} size={8} />
-                        <span className="font-bold text-fg-strong text-sm truncate">{team.name}</span>
+                        <TeamLink team={team} className="font-bold text-fg-strong text-sm truncate hover:text-brand hover:underline underline-offset-2 decoration-brand/40 transition-colors">{team.name}</TeamLink>
                         {zone === "ff" && <span className="shrink-0 text-[10px] px-1.5 py-0.5 rounded font-bold bg-gold/[0.15] text-gold">FF</span>}
                         {zone === "po" && <span className="shrink-0 text-[10px] px-1.5 py-0.5 rounded font-bold bg-brand/[0.12] text-brand-strong dark:text-brand-light">PO</span>}
                       </div>
@@ -161,7 +168,7 @@ export default function Home() {
                     <td className="px-2 py-3 text-center tabular-nums text-fg-muted">{team.goals_for || 0}</td>
                     <td className="px-2 py-3 text-center tabular-nums text-fg-muted">{team.goals_against || 0}</td>
                     <td className="px-2 py-3 text-center">
-                      <span className={`font-bold text-sm tabular-nums ${d > 0 ? "text-pos" : d < 0 ? "text-neg" : "text-fg-subtle"}`}>
+                      <span dir="ltr" className={`inline-block font-bold text-sm tabular-nums ${d > 0 ? "text-pos" : d < 0 ? "text-neg" : "text-fg-subtle"}`}>
                         {d > 0 ? "+" : ""}{d}
                       </span>
                     </td>
@@ -191,7 +198,9 @@ export default function Home() {
                 <TeamLogo team={first} size={14} />
                 <div className="flex-1">
                   <p className="text-xs font-semibold text-amber-600 dark:text-amber-400 uppercase tracking-wide flex items-center gap-1"><Crown className="w-3.5 h-3.5" /> מעפילה ישירה ל-Final Four</p>
-                  <h3 className="text-xl font-extrabold text-slate-900 dark:text-white mt-0.5">{first.name}</h3>
+                  <h3 className="text-xl font-extrabold text-slate-900 dark:text-white mt-0.5">
+                    <TeamLink team={first} className="hover:text-brand transition-colors">{first.name}</TeamLink>
+                  </h3>
                   <p className="text-sm text-slate-500 dark:text-slate-400">{first.points} נקודות • מקום ראשון</p>
                 </div>
               </div>
@@ -218,7 +227,7 @@ export default function Home() {
                   <div className="flex items-center gap-2.5 flex-1 min-w-0">
                     <TeamLogo team={m.t1} size={10} />
                     <div className="min-w-0">
-                      <p className="font-semibold text-sm text-slate-900 dark:text-white truncate">{m.t1?.name}</p>
+                      <p className="font-semibold text-sm text-slate-900 dark:text-white truncate"><TeamLink team={m.t1} className="hover:text-brand transition-colors">{m.t1?.name}</TeamLink></p>
                       <p className="text-[11px] text-slate-400">מקום {m.p1} • {m.t1?.points} נק׳</p>
                     </div>
                   </div>
@@ -228,7 +237,7 @@ export default function Home() {
                   <div className="flex items-center gap-2.5 flex-1 min-w-0 flex-row-reverse">
                     <TeamLogo team={m.t2} size={10} />
                     <div className="min-w-0 text-left">
-                      <p className="font-semibold text-sm text-slate-900 dark:text-white truncate">{m.t2?.name}</p>
+                      <p className="font-semibold text-sm text-slate-900 dark:text-white truncate"><TeamLink team={m.t2} className="hover:text-brand transition-colors">{m.t2?.name}</TeamLink></p>
                       <p className="text-[11px] text-slate-400">מקום {m.p2} • {m.t2?.points} נק׳</p>
                     </div>
                   </div>

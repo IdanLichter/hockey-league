@@ -1,14 +1,14 @@
 import { useState, useEffect } from "react"
 import { Link } from "react-router-dom"
 import { getGames, getTeams, getPlayers, getReferees, getGameStatsByGameId } from "@/lib/api"
-import { Calendar, Clock, MapPin, Trophy, Shield, X, ChevronDown, ArrowLeft, RefreshCw, Medal } from "lucide-react"
+import { Calendar, Clock, MapPin, Trophy, Shield, X, ChevronDown, ArrowLeft, RefreshCw } from "lucide-react"
 import { Crossed } from "@/components/icons/HockeyIcons"
 import { motion, AnimatePresence } from "framer-motion"
 import { format } from "date-fns"
 import TeamLogo from "@/components/TeamLogo"
 import { PlayerLink } from "@/components/EntityLinks"
 import { FRIENDLY_GAME_TYPE } from "@/lib/leagueStats"
-import { AGE_GROUPS, DEFAULT_AGE, ageGroupsOf } from "@/lib/ageGroups"
+import { DEFAULT_AGE, ageGroupsOf } from "@/lib/ageGroups"
 import LiveGameBanner from "@/components/LiveGameBanner"
 import { useLiveGames } from "@/lib/useLiveGames"
 import { Radio } from "lucide-react"
@@ -82,9 +82,9 @@ export default function Games() {
     postponed: { label: "נדחה", cls: "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300" },
   }
 
-  // Age groups that actually have a team (senior always shown); youth appear once
-  // their teams exist. A game belongs to an age group if either team is in it.
-  const presentAges = AGE_GROUPS.filter(a => a.value === DEFAULT_AGE || teams.some(t => ageGroupsOf(t).includes(a.value)))
+  // The Games page is senior-only (youth play tournaments, shown on the tournament
+  // pages). A game belongs to an age group if either team is in it; ageTab is always
+  // senior here, so this keeps senior league/playoff/friendly games.
   const gameInAge = (g, age) => {
     const h = teamsMap[g.home_team_id], a = teamsMap[g.away_team_id]
     return (h && ageGroupsOf(h).includes(age)) || (a && ageGroupsOf(a).includes(age))
@@ -320,19 +320,6 @@ export default function Games() {
         <p className="page-subtitle mt-1">לוח משחקים ותוצאות עונת 2025-26</p>
       </motion.div>
 
-      {/* Age-group tabs — senior by default; youth (u19/u17/u15) appear once they have a team */}
-      {presentAges.length > 1 && (
-        <div className="tab-bar w-full sm:w-auto overflow-x-auto">
-          {presentAges.map(a => (
-            <button key={a.value}
-              onClick={() => { setAgeTab(a.value); setActiveCompetition(a.value === DEFAULT_AGE ? "ליגה" : TOURNAMENTS_TAB) }}
-              className={ageTab === a.value ? "tab-active" : "tab-inactive"}>
-              {a.label}
-            </button>
-          ))}
-        </div>
-      )}
-
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-2.5">
         <div className="tab-bar sm:w-auto">
@@ -344,9 +331,6 @@ export default function Games() {
           </button>
           <button onClick={() => setActiveCompetition(FRIENDLY_GAME_TYPE)} className={activeCompetition === FRIENDLY_GAME_TYPE ? "tab-active" : "tab-inactive"}>
             <Crossed className="w-4 h-4" /> ידידותי
-          </button>
-          <button onClick={() => setActiveCompetition(TOURNAMENTS_TAB)} className={activeCompetition === TOURNAMENTS_TAB ? "tab-active" : "tab-inactive"}>
-            <Medal className="w-4 h-4" /> טורנירים
           </button>
         </div>
         <div className="flex gap-2 flex-1 flex-wrap">

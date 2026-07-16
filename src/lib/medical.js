@@ -43,6 +43,24 @@ export async function getMyMedical(playerId) {
   return data
 }
 
+/**
+ * Which of these players currently hold an APPROVED certificate → a Set of player_ids.
+ * RLS only returns rows the caller may see (their own team's players, or everything for
+ * admins), so callers must still gate the *display* on being that team's coach/admin —
+ * medical status is private and must not surface on the public team page.
+ */
+export async function getApprovedMedicalPlayerIds(playerIds) {
+  const ids = (playerIds || []).filter(Boolean)
+  if (!ids.length) return new Set()
+  const { data, error } = await supabase
+    .from('medical_certificates')
+    .select('player_id')
+    .in('player_id', ids)
+    .eq('status', 'approved')
+  if (error) return new Set()
+  return new Set((data || []).map(r => r.player_id))
+}
+
 /** Coach/admin: pending certificates joined to player + team (RLS scopes to their team). */
 export async function getPendingMedical() {
   const { data, error } = await supabase
