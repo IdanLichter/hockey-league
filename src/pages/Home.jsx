@@ -128,6 +128,10 @@ export default function Home() {
               <tbody className="divide-y divide-divider">
                 {sorted.map((team, i) => {
                   const zone = i === 0 ? "ff" : i <= 6 ? "po" : "none"
+                  // Qualification stripe. It MUST live on the first <td>, never the <tr>:
+                  // a positioned ::before on a display:table-row is wrapped in an anonymous
+                  // table-cell, adding a phantom column that shifts every body cell one column
+                  // out of line with the header (invisible until the header had a background).
                   const stripe = zone === "ff" ? "before:bg-gold" : zone === "po" ? "before:bg-brand" : "before:bg-transparent"
                   const d = diff(team)
                   return (
@@ -136,7 +140,7 @@ export default function Home() {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ delay: i * 0.03 }}
-                    className={`group relative transition-colors before:absolute before:inset-y-0 before:right-0 before:w-1 ${stripe} ${
+                    className={`group transition-colors ${
                       i === 0
                         ? "bg-gold/[0.08] hover:bg-gold/[0.14]"
                         : i % 2 === 0
@@ -144,7 +148,7 @@ export default function Home() {
                           : "hover:bg-surface-inset/50"
                     }`}
                   >
-                    <td className="ps-4 pe-2 py-3">
+                    <td className={`ps-4 pe-2 py-3 relative before:absolute before:inset-y-0 before:right-0 before:w-1 ${stripe}`}>
                       <div className={`grid size-7 place-items-center rounded-lg text-xs font-black tabular-nums ${
                         i === 0 ? "bg-gold text-surface-page" :
                         i <= 6 ? "bg-brand/[0.12] text-brand-strong dark:text-brand-light" :
