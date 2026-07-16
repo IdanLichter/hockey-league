@@ -440,10 +440,13 @@ export async function getAdminUsers() {
   return res.data
 }
 
+// NO .select() here: admin_users SELECT is locked to the caller's own row (see
+// getAdminUsers above). An INSERT ... RETURNING would try to read the NEW admin's
+// row back through that policy and get rejected ("new row violates row-level
+// security policy"). We don't need the row — the caller reloads via list_admins().
 export async function addAdminUser(email, name) {
-  const { data, error } = await supabase.from('admin_users').insert({ email, name }).select().single()
+  const { error } = await supabase.from('admin_users').insert({ email, name })
   if (error) throw error
-  return data
 }
 
 export async function removeAdminUser(id) {
