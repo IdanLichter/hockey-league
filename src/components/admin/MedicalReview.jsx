@@ -13,6 +13,8 @@ export default function MedicalReview({ coachTeamIds = null }) {
   const [items, setItems] = useState(null)
   const [busyId, setBusyId] = useState(null)
   const [error, setError] = useState(null)
+  const [examDates, setExamDates] = useState({}) // per-item exam date, required to approve
+  const todayStr = new Date().toISOString().slice(0, 10)
 
   const load = async () => {
     try { setError(null); setItems(await getPendingMedical()) }
@@ -21,9 +23,17 @@ export default function MedicalReview({ coachTeamIds = null }) {
   useEffect(() => { load() }, [])
 
   const act = async (item, status) => {
+    if (status === "approved" && !examDates[item.id]) {
+      setError("יש להזין את תאריך הבדיקה הרפואית לפני אישור")
+      return
+    }
     setBusyId(item.id); setError(null)
-    try { await reviewMedical(item.id, status); setItems(prev => (prev || []).filter(i => i.id !== item.id)) }
-    catch { setError("הפעולה נכשלה") } finally { setBusyId(null) }
+    try {
+      await reviewMedical(item.id, status, status === "approved" ? examDates[item.id] : null)
+      setItems(prev => (prev || []).filter(i => i.id !== item.id))
+    } catch (e) {
+      setError(e?.message === "exam-date-required" ? "יש להזין את תאריך הבדיקה" : "הפעולה נכשלה")
+    } finally { setBusyId(null) }
   }
   const view = async (item) => {
     const url = await signMedical(item.file_path)
@@ -60,7 +70,13 @@ export default function MedicalReview({ coachTeamIds = null }) {
                 <p className="text-sm font-bold text-slate-900 dark:text-white truncate">{p ? `${p.first_name} ${p.last_name}` : "שחקן"}</p>
                 <p className="text-[11px] text-slate-400 dark:text-slate-500">{p?.teams?.name || "—"} · {format(new Date(item.created_at), "d/M/yyyy HH:mm")}</p>
               </div>
-              <div className="flex items-center gap-2 shrink-0">
+              <div className="flex items-center gap-2 shrink-0 flex-wrap">
+                <label className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-500 dark:text-slate-400" title="תאריך ביצוע הבדיקה הרפואית — האישור בתוקף לשנה מתאריך זה">
+                  תאריך בדיקה
+                  <input type="date" value={examDates[item.id] || ""} max={todayStr}
+                    onChange={e => setExamDates(prev => ({ ...prev, [item.id]: e.target.value }))}
+                    className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg px-2 py-1.5 text-xs text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-orange-500/30" />
+                </label>
                 <button onClick={() => view(item)}
                   className="flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
                   <Eye className="w-3.5 h-3.5" /> צפייה

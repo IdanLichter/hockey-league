@@ -118,6 +118,7 @@ export function notificationText(n) {
     case 'medical_submitted':    return `${d.player_name || actorName(n)} העלה/תה אישור רפואי הממתין לאישור`
     case 'medical_approved':     return `האישור הרפואי שלך אושר ✅`
     case 'medical_rejected':     return `האישור הרפואי שלך נדחה — יש להעלות מחדש`
+    case 'medical_expiring':     return `האישור הרפואי שלך יפוג בעוד ${d.days_left ?? ''} ימים — מומלץ לחדש`
     case 'tournament_invite':          return `קבוצת ${d.team_name || ''} הוזמנה לטורניר ${d.tournament_name || ''}`
     case 'tournament_invite_accepted': return `קבוצת ${d.team_name || ''} אישרה השתתפות בטורניר ${d.tournament_name || ''} 🎉`
     case 'tournament_invite_declined': return `קבוצת ${d.team_name || ''} דחתה את ההזמנה לטורניר ${d.tournament_name || ''}`
@@ -148,6 +149,7 @@ export function notificationIcon(n) {
     case 'medical_submitted':    return '🩺'
     case 'medical_approved':     return '🩺'
     case 'medical_rejected':     return '⛔'
+    case 'medical_expiring':     return '⏰'
     case 'tournament_invite':          return '🏆'
     case 'tournament_invite_accepted': return '✅'
     case 'tournament_invite_declined': return '⛔'
@@ -177,7 +179,8 @@ export function notificationHref(n) {
     case 'player_submission_approved': return n.data?.player_id ? `/players/${n.data.player_id}` : '/me'
     case 'player_submission_rejected':
     case 'medical_approved':
-    case 'medical_rejected':       return '/me'
+    case 'medical_rejected':
+    case 'medical_expiring':       return '/me'
     case 'tournament_invite':
     case 'tournament_invite_accepted':
     case 'tournament_invite_declined': return n.entity_id ? `/tournaments/${n.entity_id}` : '/tournaments'

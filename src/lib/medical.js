@@ -34,7 +34,7 @@ export async function getMyMedical(playerId) {
   if (!playerId) return null
   const { data, error } = await supabase
     .from('medical_certificates')
-    .select('id,status,file_path,created_at,expires_at')
+    .select('id,status,file_path,created_at,exam_date,expires_at')
     .eq('player_id', playerId)
     .order('created_at', { ascending: false })
     .limit(1)
@@ -52,13 +52,27 @@ export async function getMyMedical(playerId) {
 export async function getApprovedMedicalPlayerIds(playerIds) {
   const ids = (playerIds || []).filter(Boolean)
   if (!ids.length) return new Set()
+  const today = new Date().toISOString().slice(0, 10)
   const { data, error } = await supabase
     .from('medical_certificates')
     .select('player_id')
     .in('player_id', ids)
     .eq('status', 'approved')
+    // Valid = approved and not expired. Legacy rows approved before exam-date tracking
+    // have a null expires_at — grandfather those as valid rather than block the player.
+    .or(`expires_at.is.null,expires_at.gte.${today}`)
   if (error) return new Set()
   return new Set((data || []).map(r => r.player_id))
+}
+
+/**
+ * League-manager/admin: per-player medical status summary via the medical_roster RPC
+ * (privacy-safe — status/expiry only, never the file). Ordered problems-first.
+ */
+export async function getMedicalRoster() {
+  const { data, error } = await supabase.rpc('medical_roster')
+  if (error) throw error
+  return data || []
 }
 
 /** Coach/admin: pending certificates joined to player + team (RLS scopes to their team). */
@@ -72,11 +86,17 @@ export async function getPendingMedical() {
   return data
 }
 
-/** Approve/reject via the self-gated RPC (coach-of-team or admin). */
-export async function reviewMedical(id, status) {
-  const { error } = await supabase.rpc('review_medical_certificate', { p_id: id, p_status: status })
+/**
+ * Approve/reject via the self-gated RPC (coach-of-team or admin). On approval the
+ * coach must pass the exam date (yyyy-mm-dd); the server derives expires_at = +1 year.
+ */
+export async function reviewMedical(id, status, examDate = null) {
+  const { error } = await supabase.rpc('review_medical_certificate', {
+    p_id: id, p_status: status, p_exam_date: examDate,
+  })
   if (error) {
     if (/not authorized/i.test(error.message || '')) throw new Error('not-authorized')
+    if (/exam date/i.test(error.message || '')) throw new Error('exam-date-required')
     throw error
   }
 }

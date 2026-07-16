@@ -21,10 +21,14 @@ export async function getMyAvailability(gameId, playerId) {
   return data?.status ?? null
 }
 
-/** Set the current user's availability via the self-scoped RPC. */
+/** Set the current user's availability via the self-scoped RPC. Signing up as
+ *  "available" requires a valid approved medical certificate (enforced server-side). */
 export async function setMyAvailability(gameId, status) {
   const { error } = await supabase.rpc('set_game_availability', { p_game_id: gameId, p_status: status })
-  if (error) throw error
+  if (error) {
+    if (/no valid medical/i.test(error.message || '')) throw new Error('no-valid-medical')
+    throw error
+  }
 }
 
 /** All availability rows for a game the caller may read (coach → their team; admin → all). */

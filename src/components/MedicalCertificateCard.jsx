@@ -1,12 +1,7 @@
 import { useState, useEffect, useRef } from "react"
 import { getMyMedical, uploadMedical } from "@/lib/medical"
 import { HeartPulse, Upload, Clock, CheckCircle2, XCircle, Loader2 } from "lucide-react"
-
-const STATUS = {
-  pending: { label: "ממתין לאישור המאמן", cls: "text-amber-600 dark:text-amber-400", Icon: Clock },
-  approved: { label: "אושר", cls: "text-emerald-600 dark:text-emerald-400", Icon: CheckCircle2 },
-  rejected: { label: "נדחה — יש להעלות מחדש", cls: "text-red-600 dark:text-red-400", Icon: XCircle },
-}
+import { format } from "date-fns"
 
 /**
  * The player's medical-certificate card (#2). Uploads a photo/PDF of the yearly
@@ -39,8 +34,14 @@ export default function MedicalCertificateCard({ playerId }) {
   }
 
   if (loading) return null
-  const canUpload = !cert || cert.status === "rejected"
-  const st = cert ? STATUS[cert.status] : null
+  const isExpired = cert?.status === "approved" && cert.expires_at && new Date(cert.expires_at) < new Date()
+  const canUpload = !cert || cert.status === "rejected" || isExpired
+  // Status line — approved shows validity/expiry; an expired cert reads as "renew".
+  let st = null
+  if (cert?.status === "pending") st = { label: "ממתין לאישור המאמן", cls: "text-amber-600 dark:text-amber-400", Icon: Clock }
+  else if (cert?.status === "approved" && !isExpired) st = { label: cert.expires_at ? `אושר · בתוקף עד ${format(new Date(cert.expires_at), "d/M/yyyy")}` : "אושר", cls: "text-emerald-600 dark:text-emerald-400", Icon: CheckCircle2 }
+  else if (cert?.status === "approved" && isExpired) st = { label: "פג תוקף — יש לחדש", cls: "text-red-600 dark:text-red-400", Icon: XCircle }
+  else if (cert?.status === "rejected") st = { label: "נדחה — יש להעלות מחדש", cls: "text-red-600 dark:text-red-400", Icon: XCircle }
 
   return (
     <div className="card p-4 space-y-3">
@@ -63,7 +64,7 @@ export default function MedicalCertificateCard({ playerId }) {
           <label htmlFor="medical-file"
             className="inline-flex items-center gap-2 text-xs font-semibold px-3 py-2 rounded-lg bg-orange-500 text-white hover:bg-orange-600 transition-colors cursor-pointer">
             {uploading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
-            {cert?.status === "rejected" ? "העלאה מחדש" : "העלאת אישור"}
+            {(cert?.status === "rejected" || isExpired) ? "העלאה מחדש" : "העלאת אישור"}
           </label>
         </div>
       )}

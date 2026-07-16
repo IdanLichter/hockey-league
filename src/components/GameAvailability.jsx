@@ -1,6 +1,10 @@
 import { useState, useEffect } from "react"
+import { Link } from "react-router-dom"
 import { getMyAvailability, setMyAvailability, getGameAvailability } from "@/lib/availability"
-import { Check, X, Loader2, CalendarCheck } from "lucide-react"
+import { getApprovedMedicalPlayerIds } from "@/lib/medical"
+import { Check, X, Loader2, CalendarCheck, AlertTriangle } from "lucide-react"
+
+const MED_MSG = "כדי לאשר הגעה יש להעלות בדיקה רפואית ולקבל אישור בתוקף"
 
 /**
  * Availability panel for an upcoming game (#3). A rostered player toggles מגיע/לא מגיע;
@@ -12,28 +16,37 @@ export default function GameAvailability({ gameId, myPlayerId, canSeeRoster, pla
   const [roster, setRoster] = useState([])
   const [saving, setSaving] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [medOk, setMedOk] = useState(null) // does the viewer's own player hold a valid medical cert
+  const [err, setErr] = useState(null)
 
   useEffect(() => {
     let alive = true
     Promise.all([
       myPlayerId ? getMyAvailability(gameId, myPlayerId) : Promise.resolve(null),
       canSeeRoster ? getGameAvailability(gameId) : Promise.resolve([]),
-    ]).then(([mine, all]) => {
+      myPlayerId ? getApprovedMedicalPlayerIds([myPlayerId]) : Promise.resolve(new Set()),
+    ]).then(([mine, all, med]) => {
       if (!alive) return
       setMyStatus(mine)
       setRoster(all)
+      setMedOk(myPlayerId ? med.has(myPlayerId) : null)
       setLoading(false)
     })
     return () => { alive = false }
   }, [gameId, myPlayerId, canSeeRoster])
 
   const choose = async (status) => {
+    setErr(null)
+    if (status === "available" && medOk === false) { setErr(MED_MSG); return }
     setSaving(true)
     try {
       await setMyAvailability(gameId, status)
       setMyStatus(status)
+      if (status === "available") setMedOk(true)
       if (canSeeRoster) setRoster(await getGameAvailability(gameId))
-    } catch { /* graceful: no toast */ } finally { setSaving(false) }
+    } catch (e) {
+      setErr(e?.message === "no-valid-medical" ? MED_MSG : "הפעולה נכשלה, נסו שוב")
+    } finally { setSaving(false) }
   }
 
   if ((!myPlayerId && !canSeeRoster) || loading) return null
@@ -52,17 +65,26 @@ export default function GameAvailability({ gameId, myPlayerId, canSeeRoster, pla
       </h3>
 
       {myPlayerId && (
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-xs text-slate-500 dark:text-slate-400">מגיע/ה למשחק?</span>
-          <button onClick={() => choose("available")} disabled={saving}
-            className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50 ${myStatus === "available" ? "bg-emerald-500 text-white" : "border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700"}`}>
-            <Check className="w-3.5 h-3.5" /> מגיע/ה
-          </button>
-          <button onClick={() => choose("unavailable")} disabled={saving}
-            className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50 ${myStatus === "unavailable" ? "bg-red-500 text-white" : "border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700"}`}>
-            <X className="w-3.5 h-3.5" /> לא מגיע/ה
-          </button>
-          {saving && <Loader2 className="w-3.5 h-3.5 animate-spin text-slate-400" />}
+        <div className="space-y-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-xs text-slate-500 dark:text-slate-400">מגיע/ה למשחק?</span>
+            <button onClick={() => choose("available")} disabled={saving || medOk === false}
+              className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${myStatus === "available" ? "bg-emerald-500 text-white" : "border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700"}`}>
+              <Check className="w-3.5 h-3.5" /> מגיע/ה
+            </button>
+            <button onClick={() => choose("unavailable")} disabled={saving}
+              className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50 ${myStatus === "unavailable" ? "bg-red-500 text-white" : "border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700"}`}>
+              <X className="w-3.5 h-3.5" /> לא מגיע/ה
+            </button>
+            {saving && <Loader2 className="w-3.5 h-3.5 animate-spin text-slate-400" />}
+          </div>
+          {medOk === false && (
+            <p className="flex items-center gap-1.5 text-[11px] text-amber-600 dark:text-amber-400">
+              <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+              <span>{MED_MSG} — <Link to="/me" className="font-semibold underline">להעלאה</Link></span>
+            </p>
+          )}
+          {err && <p className="text-[11px] text-red-600 dark:text-red-400">{err}</p>}
         </div>
       )}
 
