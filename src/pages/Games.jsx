@@ -1,12 +1,14 @@
 import { useState, useEffect } from "react"
 import { Link } from "react-router-dom"
 import { getGames, getTeams, getPlayers, getReferees, getGameStatsByGameId } from "@/lib/api"
-import { Calendar, Clock, MapPin, Trophy, Shield, X, ChevronDown, ArrowLeft, RefreshCw } from "lucide-react"
+import { Calendar, Clock, MapPin, Trophy, Shield, X, ChevronDown, ArrowLeft, RefreshCw, AlertTriangle, Users } from "lucide-react"
 import { Crossed } from "@/components/icons/HockeyIcons"
 import { motion, AnimatePresence } from "framer-motion"
 import { format } from "date-fns"
 import TeamLogo from "@/components/TeamLogo"
 import { PlayerLink } from "@/components/EntityLinks"
+import { useAuth } from "@/lib/AuthContext"
+import { getAvailabilityForGames } from "@/lib/availability"
 import { FRIENDLY_GAME_TYPE } from "@/lib/leagueStats"
 import { DEFAULT_AGE, ageGroupsOf } from "@/lib/ageGroups"
 import LiveGameBanner from "@/components/LiveGameBanner"
@@ -18,7 +20,9 @@ import { Radio } from "lucide-react"
 const TOURNAMENTS_TAB = "__tournaments__"
 
 export default function Games() {
+  const { coachTeamIds } = useAuth()
   const [games, setGames] = useState([])
+  const [availByGame, setAvailByGame] = useState({})
   const [teams, setTeams] = useState([])
   const [players, setPlayers] = useState([])
   const [referees, setReferees] = useState([])
@@ -34,6 +38,21 @@ export default function Games() {
   const [statsByGame, setStatsByGame] = useState({})
 
   useEffect(() => { loadData() }, [])
+
+  // Coach-only: fetch attendance for the coach's own upcoming games → per-card chip.
+  useEffect(() => {
+    const cids = coachTeamIds || []
+    const myGames = cids.length ? games.filter(g => g.status === "scheduled" && (cids.includes(g.home_team_id) || cids.includes(g.away_team_id))) : []
+    if (!myGames.length) { setAvailByGame({}); return }
+    let alive = true
+    getAvailabilityForGames(myGames.map(g => g.id)).then(rows => {
+      if (!alive) return
+      const map = {}
+      rows.forEach(r => { (map[r.game_id] ||= []).push(r) })
+      setAvailByGame(map)
+    }).catch(() => {})
+    return () => { alive = false }
+  }, [games, (coachTeamIds || []).join(",")])
 
   // Games being officiated right now — realtime, pinned above the schedule.
   const liveGames = useLiveGames()
@@ -138,6 +157,13 @@ export default function Games() {
     const done = game.status === "completed"
     const status = statusCfg[game.status] || statusCfg.completed
     const ref = refInfo(game)
+    // Coach-only attendance chip for the coach's own upcoming games.
+    const myCoachTid = (coachTeamIds || []).find(tid => tid === game.home_team_id || tid === game.away_team_id)
+    const att = (myCoachTid && game.status === "scheduled") ? (() => {
+      const st = Object.fromEntries((availByGame[game.id] || []).map(r => [r.player_id, r.status]))
+      const coming = players.filter(p => p.team_id === myCoachTid && st[p.id] === "available")
+      return { count: coming.length, gk: coming.some(p => p.position === "Goalkeeper"), tooFew: coming.length < 4 }
+    })() : null
     const open = expandedGame === game.id
     const stats = statsByGame[game.id]
     const home = teamsMap[game.home_team_id]
@@ -157,6 +183,11 @@ export default function Games() {
             {game.game_type === 'פלייאוף' && <span className="stat-pill bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300">פלייאוף</span>}
             {game.game_type === FRIENDLY_GAME_TYPE && <span className="stat-pill bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300">ידידותי</span>}
             {game.series_game && <span className="stat-pill bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300">משחק {game.series_game}</span>}
+            {att && (
+              <span className={`stat-pill inline-flex items-center gap-1 ${att.tooFew ? "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300" : "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300"}`} title="מגיעים מהקבוצה שלך">
+                <Users className="w-3 h-3" /> {att.count}{!att.gk && <AlertTriangle className="w-3 h-3 text-red-500" />}
+              </span>
+            )}
             <ChevronDown className={`w-5 h-5 text-slate-400 transition-transform mr-auto ${open ? 'rotate-180' : ''}`} />
           </div>
 

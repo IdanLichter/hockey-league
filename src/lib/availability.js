@@ -41,3 +41,15 @@ export async function getGameAvailability(gameId) {
   if (error) return []
   return data || []
 }
+
+/** Availability rows across several games (RLS-scoped) → for the games-list coach chips. */
+export async function getAvailabilityForGames(gameIds) {
+  const ids = (gameIds || []).filter(Boolean)
+  if (!ids.length) return []
+  const { data, error } = await supabase
+    .from('game_availability')
+    .select('game_id,player_id,status')
+    .in('game_id', ids)
+  if (error) return []
+  return data || []
+}

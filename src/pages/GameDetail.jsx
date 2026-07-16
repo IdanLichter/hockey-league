@@ -147,12 +147,15 @@ export default function GameDetail() {
   // Officials (judge/admin) get an in-page entry to run the scoreboard + go live.
   const canOfficiate = isAdmin || isJudgeRole
 
-  // #3 availability: the viewer's linked player (only if rostered on a team in this
-  // game) and whether they may see the in/out roster (admin or a coach of either team).
+  // #3 / attendance: the viewer's linked player (if rostered in this game); which teams
+  // they may see as an OFFICIAL (admin → both, coach → their own team) with full roster +
+  // indicators; and (for a plain player) their own team's basic in/out list.
+  const inThisGame = (tid) => tid === game.home_team_id || tid === game.away_team_id
   const myPlayer = profile?.player_id ? playersMap[profile.player_id] : null
-  const myAvailPlayerId = (myPlayer && (myPlayer.team_id === game.home_team_id || myPlayer.team_id === game.away_team_id)) ? myPlayer.id : null
-  const canSeeAvail = isAdmin || (coachTeamIds || []).some(tid => tid === game.home_team_id || tid === game.away_team_id)
-  const showAvailability = game.status === "scheduled" && (myAvailPlayerId || canSeeAvail)
+  const myAvailPlayerId = (myPlayer && inThisGame(myPlayer.team_id)) ? myPlayer.id : null
+  const officialTeamIds = isAdmin ? [game.home_team_id, game.away_team_id] : (coachTeamIds || []).filter(inThisGame)
+  const playerTeamId = (myPlayer && inThisGame(myPlayer.team_id) && !officialTeamIds.includes(myPlayer.team_id)) ? myPlayer.team_id : null
+  const showAvailability = game.status === "scheduled" && (myAvailPlayerId || officialTeamIds.length > 0 || playerTeamId)
   const played = done && game.home_score != null && game.away_score != null
   const homeWin = played && game.home_score > game.away_score
   const awayWin = played && game.away_score > game.home_score
@@ -344,7 +347,7 @@ export default function GameDetail() {
 
       {/* ===== AVAILABILITY (upcoming games) ===== */}
       {showAvailability && (
-        <GameAvailability gameId={game.id} myPlayerId={myAvailPlayerId} canSeeRoster={canSeeAvail} playersMap={playersMap} />
+        <GameAvailability game={game} myPlayerId={myAvailPlayerId} officialTeamIds={officialTeamIds} playerTeamId={playerTeamId} teamsMap={teamsMap} playersMap={playersMap} />
       )}
 
       {/* ============ STAT TILES ============ */}
