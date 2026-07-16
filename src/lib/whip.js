@@ -57,6 +57,14 @@ export async function publishWHIP(whipUrl, stream, iceServers) {
     iceServers: iceServers?.length ? iceServers : DEFAULT_ICE,
     bundlePolicy: "max-bundle",
   })
+  // Track which candidate types we gather — on failure this reveals whether the
+  // TURN relay was even reachable (a "relay" candidate present) or the network
+  // blocked the TURN ports entirely.
+  const candTypes = {}
+  pc.addEventListener("icecandidate", (e) => {
+    const m = e.candidate && /typ (\w+)/.exec(e.candidate.candidate)
+    if (m) candTypes[m[1]] = (candTypes[m[1]] || 0) + 1
+  })
   for (const track of stream.getTracks()) pc.addTrack(track, stream)
 
   await pc.setLocalDescription(await pc.createOffer())
@@ -74,12 +82,19 @@ export async function publishWHIP(whipUrl, stream, iceServers) {
   await pc.setRemoteDescription({ type: "answer", sdp: await res.text() })
 
   // Confirm the media path actually comes up (fails on strict NATs without TURN).
+  // Generous 30s window — TURN-over-TCP/TLS negotiation on locked-down networks
+  // is far slower than a direct connection, and cutting it off early looks like a
+  // hard failure when it was merely still connecting.
   try {
-    await waitForConnection(pc)
-  } catch (e) {
+    await waitForConnection(pc, 30000)
+  } catch {
+    const cands = Object.keys(candTypes).join("+") || "none"
+    const state = pc.iceConnectionState
     try { for (const t of stream.getTracks()) t.stop() } catch { /* ignore */ }
     try { pc.close() } catch { /* ignore */ }
-    throw e
+    // Encode a short diagnostic in the message so the UI can surface it: whether a
+    // relay candidate was gathered (TURN reachable) and the final ICE state.
+    throw new Error(`ice-failed|cands=${cands}|state=${state}`)
   }
 
   // WHIP hands back a resource URL (Location header) for teardown via DELETE.

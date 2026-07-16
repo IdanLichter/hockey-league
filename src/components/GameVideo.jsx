@@ -235,9 +235,10 @@ export default function GameVideo({ game, home, away, players = [] }) {
       // The edge fn already inserted the game_videos row; if the media never
       // connected, remove it so spectators don't see a dead "live" embed.
       if (data?.videoRowId) { try { await detachVideo(data.videoRowId) } catch { /* ignore */ } }
-      alert(e?.message === "ice-failed"
-        ? "החיבור לשידור נכשל — הרשת חוסמת את השידור. נסו רשת אחרת."
-        : (e?.message || "שגיאה בהתחלת השידור"))
+      const msg = String(e?.message || "")
+      alert(msg.startsWith("ice-failed")
+        ? `החיבור לשידור נכשל — הרשת חוסמת את השידור. נסו רשת אחרת.\n\n(טכני: ${msg.replace("ice-failed|", "")})`
+        : (msg || "שגיאה בהתחלת השידור"))
       setBroadcast(null)
       load()
     }
