@@ -7,6 +7,7 @@ import { Trophy as TrophyIcon } from "@/components/icons/HockeyIcons"
 import { motion } from "framer-motion"
 import { format } from "date-fns"
 import TeamLogo from "@/components/TeamLogo"
+import { TeamLink } from "@/components/EntityLinks"
 
 export default function FinalFour() {
   const [teams, setTeams] = useState([])
@@ -155,7 +156,7 @@ export default function FinalFour() {
           <p className="text-[11px] sm:text-xs text-slate-400 dark:text-slate-500 font-medium mt-0.5">עונת 2025-26</p>
           <div className="flex items-center justify-center gap-3 mt-4">
             <TeamLogo team={champion} size={12} />
-            <span className="font-extrabold text-2xl sm:text-3xl text-slate-900 dark:text-white">{champion.name}</span>
+            <TeamLink team={champion} className="font-extrabold text-2xl sm:text-3xl text-slate-900 dark:text-white hover:text-orange-500 transition-colors">{champion.name}</TeamLink>
             <span className="text-3xl sm:text-4xl">🏆</span>
           </div>
         </motion.div>
@@ -278,9 +279,9 @@ export default function FinalFour() {
               <div key={game.id} className="flex items-center justify-between px-5 py-3.5 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
                 <div className="flex items-center gap-3">
                   <TeamLogo team={teamsMap[game.home_team_id]} size={8} />
-                  <span className="font-semibold text-sm text-slate-900 dark:text-white">{teamsMap[game.home_team_id]?.name}</span>
+                  <TeamLink team={teamsMap[game.home_team_id]} className="font-semibold text-sm text-slate-900 dark:text-white hover:text-orange-500 transition-colors">{teamsMap[game.home_team_id]?.name}</TeamLink>
                   <span className="text-xs text-slate-400 font-medium">vs</span>
-                  <span className="font-semibold text-sm text-slate-900 dark:text-white">{teamsMap[game.away_team_id]?.name}</span>
+                  <TeamLink team={teamsMap[game.away_team_id]} className="font-semibold text-sm text-slate-900 dark:text-white hover:text-orange-500 transition-colors">{teamsMap[game.away_team_id]?.name}</TeamLink>
                   <TeamLogo team={teamsMap[game.away_team_id]} size={8} />
                 </div>
                 <div className="text-left text-sm">
@@ -313,11 +314,11 @@ function TeamSlot({ team, pos, isWinner, isLoser }) {
       {team ? (
         <>
           <TeamLogo team={team} size={7} />
-          <span className={`font-semibold text-xs flex-1 truncate ${
+          <TeamLink team={team} className={`font-semibold text-xs flex-1 truncate hover:underline ${
             isWinner ? 'text-emerald-700 dark:text-emerald-300' : 'text-slate-900 dark:text-white'
           }`}>
             {team.name}
-          </span>
+          </TeamLink>
           {pos && <span className="text-[10px] text-slate-400 font-mono">#{pos}</span>}
           {isWinner && <span className="text-[10px]">✓</span>}
         </>
@@ -394,7 +395,7 @@ function DirectQualifier({ team, delay }) {
       </div>
       <div className="flex items-center gap-2 p-2 bg-white/60 dark:bg-slate-800/60 rounded-lg">
         <TeamLogo team={team} size={8} />
-        <span className="font-bold text-sm text-slate-900 dark:text-white">{team.name}</span>
+        <TeamLink team={team} className="font-bold text-sm text-slate-900 dark:text-white hover:text-orange-500 transition-colors">{team.name}</TeamLink>
         <span className="text-[10px] text-amber-600 dark:text-amber-400 font-mono mr-auto">#1</span>
       </div>
     </motion.div>
@@ -496,7 +497,7 @@ function FinalMatchup({ t1, t2, games, delay }) {
             <p className="text-[10px] text-amber-600 dark:text-amber-400 font-bold mb-1">אלוף הליגה</p>
             <div className="flex items-center justify-center gap-2">
               <TeamLogo team={champion} size={8} />
-              <span className="font-extrabold text-sm text-slate-900 dark:text-white">{champion.name}</span>
+              <TeamLink team={champion} className="font-extrabold text-sm text-slate-900 dark:text-white hover:text-orange-500 transition-colors">{champion.name}</TeamLink>
               <span className="text-lg">🏆</span>
             </div>
           </div>

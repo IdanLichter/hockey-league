@@ -1,5 +1,6 @@
 import { standingsComparator } from "@/lib/utils"
 import TeamLogo from "@/components/TeamLogo"
+import { TeamLink } from "@/components/EntityLinks"
 import { Trophy } from "lucide-react"
 
 // Tournament standings from completed games (win=3, tie=1 — matches the league's
@@ -64,7 +65,7 @@ export default function TournamentStandings({ teamIds = [], games = [], teamsMap
                     <td className="py-2">
                       <div className="flex items-center gap-2 min-w-0">
                         <TeamLogo team={team} size={6} />
-                        <span className="font-semibold text-slate-800 dark:text-slate-200 truncate">{team?.name || "—"}</span>
+                        <TeamLink team={team} className="font-semibold text-slate-800 dark:text-slate-200 truncate hover:text-orange-500 transition-colors">{team?.name || "—"}</TeamLink>
                       </div>
                     </td>
                     <td className="text-center tabular-nums text-slate-500">{r.p}</td>

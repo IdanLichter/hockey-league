@@ -14,7 +14,7 @@ function translatePostError(msg = "") {
 }
 
 export default function Composer({ onPosted }) {
-  const { user, openAuth } = useAuth()
+  const { user, canPost, openAuth } = useAuth()
   const [body, setBody] = useState("")
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState(null)
@@ -41,6 +41,22 @@ export default function Composer({ onPosted }) {
           <button type="button" onClick={openAuth} className="font-semibold text-orange-600 dark:text-orange-400 hover:text-orange-700 dark:hover:text-orange-300 transition-colors">
             התחברות
           </button>
+        </div>
+      </div>
+    )
+  }
+
+  // ---- Signed in but not league staff: posting is restricted ----
+  if (!canPost) {
+    return (
+      <div className="card p-4">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-full shrink-0 flex items-center justify-center font-bold text-white bg-orange-500">
+            {initial || <User className="w-5 h-5" />}
+          </div>
+          <p className="flex-1 min-w-0 text-sm text-slate-500 dark:text-slate-400">
+            פרסום פוסטים שמור לצוות הליגה — מאמנים, שופטים, יוצרי תוכן ומנהלי ליגה.
+          </p>
         </div>
       </div>
     )

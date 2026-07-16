@@ -12,6 +12,7 @@ import { Trophy, Calendar, MapPin, ArrowRight, RefreshCw, Users, Check, X } from
 import { motion } from "framer-motion"
 import { format } from "date-fns"
 import TeamLogo from "@/components/TeamLogo"
+import { TeamLink } from "@/components/EntityLinks"
 
 const statusLabel = {
   scheduled: "מתוכנן", in_progress: "משחק חי", waiting_result: "ממתין לתוצאה",
@@ -149,7 +150,7 @@ export default function TournamentDetail() {
               return (
                 <div key={tid} className="flex items-center gap-2 bg-slate-50 dark:bg-slate-800/60 rounded-xl px-3 py-1.5">
                   <TeamLogo team={team} size={6} />
-                  <span className="text-sm font-semibold text-slate-800 dark:text-slate-200">{team?.name || "—"}</span>
+                  <TeamLink team={team} className="text-sm font-semibold text-slate-800 dark:text-slate-200 hover:text-orange-500 transition-colors">{team?.name || "—"}</TeamLink>
                 </div>
               )
             })}
@@ -176,7 +177,7 @@ export default function TournamentDetail() {
                 <div key={g.id} className="flex items-center gap-3 py-2.5 px-3 rounded-xl bg-slate-50 dark:bg-slate-800/50">
                   {/* RTL: home on the right, away on the left; score rendered away:home */}
                   <div className="flex-1 flex items-center justify-end gap-2 min-w-0">
-                    <span className="text-sm font-semibold text-slate-800 dark:text-slate-200 truncate text-left">{home?.name || "—"}</span>
+                    <TeamLink team={home} className="text-sm font-semibold text-slate-800 dark:text-slate-200 truncate text-left hover:text-orange-500 transition-colors">{home?.name || "—"}</TeamLink>
                     <TeamLogo team={home} size={6} />
                   </div>
                   <div className="shrink-0 text-center min-w-[3.5rem]">
@@ -188,7 +189,7 @@ export default function TournamentDetail() {
                   </div>
                   <div className="flex-1 flex items-center gap-2 min-w-0">
                     <TeamLogo team={away} size={6} />
-                    <span className="text-sm font-semibold text-slate-800 dark:text-slate-200 truncate">{away?.name || "—"}</span>
+                    <TeamLink team={away} className="text-sm font-semibold text-slate-800 dark:text-slate-200 truncate hover:text-orange-500 transition-colors">{away?.name || "—"}</TeamLink>
                   </div>
                 </div>
               )

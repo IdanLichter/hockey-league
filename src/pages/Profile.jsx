@@ -12,6 +12,7 @@ import { getMyPlayerSubmission } from "@/lib/playerSubmissions"
 import PlayerCardSubmission from "@/components/PlayerCardSubmission"
 import TeamMembershipCard from "@/components/TeamMembershipCard"
 import MedicalCertificateCard from "@/components/MedicalCertificateCard"
+import BlockedUsersCard from "@/components/BlockedUsersCard"
 import { RoleBadges, deriveRoleItems } from "@/components/RoleBadges"
 
 const sizedUrl = (url, w = 600) => (url ? url.replace(/=w\d+(-h\d+)?.*$/, `=w${w}`) : url)
@@ -342,6 +343,9 @@ export default function Profile() {
           </button>
         </div>
       </motion.div>
+
+      {/* Blocked users manager (parity with iOS AccountView) */}
+      <BlockedUsersCard />
 
       {/* Photos of the linked player from the game albums */}
       {player && photos.length > 0 && (
