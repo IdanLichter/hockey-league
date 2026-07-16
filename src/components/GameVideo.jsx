@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from "react"
 import { motion } from "framer-motion"
-import { Video, Radio, Plus, Trash2, ExternalLink, Youtube, Tag, Camera, Square } from "lucide-react"
+import { Video, Radio, Plus, Trash2, ExternalLink, Youtube, Tag, Camera, Square, Eye } from "lucide-react"
 import { useAuth } from "@/lib/AuthContext"
+import { useStreamViewers } from "@/lib/useStreamViewers"
 import {
   getGameVideo, attachVideo, detachVideo, addMarker, deleteMarker,
   subscribeGameVideo, parseYouTubeId, fmtClock, goLiveCloudflare, getViewerIceServers,
@@ -186,6 +187,11 @@ export default function GameVideo({ game, home, away, players = [] }) {
   const canStream = isContentEditor || isAdmin
   const canMark = isAdmin || isContentEditor
 
+  // Live viewer count via Realtime Presence — active while a Cloudflare live
+  // stream is on this page. The broadcaster sees the count but isn't counted.
+  const streamActive = video?.provider === "cloudflare" && (isLive || !!broadcast)
+  const viewers = useStreamViewers(gameId, streamActive, !broadcast)
+
   const load = useCallback(async () => {
     if (!gameId) return
     try { setVideo(await getGameVideo(gameId)) }
@@ -283,6 +289,11 @@ export default function GameVideo({ game, home, away, players = [] }) {
           {(isLive && video) || broadcast
             ? <span className="flex items-center gap-1.5 text-red-600 dark:text-red-400"><Radio className="w-4 h-4 animate-pulse" /> שידור חי</span>
             : <><Video className="w-4 h-4 text-orange-500" /> וידאו מהמשחק</>}
+          {streamActive && (
+            <span className="flex items-center gap-1 text-xs font-medium text-slate-500 dark:text-slate-400" title="צופים בשידור">
+              <Eye className="w-3.5 h-3.5" /> {viewers}
+            </span>
+          )}
         </h2>
         {video && canStream && (
           <button onClick={onDetach(video, load)}
