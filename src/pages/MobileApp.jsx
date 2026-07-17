@@ -11,8 +11,10 @@ const APK_SIZE = "‎17MB"
 
 // iOS: LIVE on the App Store since 2026-07-16 (v1.0, build 15 — READY_FOR_SALE).
 // Set IOS_LIVE=false to fall back to the "coming soon" state if ever pulled.
+// NOTE: keep the /il/ storefront segment — the app is availability-restricted to
+// Israel only, so the bare /app/id... URL 404s (it resolves against the US store).
 const IOS_LIVE = true
-const IOS_URL = "https://apps.apple.com/app/id6789331513"
+const IOS_URL = "https://apps.apple.com/il/app/id6789331513"
 
 const FEATURES = [
   { icon: Trophy, label: "טבלה ומשחקים בזמן אמת" },
