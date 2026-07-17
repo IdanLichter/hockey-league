@@ -27,6 +27,7 @@ const ContentCreators = lazy(() => import('./pages/ContentCreators'))
 const Profile = lazy(() => import('./pages/Profile'))
 const Privacy = lazy(() => import('./pages/Privacy'))
 const MobileApp = lazy(() => import('./pages/MobileApp'))
+const NotFound = lazy(() => import('./pages/NotFound'))
 
 const SeasonModeContext = createContext()
 export const useSeasonMode = () => useContext(SeasonModeContext)
@@ -45,7 +46,7 @@ function App() {
   if (loading) {
     return (
       <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-10 w-10 border-2 border-orange-500 border-t-transparent" />
+        <div className="animate-spin rounded-full h-10 w-10 border-2 border-brand border-t-transparent" />
       </div>
     )
   }
@@ -57,7 +58,7 @@ function App() {
         <Layout>
           <Suspense fallback={
             <div className="flex items-center justify-center min-h-[60vh]">
-              <div className="animate-spin rounded-full h-10 w-10 border-2 border-orange-500 border-t-transparent" />
+              <div className="animate-spin rounded-full h-10 w-10 border-2 border-brand border-t-transparent" />
             </div>
           }>
           <Routes>
@@ -83,6 +84,7 @@ function App() {
             <Route path="/admin" element={<Admin />} />
             <Route path="/archive" element={<ArchivePage />} />
             <Route path="/archive/:seasonId" element={<ArchivePage />} />
+            <Route path="*" element={<NotFound />} />
           </Routes>
           </Suspense>
         </Layout>

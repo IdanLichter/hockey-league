@@ -116,7 +116,7 @@ export default function Layout({ children }) {
                   to={item.url}
                   className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40 ${
                     isActivePage(item.url)
-                      ? "bg-brand/10 text-orange-600 dark:text-orange-400"
+                      ? "bg-brand/10 text-brand-strong dark:text-brand-light"
                       : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white"
                   }`}
                 >
@@ -141,7 +141,7 @@ export default function Layout({ children }) {
                     to="/me"
                     title="הדף שלי"
                     aria-label="הדף שלי"
-                    className="rounded-full shrink-0 hover:ring-2 hover:ring-orange-300 dark:hover:ring-orange-500/40 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
+                    className="rounded-full shrink-0 hover:ring-2 hover:ring-brand/40 dark:hover:ring-brand/50 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
                   >
                     <NavAvatar profile={profile} email={user.email} className="w-8 h-8" />
                   </Link>
