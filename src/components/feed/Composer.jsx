@@ -46,21 +46,8 @@ export default function Composer({ onPosted }) {
     )
   }
 
-  // ---- Signed in but not league staff: posting is restricted ----
-  if (!canPost) {
-    return (
-      <div className="card p-4">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full shrink-0 flex items-center justify-center font-bold text-white bg-orange-500">
-            {initial || <User className="w-5 h-5" />}
-          </div>
-          <p className="flex-1 min-w-0 text-sm text-slate-500 dark:text-slate-400">
-            פרסום פוסטים שמור לצוות הליגה — מאמנים, שופטים, יוצרי תוכן ומנהלי ליגה.
-          </p>
-        </div>
-      </div>
-    )
-  }
+  // ---- Signed in but not league staff: hide the composer entirely ----
+  if (!canPost) return null
 
   // ---- Logged in: real composer ----
   const submit = async () => {
