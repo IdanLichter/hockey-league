@@ -6,7 +6,7 @@ export default function Privacy() {
   return (
     <div dir="rtl" className="max-w-3xl mx-auto p-4 sm:p-6 lg:p-8">
       <div className="flex items-center gap-2.5 mb-1">
-        <Shield className="w-7 h-7 text-orange-500" />
+        <Shield className="w-7 h-7 text-brand" />
         <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white">מדיניות פרטיות</h1>
       </div>
       <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">
@@ -59,7 +59,7 @@ export default function Privacy() {
         </Section>
 
         <Section title="יצירת קשר">
-          לשאלות או בקשות בנוגע לפרטיות: <a className="text-orange-600 dark:text-orange-400 font-semibold" href="mailto:arielbiton03@gmail.com">arielbiton03@gmail.com</a>
+          לשאלות או בקשות בנוגע לפרטיות: <a className="text-brand dark:text-brand-light font-semibold" href="mailto:arielbiton03@gmail.com">arielbiton03@gmail.com</a>
         </Section>
 
         <hr className="border-slate-200 dark:border-slate-700" />

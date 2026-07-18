@@ -24,7 +24,7 @@ function WidgetFooter({ to, label }) {
   return (
     <Link
       to={to}
-      className="flex items-center justify-center gap-1 px-4 py-2.5 border-t border-slate-100 dark:border-slate-700 text-xs font-semibold text-orange-600 dark:text-orange-400 hover:bg-slate-50 dark:hover:bg-slate-700/40 transition-colors"
+      className="flex items-center justify-center gap-1 px-4 py-2.5 border-t border-slate-100 dark:border-slate-700 text-xs font-semibold text-brand dark:text-brand-light hover:bg-slate-50 dark:hover:bg-slate-700/40 transition-colors"
     >
       {label}
       <ChevronLeft className="w-3.5 h-3.5" />
@@ -50,9 +50,9 @@ export function StandingsWidget({ teams = [] }) {
               <span className={`w-5 h-5 rounded-md flex items-center justify-center text-[10px] font-bold shrink-0 ${medal(i)}`}>{i + 1}</span>
               <Link to={`/teams/${team.id}`} className="flex items-center gap-2.5 flex-1 min-w-0 group">
                 <TeamLogo team={team} size={6} />
-                <span className="truncate text-sm font-semibold text-slate-900 dark:text-white group-hover:text-orange-500 transition-colors">{team.name}</span>
+                <span className="truncate text-sm font-semibold text-slate-900 dark:text-white group-hover:text-brand transition-colors">{team.name}</span>
               </Link>
-              <span className="bg-slate-900 dark:bg-orange-500 text-white text-[11px] font-bold px-2 py-0.5 rounded-md shrink-0">{team.points || 0}</span>
+              <span className="bg-slate-900 dark:bg-brand text-white text-[11px] font-bold px-2 py-0.5 rounded-md shrink-0">{team.points || 0}</span>
             </div>
             {/* Points bar: leader = full width, others scaled to their points ratio; grows right→left.
                 Inset ring gives a defined edge so even white/pale team colours stay visible. */}
@@ -87,7 +87,7 @@ export function NextGameWidget({ games = [], teams = [] }) {
               {home ? (
                 <Link to={`/teams/${home.id}`} className="flex items-center gap-2 flex-1 min-w-0 group">
                   <TeamLogo team={home} size={8} />
-                  <span className="text-sm font-semibold text-slate-900 dark:text-white truncate group-hover:text-orange-500 transition-colors">{home?.name}</span>
+                  <span className="text-sm font-semibold text-slate-900 dark:text-white truncate group-hover:text-brand transition-colors">{home?.name}</span>
                 </Link>
               ) : (
                 <div className="flex items-center gap-2 flex-1 min-w-0">
@@ -99,7 +99,7 @@ export function NextGameWidget({ games = [], teams = [] }) {
               {away ? (
                 <Link to={`/teams/${away.id}`} className="flex items-center gap-2 flex-1 min-w-0 flex-row-reverse group">
                   <TeamLogo team={away} size={8} />
-                  <span className="text-sm font-semibold text-slate-900 dark:text-white truncate text-left group-hover:text-orange-500 transition-colors">{away?.name}</span>
+                  <span className="text-sm font-semibold text-slate-900 dark:text-white truncate text-left group-hover:text-brand transition-colors">{away?.name}</span>
                 </Link>
               ) : (
                 <div className="flex items-center gap-2 flex-1 min-w-0 flex-row-reverse">
@@ -141,11 +141,11 @@ export function LeadersWidget({ players = [], teams = [] }) {
             <span className={`w-5 h-5 rounded-md flex items-center justify-center text-[10px] font-bold shrink-0 ${medal(i)}`}>{i + 1}</span>
             <div className="flex-1 min-w-0">
               <Link to={`/players/${p.id}`} className="block group">
-                <p className="text-sm font-semibold text-slate-900 dark:text-white truncate group-hover:text-orange-500 transition-colors">{p.first_name} {p.last_name}</p>
+                <p className="text-sm font-semibold text-slate-900 dark:text-white truncate group-hover:text-brand transition-colors">{p.first_name} {p.last_name}</p>
               </Link>
               {p.team_id ? (
                 <Link to={`/teams/${p.team_id}`} className="block group">
-                  <p className="text-[11px] text-slate-400 dark:text-slate-500 truncate group-hover:text-orange-500 transition-colors">{teamsMap[p.team_id]?.name || '—'}</p>
+                  <p className="text-[11px] text-slate-400 dark:text-slate-500 truncate group-hover:text-brand transition-colors">{teamsMap[p.team_id]?.name || '—'}</p>
                 </Link>
               ) : (
                 <p className="text-[11px] text-slate-400 dark:text-slate-500 truncate">{teamsMap[p.team_id]?.name || '—'}</p>

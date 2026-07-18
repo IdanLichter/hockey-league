@@ -37,7 +37,7 @@ function JudgeGameView() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <div className="animate-spin rounded-full h-10 w-10 border-2 border-orange-500 border-t-transparent" />
+        <div className="animate-spin rounded-full h-10 w-10 border-2 border-brand border-t-transparent" />
       </div>
     )
   }
@@ -75,7 +75,7 @@ function JudgeGameView() {
       {/* Match header */}
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="card p-5 sm:p-6">
         <div className="flex items-center gap-2 mb-4">
-          <span className="flex items-center gap-1.5 text-xs font-bold text-orange-600 dark:text-orange-400"><Gavel className="w-3.5 h-3.5" /> לוח שיפוט</span>
+          <span className="flex items-center gap-1.5 text-xs font-bold text-brand dark:text-brand-light"><Gavel className="w-3.5 h-3.5" /> לוח שיפוט</span>
           <span className={`stat-pill ${st.cls} mr-auto`}>{st.label}</span>
         </div>
         <div className="flex items-center justify-between gap-3">

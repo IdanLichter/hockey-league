@@ -129,7 +129,7 @@ export default function Games() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <div className="animate-spin rounded-full h-10 w-10 border-2 border-orange-500 border-t-transparent" />
+        <div className="animate-spin rounded-full h-10 w-10 border-2 border-brand border-t-transparent" />
       </div>
     )
   }
@@ -275,7 +275,7 @@ export default function Games() {
                                   const p = playersMap[stat.player_id]
                                   return (
                                     <div key={stat.id} className="flex items-center justify-between py-1 text-xs">
-                                      <PlayerLink playerId={stat.player_id} className="text-slate-700 dark:text-slate-300 hover:text-orange-500 transition-colors">{p?.first_name} {p?.last_name}</PlayerLink>
+                                      <PlayerLink playerId={stat.player_id} className="text-slate-700 dark:text-slate-300 hover:text-brand transition-colors">{p?.first_name} {p?.last_name}</PlayerLink>
                                       <div className="flex gap-1.5">
                                         {stat.goals > 0 && <span className="stat-pill bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300 !py-0 !px-1.5">⚽ {stat.goals}</span>}
                                         {stat.blue_cards > 0 && <span className="stat-pill bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300 !py-0 !px-1.5">🟦 {stat.blue_cards}</span>}
@@ -334,7 +334,7 @@ export default function Games() {
         {/* Always-visible entry to the full game page (live scoreboard, stream, H2H) */}
         <Link
           to={`/games/${game.id}`}
-          className="flex items-center justify-center gap-1.5 px-4 sm:px-5 py-2.5 border-t border-slate-100 dark:border-slate-700/50 text-xs font-semibold text-orange-600 dark:text-orange-400 hover:bg-orange-50/60 dark:hover:bg-orange-900/10 transition-colors"
+          className="flex items-center justify-center gap-1.5 px-4 sm:px-5 py-2.5 border-t border-slate-100 dark:border-slate-700/50 text-xs font-semibold text-brand dark:text-brand-light hover:bg-brand/[0.06] dark:hover:bg-brand/10 transition-colors"
         >
           לעמוד המשחק <ArrowLeft className="w-3.5 h-3.5" />
         </Link>
@@ -346,7 +346,7 @@ export default function Games() {
     <div className="p-4 sm:p-6 lg:p-8 max-w-5xl mx-auto space-y-5">
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
         <h1 className="page-title flex items-center gap-2.5">
-          <Crossed className="w-7 h-7 text-orange-500" /> משחקים
+          <Crossed className="w-7 h-7 text-brand" /> משחקים
         </h1>
         <p className="page-subtitle mt-1">לוח משחקים ותוצאות עונת 2025-26</p>
       </motion.div>

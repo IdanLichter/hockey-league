@@ -17,7 +17,7 @@ function Avatar({ url, name, className = "w-9 h-9" }) {
   const initial = (name || "?").trim().charAt(0).toUpperCase() || "?"
   return url
     ? <img src={url} alt="" className={`${className} rounded-full object-cover shrink-0`} />
-    : <div className={`${className} rounded-full bg-orange-500 text-white flex items-center justify-center text-sm font-bold shrink-0`}>{initial}</div>
+    : <div className={`${className} rounded-full bg-brand text-white flex items-center justify-center text-sm font-bold shrink-0`}>{initial}</div>
 }
 
 /* Wrap children in a link to a team page when the team exists, else render inert. */
@@ -207,7 +207,7 @@ function ResultTeam({ team, side, isWin, isLoss, label }) {
     <TeamLink team={team} className={`group flex items-center gap-2.5 flex-1 min-w-0 rounded-xl px-2 py-1.5 transition-colors ${reverse ? "flex-row-reverse" : ""} ${isWin ? "bg-emerald-50 dark:bg-emerald-900/20" : ""}`}>
       <TeamLogo team={team} size={12} />
       <div className={`min-w-0 ${reverse ? "text-left" : ""}`}>
-        <p className={`text-sm sm:text-[15px] truncate flex items-center gap-1 group-hover:text-orange-500 transition-colors ${reverse ? "flex-row-reverse" : ""} ${isWin ? "font-extrabold text-emerald-700 dark:text-emerald-300" : isLoss ? "font-semibold text-slate-400 dark:text-slate-500" : "font-bold text-slate-900 dark:text-white"}`}>
+        <p className={`text-sm sm:text-[15px] truncate flex items-center gap-1 group-hover:text-brand transition-colors ${reverse ? "flex-row-reverse" : ""} ${isWin ? "font-extrabold text-emerald-700 dark:text-emerald-300" : isLoss ? "font-semibold text-slate-400 dark:text-slate-500" : "font-bold text-slate-900 dark:text-white"}`}>
           {isWin && <Trophy className="w-3.5 h-3.5 text-amber-500 shrink-0" />}
           <span className="truncate">{team?.name}</span>
         </p>
@@ -234,7 +234,7 @@ function ChampionPost({ post, likedItems, itemLikeCounts, itemCommentCounts, blo
             אלופת העונה {seasonName}
           </p>
           <TeamLink team={team} className="block w-fit">
-            <h3 className="text-xl font-extrabold text-slate-900 dark:text-white mt-0.5 truncate hover:text-orange-500 transition-colors">{team?.name}</h3>
+            <h3 className="text-xl font-extrabold text-slate-900 dark:text-white mt-0.5 truncate hover:text-brand transition-colors">{team?.name}</h3>
           </TeamLink>
         </div>
         <Trophy className="w-8 h-8 text-amber-400 shrink-0" />
@@ -261,10 +261,10 @@ function TopScorerPost({ post, likedItems, itemLikeCounts, itemCommentCounts, bl
         </div>
         <div className="flex-1 min-w-0">
           <PlayerLink playerId={player?.id} className="block w-fit max-w-full">
-            <h3 className="text-lg font-extrabold text-slate-900 dark:text-white truncate hover:text-orange-500 transition-colors">{player?.first_name} {player?.last_name}</h3>
+            <h3 className="text-lg font-extrabold text-slate-900 dark:text-white truncate hover:text-brand transition-colors">{player?.first_name} {player?.last_name}</h3>
           </PlayerLink>
           <TeamLink team={team} className="block w-fit max-w-full">
-            <p className="text-sm text-slate-500 dark:text-slate-400 truncate hover:text-orange-500 transition-colors">{team?.name || ''}</p>
+            <p className="text-sm text-slate-500 dark:text-slate-400 truncate hover:text-brand transition-colors">{team?.name || ''}</p>
           </TeamLink>
         </div>
         <div className="text-center shrink-0">
@@ -318,7 +318,7 @@ function GameResultPost({ post, playersMap, teamsMap, likedItems, itemLikeCounts
         <div className="flex items-center gap-3 mt-3 pt-3 border-t border-slate-100 dark:border-slate-700/50 text-xs text-slate-500 dark:text-slate-400 flex-wrap">
           <span className="flex items-center gap-1"><MapPin className="w-3.5 h-3.5" />{game.venue || '—'}</span>
           <div className="mr-auto flex items-center gap-2">
-            <Link to={`/games/${game.id}`} className="flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg font-semibold text-orange-600 dark:text-orange-400 hover:bg-orange-50/60 dark:hover:bg-orange-900/10 transition-colors">
+            <Link to={`/games/${game.id}`} className="flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg font-semibold text-brand dark:text-brand-light hover:bg-brand/[0.06] dark:hover:bg-brand/10 transition-colors">
               לעמוד המשחק <ArrowLeft className="w-3.5 h-3.5" />
             </Link>
             {stats.length > 0 && (
@@ -357,7 +357,7 @@ function GameResultPost({ post, playersMap, teamsMap, likedItems, itemLikeCounts
                               const p = playersMap[stat.player_id]
                               return (
                                 <div key={stat.id} className="flex items-center justify-between py-1 text-xs">
-                                  <PlayerLink playerId={stat.player_id} className="text-slate-700 dark:text-slate-300 hover:text-orange-500 transition-colors">{p?.first_name} {p?.last_name}</PlayerLink>
+                                  <PlayerLink playerId={stat.player_id} className="text-slate-700 dark:text-slate-300 hover:text-brand transition-colors">{p?.first_name} {p?.last_name}</PlayerLink>
                                   <div className="flex gap-1.5">
                                     {stat.goals > 0 && <span className="stat-pill bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300 !py-0 !px-1.5">⚽ {stat.goals}</span>}
                                     {stat.blue_cards > 0 && <span className="stat-pill bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300 !py-0 !px-1.5">🟦 {stat.blue_cards}</span>}
@@ -412,7 +412,7 @@ function MilestonePost({ post, likedItems, itemLikeCounts, itemCommentCounts, bl
   const emoji = bigGame ? '🔥' : '🎩'
   const label = bigGame ? 'משחק ענק' : 'שלושער'
   const accent = bigGame
-    ? "text-orange-600 dark:text-orange-400"
+    ? "text-brand dark:text-brand-light"
     : "text-emerald-600 dark:text-emerald-400"
 
   return (
@@ -427,11 +427,11 @@ function MilestonePost({ post, likedItems, itemLikeCounts, itemCommentCounts, bl
       </p>
       <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-1">
         {teamName ? `(${teamName}) • ` : ''}
-        <TeamLink team={home} className="hover:text-orange-500 transition-colors">{home?.name}</TeamLink>{' '}
+        <TeamLink team={home} className="hover:text-brand transition-colors">{home?.name}</TeamLink>{' '}
         {/* dir="ltr" bidi-isolates the score so RTL doesn't split "away:home" and
             mispair each digit with the wrong team (see hockey-league-rtl-score-gotcha). */}
         <span dir="ltr" className="tabular-nums">{game.away_score} : {game.home_score}</span>{' '}
-        <TeamLink team={away} className="hover:text-orange-500 transition-colors">{away?.name}</TeamLink>
+        <TeamLink team={away} className="hover:text-brand transition-colors">{away?.name}</TeamLink>
       </p>
       <EventPhoto photo={post.data.photo} itemKey={post.id} candidates={post.data.photoCandidates} onRefreshed={onPhotoRefreshed} />
       <ReactionBar itemKey={post.id} liked={likedItems?.has?.(post.id)} likeCount={itemLikeCounts?.[post.id] || 0} commentCount={itemCommentCounts?.[post.id] || 0} blockedIds={blockedIds} />
@@ -563,7 +563,7 @@ function PostCard({ post, likedPostIds, blockedIds, roleBadges }) {
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-1.5 min-w-0">
             <PlayerLink playerId={linkedPlayerId} className="min-w-0">
-              <p className={`text-sm font-bold text-slate-900 dark:text-white truncate ${linkedPlayerId ? "hover:text-orange-500 transition-colors" : ""}`}>{name}</p>
+              <p className={`text-sm font-bold text-slate-900 dark:text-white truncate ${linkedPlayerId ? "hover:text-brand transition-colors" : ""}`}>{name}</p>
             </PlayerLink>
             {linkedPlayerId ? (
               <span title="מקושר לשחקן — לחצו לעמוד השחקן" className="shrink-0 inline-flex items-center gap-0.5 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30 px-1.5 py-0.5 rounded-full">
@@ -576,7 +576,7 @@ function PostCard({ post, likedPostIds, blockedIds, roleBadges }) {
           </div>
           <p className="text-[11px] text-slate-400 dark:text-slate-500 flex items-center gap-1">
             <span>{fmtDate(post.date)}</span>
-            {team && <>·<TeamLink team={team} className="hover:text-orange-500 transition-colors">{team.name}</TeamLink></>}
+            {team && <>·<TeamLink team={team} className="hover:text-brand transition-colors">{team.name}</TeamLink></>}
           </p>
         </div>
         <ModerationMenu
@@ -596,11 +596,11 @@ function PostCard({ post, likedPostIds, blockedIds, roleBadges }) {
             onChange={e => setPostDraft(e.target.value.slice(0, 2000))}
             rows={3}
             autoFocus
-            className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500 resize-none"
+            className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand resize-none"
           />
           <div className="flex items-center gap-2 mt-2">
             <button onClick={saveEditPost} disabled={savingPost || !postDraft.trim()}
-              className="flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg bg-orange-500 text-white hover:bg-orange-600 transition-colors disabled:opacity-50">
+              className="flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg bg-brand text-white hover:bg-brand-hover transition-colors disabled:opacity-50">
               {savingPost ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />} שמירה
             </button>
             <button onClick={() => setEditingPost(false)} disabled={savingPost}
@@ -620,7 +620,7 @@ function PostCard({ post, likedPostIds, blockedIds, roleBadges }) {
           <Heart className={`w-4 h-4 ${liked ? "fill-current" : ""}`} />
           {likeCount > 0 ? <span>{likeCount}</span> : <span>אהבתי</span>}
         </button>
-        <button onClick={toggleComments} className="flex items-center gap-1.5 font-semibold text-slate-500 dark:text-slate-400 hover:text-orange-500 transition-colors">
+        <button onClick={toggleComments} className="flex items-center gap-1.5 font-semibold text-slate-500 dark:text-slate-400 hover:text-brand transition-colors">
           <MessageCircle className="w-4 h-4" />
           {commentCount > 0 ? <span>{commentCount}</span> : <span>תגובה</span>}
         </button>
@@ -642,7 +642,7 @@ function PostCard({ post, likedPostIds, blockedIds, roleBadges }) {
                       </PlayerLink>
                       <div className="min-w-0 flex-1 bg-slate-50 dark:bg-slate-800/60 rounded-xl px-3 py-2">
                         <PlayerLink playerId={c.author?.player_id} className="w-fit max-w-full">
-                          <p className={`text-xs font-bold text-slate-900 dark:text-white truncate ${c.author?.player_id ? "hover:text-orange-500 transition-colors" : ""}`}>{c.author?.display_name || "חבר/ת הליגה"}</p>
+                          <p className={`text-xs font-bold text-slate-900 dark:text-white truncate ${c.author?.player_id ? "hover:text-brand transition-colors" : ""}`}>{c.author?.display_name || "חבר/ת הליגה"}</p>
                         </PlayerLink>
                         {editingCommentId === c.id ? (
                           <div className="mt-1">
@@ -651,11 +651,11 @@ function PostCard({ post, likedPostIds, blockedIds, roleBadges }) {
                               onChange={e => setCommentDraft(e.target.value.slice(0, 1000))}
                               rows={2}
                               autoFocus
-                              className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1.5 text-xs text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500 resize-none"
+                              className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1.5 text-xs text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand resize-none"
                             />
                             <div className="flex items-center gap-2 mt-1.5">
                               <button onClick={() => saveEditComment(c)} disabled={savingComment || !commentDraft.trim()}
-                                className="flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-lg bg-orange-500 text-white hover:bg-orange-600 transition-colors disabled:opacity-50">
+                                className="flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-lg bg-brand text-white hover:bg-brand-hover transition-colors disabled:opacity-50">
                                 {savingComment ? <Loader2 className="w-3 h-3 animate-spin" /> : null} שמירה
                               </button>
                               <button onClick={() => setEditingCommentId(null)} disabled={savingComment}
@@ -685,14 +685,14 @@ function PostCard({ post, likedPostIds, blockedIds, roleBadges }) {
                         value={newComment}
                         onChange={e => setNewComment(e.target.value.slice(0, 1000))}
                         placeholder="כתבו תגובה…"
-                        className="flex-1 min-w-0 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full px-3 py-1.5 text-xs text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500"
+                        className="flex-1 min-w-0 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full px-3 py-1.5 text-xs text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand"
                       />
-                      <button type="submit" disabled={posting || !newComment.trim()} className="shrink-0 w-8 h-8 rounded-full bg-orange-500 text-white flex items-center justify-center disabled:opacity-50">
+                      <button type="submit" disabled={posting || !newComment.trim()} className="shrink-0 w-8 h-8 rounded-full bg-brand text-white flex items-center justify-center disabled:opacity-50">
                         {posting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
                       </button>
                     </form>
                   ) : (
-                    <button onClick={openAuth} className="text-xs text-orange-600 dark:text-orange-400 font-semibold hover:underline pt-1">התחברו כדי להגיב</button>
+                    <button onClick={openAuth} className="text-xs text-brand dark:text-brand-light font-semibold hover:underline pt-1">התחברו כדי להגיב</button>
                   )}
                 </>
               )}

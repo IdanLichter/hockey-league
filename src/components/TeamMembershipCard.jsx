@@ -58,7 +58,7 @@ export default function TeamMembershipCard({ player, onChange }) {
   return (
     <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-700/50 space-y-2">
       <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-500 dark:text-slate-400">
-        <Users className="w-3.5 h-3.5 text-orange-500" /> הקבוצות שלי
+        <Users className="w-3.5 h-3.5 text-brand" /> הקבוצות שלי
       </div>
 
       {/* Current memberships — one per age group */}
@@ -94,21 +94,21 @@ export default function TeamMembershipCard({ player, onChange }) {
       ) : picking ? (
         <div className="flex items-center gap-2">
           <select value={teamId} onChange={e => setTeamId(e.target.value)}
-            className="flex-1 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-orange-500/30">
+            className="flex-1 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-brand/30">
             <option value="">בחר/י קבוצה…</option>
             {choices.map(t => (
               <option key={t.id} value={t.id}>{t.name}{ageOf(t) !== DEFAULT_AGE ? ` · ${AGE_LABEL[ageOf(t)]}` : ""}</option>
             ))}
           </select>
           <button onClick={doRequest} disabled={!teamId || busy}
-            className="flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-lg bg-orange-500 text-white hover:bg-orange-600 transition-colors disabled:opacity-50">
+            className="flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-lg bg-brand text-white hover:bg-brand-hover transition-colors disabled:opacity-50">
             {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />} שלח בקשה
           </button>
           <button onClick={() => { setPicking(false); setTeamId("") }} className="text-xs font-semibold text-slate-400 hover:text-slate-600 px-1 shrink-0">ביטול</button>
         </div>
       ) : (
         <button onClick={() => setPicking(true)}
-          className="flex items-center gap-1 text-xs font-semibold text-orange-600 dark:text-orange-400 hover:underline">
+          className="flex items-center gap-1 text-xs font-semibold text-brand dark:text-brand-light hover:underline">
           <Plus className="w-3.5 h-3.5" /> בקשה להצטרף לקבוצה
         </button>
       )}

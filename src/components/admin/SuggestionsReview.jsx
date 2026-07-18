@@ -55,7 +55,7 @@ export default function SuggestionsReview({ players = [] }) {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="flex items-center gap-2 text-lg font-bold text-slate-900 dark:text-white">
-            <Camera className="w-5 h-5 text-orange-500" /> הצעות זיהוי שחקנים
+            <Camera className="w-5 h-5 text-brand" /> הצעות זיהוי שחקנים
           </h2>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
             הצעות מהגולשים לזיהוי פנים בתמונות. אישור מקשר לשחקן ומשבץ אותו בעדכונים
@@ -72,7 +72,7 @@ export default function SuggestionsReview({ players = [] }) {
 
       {loading ? (
         <div className="flex items-center justify-center py-12">
-          <div className="animate-spin rounded-full h-8 w-8 border-2 border-orange-500 border-t-transparent" />
+          <div className="animate-spin rounded-full h-8 w-8 border-2 border-brand border-t-transparent" />
         </div>
       ) : queue.length === 0 ? (
         <div className="card p-10 text-center">
@@ -99,7 +99,7 @@ export default function SuggestionsReview({ players = [] }) {
                   <div className="flex flex-wrap gap-1.5">
                     {c.suggestions.map(s => (
                       <span key={s.name} className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200">
-                        {s.name} <span className="text-orange-500 font-bold">{s.count}</span>
+                        {s.name} <span className="text-brand font-bold">{s.count}</span>
                       </span>
                     ))}
                   </div>

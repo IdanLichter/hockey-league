@@ -9,7 +9,7 @@ import Sparkline from './Sparkline'
  * `accent`: 'brand' colours the value orange; otherwise it inherits ink.
  */
 export default function StatTile({ icon, value, label, sub, accent = 'default', to, spark, sparkColor }) {
-  const valueCls = accent === 'brand' ? 'text-orange-500' : 'text-slate-900 dark:text-white'
+  const valueCls = accent === 'brand' ? 'text-brand' : 'text-slate-900 dark:text-white'
 
   const inner = (
     <>
@@ -29,7 +29,7 @@ export default function StatTile({ icon, value, label, sub, accent = 'default', 
 
   if (to) {
     return (
-      <Link to={to} className="card-hover p-4 flex flex-col group focus:outline-none focus:ring-2 focus:ring-orange-500/30">
+      <Link to={to} className="card-hover p-4 flex flex-col group focus:outline-none focus:ring-2 focus:ring-brand/30">
         {inner}
       </Link>
     )

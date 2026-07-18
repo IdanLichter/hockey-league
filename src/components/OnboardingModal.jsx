@@ -112,18 +112,18 @@ export default function OnboardingModal() {
             <div className="w-14 h-14 rounded-full bg-emerald-100 dark:bg-emerald-900/40 flex items-center justify-center mx-auto mb-4">
               <Check className="w-7 h-7 text-emerald-600 dark:text-emerald-400" />
             </div>
-            <h3 className="text-lg font-extrabold text-slate-900 dark:text-white">הבקשה נשלחה 🏒</h3>
+            <h3 className="text-lg font-extrabold text-slate-900 dark:text-white">הבקשה נשלחה 🛼</h3>
             <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">
               בקשת השיוך ל־<span className="font-semibold text-slate-700 dark:text-slate-300">{selected?.first_name} {selected?.last_name}</span> ממתינה לאישור מנהל/מאמן. נעדכן אותך כשהיא תאושר.
             </p>
-            <button onClick={() => setPhase("hidden")} className="mt-5 w-full py-2.5 rounded-xl bg-orange-500 text-white font-semibold hover:bg-orange-600 transition-colors">
+            <button onClick={() => setPhase("hidden")} className="mt-5 w-full py-2.5 rounded-xl bg-brand text-white font-semibold hover:bg-brand-hover transition-colors">
               מעולה
             </button>
           </div>
         ) : (
           <>
-            <div className="w-12 h-12 rounded-2xl bg-orange-500/10 flex items-center justify-center mb-3">
-              <UserPlus className="w-6 h-6 text-orange-500" />
+            <div className="w-12 h-12 rounded-2xl bg-brand/10 flex items-center justify-center mb-3">
+              <UserPlus className="w-6 h-6 text-brand" />
             </div>
             <h2 className="text-xl font-extrabold text-slate-900 dark:text-white">שיחקת בליגה?</h2>
             <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
@@ -137,7 +137,7 @@ export default function OnboardingModal() {
                 value={q}
                 onChange={e => { setQ(e.target.value); setSelected(null); setError(null) }}
                 placeholder="חיפוש לפי שם…"
-                className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl pr-9 pl-3 py-2.5 text-sm text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500"
+                className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl pr-9 pl-3 py-2.5 text-sm text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand"
               />
             </div>
 
@@ -157,7 +157,7 @@ export default function OnboardingModal() {
                       <button
                         key={p.id}
                         onClick={() => setSelected(p)}
-                        className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-right transition-colors ${isSel ? "bg-orange-500/10 ring-1 ring-orange-500/40" : "hover:bg-slate-50 dark:hover:bg-slate-800"}`}
+                        className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-right transition-colors ${isSel ? "bg-brand/10 ring-1 ring-brand/40" : "hover:bg-slate-50 dark:hover:bg-slate-800"}`}
                       >
                         <span className="w-8 h-8 rounded-full shrink-0 flex items-center justify-center text-white text-xs font-bold" style={{ backgroundColor: team?.color || "#94a3b8" }}>
                           {p.jersey_number ?? (p.first_name?.charAt(0) || "?")}
@@ -166,7 +166,7 @@ export default function OnboardingModal() {
                           <span className="block text-sm font-semibold text-slate-900 dark:text-white truncate">{p.first_name} {p.last_name}</span>
                           {team?.name && <span className="block text-[11px] text-slate-400 truncate">{team.name}</span>}
                         </span>
-                        {isSel && <Check className="w-4 h-4 text-orange-500 shrink-0" />}
+                        {isSel && <Check className="w-4 h-4 text-brand shrink-0" />}
                       </button>
                     )
                   })}
@@ -179,7 +179,7 @@ export default function OnboardingModal() {
             <button
               onClick={submit}
               disabled={!selected || submitting}
-              className="mt-4 w-full py-2.5 rounded-xl bg-orange-500 text-white font-bold hover:bg-orange-600 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+              className="mt-4 w-full py-2.5 rounded-xl bg-brand text-white font-bold hover:bg-brand-hover transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
             >
               {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
               בקשת שיוך לפרופיל

@@ -316,12 +316,12 @@ export default function Statistics() {
     )
   }
 
-  const PlayerRow = ({ player, index, value, color = "bg-slate-900 dark:bg-orange-500" }) => (
+  const PlayerRow = ({ player, index, value, color = "bg-slate-900 dark:bg-brand" }) => (
     <Link to={`/players/${player.id}`} className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors group">
       <div className="flex items-center gap-2.5">
         <span className={`w-6 h-6 rounded-md flex items-center justify-center text-[10px] font-bold ${medal(index)}`}>{index + 1}</span>
         <div>
-          <p className="font-semibold text-sm text-slate-900 dark:text-white group-hover:text-orange-500 transition-colors">{player.first_name} {player.last_name}</p>
+          <p className="font-semibold text-sm text-slate-900 dark:text-white group-hover:text-brand transition-colors">{player.first_name} {player.last_name}</p>
           <p className="text-[11px] text-slate-400 dark:text-slate-500">{teamName(player.team_id)}</p>
         </div>
       </div>
@@ -330,7 +330,7 @@ export default function Statistics() {
   )
 
   // Compact award card: top-5 players, medal styling, links to the player page.
-  const AwardCard = ({ title, icon, data, valueOf, unit, badge = "bg-slate-900 dark:bg-orange-500", empty = "אין נתונים", note }) => (
+  const AwardCard = ({ title, icon, data, valueOf, unit, badge = "bg-slate-900 dark:bg-brand", empty = "אין נתונים", note }) => (
     <div className="card p-4">
       <h3 className="flex items-center gap-2 font-bold text-sm text-slate-900 dark:text-white mb-3">{icon} {title}</h3>
       <div className="space-y-2">
@@ -339,7 +339,7 @@ export default function Statistics() {
             <span className="flex items-center gap-2 min-w-0">
               <span className={`w-5 h-5 rounded-md flex items-center justify-center text-[10px] font-bold shrink-0 ${medal(i)}`}>{i + 1}</span>
               <span className="min-w-0">
-                <span className="block font-semibold text-[13px] text-slate-900 dark:text-white truncate group-hover:text-orange-500 transition-colors">{p.first_name} {p.last_name}</span>
+                <span className="block font-semibold text-[13px] text-slate-900 dark:text-white truncate group-hover:text-brand transition-colors">{p.first_name} {p.last_name}</span>
                 <span className="block text-[10px] text-slate-400 dark:text-slate-500 truncate">{teamName(p.team_id)}</span>
               </span>
             </span>
@@ -355,7 +355,7 @@ export default function Statistics() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <div className="animate-spin rounded-full h-10 w-10 border-2 border-orange-500 border-t-transparent" />
+        <div className="animate-spin rounded-full h-10 w-10 border-2 border-brand border-t-transparent" />
       </div>
     )
   }
@@ -379,7 +379,7 @@ export default function Statistics() {
     <div className="p-4 sm:p-6 lg:p-8 max-w-5xl mx-auto space-y-6">
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
         <h1 className="page-title flex items-center gap-2.5">
-          <Stats className="w-7 h-7 text-orange-500" /> סטטיסטיקות
+          <Stats className="w-7 h-7 text-brand" /> סטטיסטיקות
         </h1>
         <p className="page-subtitle mt-1">נתוני ביצועים עונת 2025-26</p>
       </motion.div>
@@ -410,7 +410,7 @@ export default function Statistics() {
           subtitle={raceMode === 'team'
             ? 'שערים מצטברים לאורך העונה, לפי קבוצה'
             : 'שערים מצטברים לאורך העונה · 8 המבקיעים המובילים'}
-          icon={<TrendingUp className="w-4 h-4 text-orange-500" />}
+          icon={<TrendingUp className="w-4 h-4 text-brand" />}
           footnote={raceMode === 'player' ? STATS_NOTE : undefined}
           toolbar={
             <SegToggle
@@ -433,7 +433,7 @@ export default function Statistics() {
           subtitle={gdView === 'scatter'
             ? 'מתקפה מול הגנה — כל קבוצה על המפה'
             : 'זכות מול חובה — מכ״ם קבוצתי'}
-          icon={<Target className="w-4 h-4 text-orange-500" />}
+          icon={<Target className="w-4 h-4 text-brand" />}
           toolbar={
             <SegToggle
               value={gdView}
@@ -470,7 +470,7 @@ export default function Statistics() {
             : hatMode === 'player'
               ? 'נפח מול נפיצות — שערים מול שלישיות'
               : 'שערי קבוצה מול שלישיות'}
-          icon={<Flame className="w-4 h-4 text-orange-500" />}
+          icon={<Flame className="w-4 h-4 text-brand" />}
           footnote={STATS_NOTE}
           toolbar={
             <div className="flex flex-wrap items-center gap-1.5">
@@ -520,7 +520,7 @@ export default function Statistics() {
           <Trophy className="w-5 h-5 text-amber-500" /> הישגים ותארים
         </h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <AwardCard title="מלכי השלישיות" icon={<StickBall className="w-4 h-4 text-orange-500" />} data={awardHat} valueOf={p => p.hatTricks} badge="bg-orange-500" empty="אין שלישיות" note={STATS_NOTE} />
+          <AwardCard title="מלכי השלישיות" icon={<StickBall className="w-4 h-4 text-brand" />} data={awardHat} valueOf={p => p.hatTricks} badge="bg-brand" empty="אין שלישיות" note={STATS_NOTE} />
           <AwardCard title="משחקי-על (5+ שערים)" icon={<Zap className="w-4 h-4 text-amber-500" />} data={awardBig} valueOf={p => p.bigGames} badge="bg-amber-500" empty="אין" note={STATS_NOTE} />
           <AwardCard title="דאבלים (2 שערים)" icon={<Target className="w-4 h-4 text-slate-500" />} data={awardBrace} valueOf={p => p.braces} badge="bg-slate-700 dark:bg-slate-500" empty="אין" note={STATS_NOTE} />
           <AwardCard title="שוערי הברזל" icon={<Glove className="w-4 h-4 text-blue-500" />} data={awardClean} valueOf={p => p.clean_sheets} unit="נקיות" badge="bg-blue-500" empty="אין" />
@@ -540,7 +540,7 @@ export default function Statistics() {
 
         {activeTab === "scorers" && (
           <div className="space-y-4">
-            <List title="מלכי השערים" icon={<StickBall className="w-4 h-4 text-orange-500" />} data={topScorers} tKey="top" empty="אין נתונים"
+            <List title="מלכי השערים" icon={<StickBall className="w-4 h-4 text-brand" />} data={topScorers} tKey="top" empty="אין נתונים"
               render={(p, i) => <PlayerRow key={p.id} player={p} index={i} value={`${p.goals || 0} שערים`} />} />
             <List title="מצטיין מכל קבוצה" icon={<Crown className="w-4 h-4 text-amber-500" />} data={topPerTeam} tKey="perTeam" empty="אין נתונים"
               render={(p, i) => <PlayerRow key={p.id} player={p} index={i} value={`${p.goals || 0}`} color="bg-amber-500" />} />
@@ -554,7 +554,7 @@ export default function Statistics() {
                 <div className="flex items-center gap-2.5">
                   <span className={`w-6 h-6 rounded-md flex items-center justify-center text-[10px] font-bold ${medal(i)}`}>{i + 1}</span>
                   <div>
-                    <p className="font-semibold text-sm text-slate-900 dark:text-white group-hover:text-orange-500 transition-colors">{gk.first_name} {gk.last_name}</p>
+                    <p className="font-semibold text-sm text-slate-900 dark:text-white group-hover:text-brand transition-colors">{gk.first_name} {gk.last_name}</p>
                     <p className="text-[11px] text-slate-400 dark:text-slate-500">{teamName(gk.team_id)} • {gk.total_games} משחקים</p>
                   </div>
                 </div>
@@ -572,7 +572,7 @@ export default function Statistics() {
                 <Link key={t.id} to={`/teams/${t.id}`} className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors group">
                   <div className="flex items-center gap-2.5">
                     <TeamLogo team={t} size={6} />
-                    <span className="font-semibold text-sm text-slate-900 dark:text-white group-hover:text-orange-500 transition-colors">{t.name}</span>
+                    <span className="font-semibold text-sm text-slate-900 dark:text-white group-hover:text-brand transition-colors">{t.name}</span>
                   </div>
                   <span className="bg-blue-500 text-white text-xs font-bold px-2.5 py-1 rounded-md">{t.total_blue}</span>
                 </Link>

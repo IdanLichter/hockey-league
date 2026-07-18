@@ -87,7 +87,7 @@ export default function RolesAdmin({ teamsMap = {}, players = [] }) {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-16">
-        <div className="animate-spin rounded-full h-8 w-8 border-2 border-orange-500 border-t-transparent" />
+        <div className="animate-spin rounded-full h-8 w-8 border-2 border-brand border-t-transparent" />
       </div>
     )
   }
@@ -97,7 +97,7 @@ export default function RolesAdmin({ teamsMap = {}, players = [] }) {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="flex items-center gap-2 text-lg font-bold text-slate-900 dark:text-white">
-            <Award className="w-5 h-5 text-orange-500" /> תפקידים והרשאות
+            <Award className="w-5 h-5 text-brand" /> תפקידים והרשאות
           </h2>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">הענקת תפקידים למשתמשים רשומים. שופט = הרשאה להפעיל את לוח השיפוט.</p>
         </div>
@@ -138,7 +138,7 @@ export default function RolesAdmin({ teamsMap = {}, players = [] }) {
                 <div className="flex items-center gap-3">
                   {p.avatar_url
                     ? <img src={p.avatar_url} alt="" className="w-9 h-9 rounded-full object-cover shrink-0" />
-                    : <div className="w-9 h-9 rounded-full bg-orange-500 text-white flex items-center justify-center text-sm font-bold shrink-0">{initial}</div>}
+                    : <div className="w-9 h-9 rounded-full bg-brand text-white flex items-center justify-center text-sm font-bold shrink-0">{initial}</div>}
                   <div className="min-w-0 flex-1">
                     <p className="font-bold text-sm text-slate-900 dark:text-white truncate">{p.display_name || "משתמש"}</p>
                     <p className="text-[11px] text-slate-400 dark:text-slate-500">{linked ? `משויך ל${linked.first_name} ${linked.last_name}` : "ללא שיוך שחקן"}</p>
@@ -175,7 +175,7 @@ export default function RolesAdmin({ teamsMap = {}, players = [] }) {
                   ))}
                   {myRoles.length === 0 && <span className="text-[11px] text-slate-400 dark:text-slate-500">אין תפקידים</span>}
                   {form?.profileId !== p.id && (
-                    <button onClick={() => openForm(p)} className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-1 rounded-lg border border-dashed border-slate-300 dark:border-slate-600 text-slate-500 dark:text-slate-400 hover:border-orange-400 hover:text-orange-500 transition-colors">
+                    <button onClick={() => openForm(p)} className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-1 rounded-lg border border-dashed border-slate-300 dark:border-slate-600 text-slate-500 dark:text-slate-400 hover:border-brand hover:text-brand transition-colors">
                       <Plus className="w-3 h-3" /> הוסף תפקיד
                     </button>
                   )}

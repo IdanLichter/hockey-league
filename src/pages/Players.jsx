@@ -58,7 +58,7 @@ export default function Players() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <div className="animate-spin rounded-full h-10 w-10 border-2 border-orange-500 border-t-transparent" />
+        <div className="animate-spin rounded-full h-10 w-10 border-2 border-brand border-t-transparent" />
       </div>
     )
   }
@@ -80,7 +80,7 @@ export default function Players() {
     <div className="p-4 sm:p-6 lg:p-8 max-w-5xl mx-auto space-y-5">
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
         <h1 className="page-title flex items-center gap-2.5">
-          <PlayerIcon className="w-7 h-7 text-orange-500" /> שחקנים
+          <PlayerIcon className="w-7 h-7 text-brand" /> שחקנים
         </h1>
         <p className="page-subtitle mt-1">{seniorPlayers.length} שחקנים בליגה</p>
       </motion.div>
@@ -136,7 +136,7 @@ export default function Players() {
                 <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${player.position === 'Goalkeeper' ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400' : 'bg-slate-100 text-slate-500 dark:bg-slate-700 dark:text-slate-400'}`}>
                   {player.position === 'Goalkeeper' ? 'GK' : 'FP'}
                 </span>
-                {player.is_core && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400">C</span>}
+                {player.is_core && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-brand/10 text-brand dark:bg-brand/20 dark:text-brand-light">C</span>}
                 {player.is_referee && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400">R</span>}
               </div>
             </div>

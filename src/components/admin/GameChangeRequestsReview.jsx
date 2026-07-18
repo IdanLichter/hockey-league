@@ -40,13 +40,13 @@ export default function GameChangeRequestsReview({ teamsMap = {} }) {
     catch (e) { setError(e.message || "שגיאה בדחייה") } finally { setBusyId(null) }
   }
 
-  if (loading) return <div className="flex items-center justify-center py-16"><div className="animate-spin rounded-full h-8 w-8 border-2 border-orange-500 border-t-transparent" /></div>
+  if (loading) return <div className="flex items-center justify-center py-16"><div className="animate-spin rounded-full h-8 w-8 border-2 border-brand border-t-transparent" /></div>
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="flex items-center gap-2 text-lg font-bold text-slate-900 dark:text-white"><CalendarClock className="w-5 h-5 text-orange-500" /> בקשות לשינוי משחק</h2>
+          <h2 className="flex items-center gap-2 text-lg font-bold text-slate-900 dark:text-white"><CalendarClock className="w-5 h-5 text-brand" /> בקשות לשינוי משחק</h2>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">בחר/י מועד סופי; האישור מעדכן את המשחק אוטומטית</p>
         </div>
         <button onClick={load} className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-600 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"><RefreshCw className="w-3.5 h-3.5" /> רענון</button>
@@ -74,7 +74,7 @@ export default function GameChangeRequestsReview({ teamsMap = {} }) {
                       <span className="font-bold">{who}</span>
                       <span className="text-slate-400 dark:text-slate-500"> ({teamName(r.team_id)}) מבקש/ת לשנות</span>
                     </p>
-                    <Link to={`/games/${r.game_id}`} className="inline-flex items-center gap-1 text-sm font-semibold text-slate-700 dark:text-slate-200 hover:text-orange-500 transition-colors mt-0.5">
+                    <Link to={`/games/${r.game_id}`} className="inline-flex items-center gap-1 text-sm font-semibold text-slate-700 dark:text-slate-200 hover:text-brand transition-colors mt-0.5">
                       {teamName(g.home_team_id)} <span className="text-slate-400">נגד</span> {teamName(g.away_team_id)}
                       <ExternalLink className="w-3 h-3 opacity-60" />
                     </Link>

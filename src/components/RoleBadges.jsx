@@ -7,7 +7,7 @@ export const ROLE_BADGE = {
   // admin=blue / coach=gold / player=green come from the palette remap (orange→blue,
   // amber→gold, emerald→green). judge + content_editor use tuned indigo/teal so the
   // whole role set harmonizes with the navy+blue+gold system (no stray purple/sky).
-  admin:          { label: "מנהל",      icon: Shield,        cls: "bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400" },
+  admin:          { label: "מנהל",      icon: Shield,        cls: "bg-brand/10 text-brand dark:bg-brand/20 dark:text-brand-light" },
   league_manager: { label: "מנהל ליגה", icon: ShieldCheck,   cls: "bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-300" },
   judge:          { label: "שופט",      icon: Gavel,         cls: "bg-indigo-100 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-300" },
   medic:          { label: "חובש",      icon: HeartPulse,    cls: "bg-rose-100 text-rose-600 dark:bg-rose-900/30 dark:text-rose-300" },

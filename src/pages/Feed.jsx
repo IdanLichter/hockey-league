@@ -148,7 +148,7 @@ export default function Feed() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <div className="animate-spin rounded-full h-10 w-10 border-2 border-orange-500 border-t-transparent" />
+        <div className="animate-spin rounded-full h-10 w-10 border-2 border-brand border-t-transparent" />
       </div>
     )
   }
@@ -180,14 +180,14 @@ export default function Feed() {
           <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="flex items-start justify-between gap-3">
             <div>
               <h1 className="page-title flex items-center gap-2.5">
-                <Rink className="w-7 h-7 text-orange-500" /> המגרש
+                <Rink className="w-7 h-7 text-brand" /> המגרש
               </h1>
               <p className="page-subtitle mt-1">כל מה שקורה בליגה</p>
             </div>
 
             <Link
               to="/app"
-              className="group shrink-0 inline-flex items-center gap-2 rounded-2xl bg-gradient-to-l from-orange-500 to-orange-600 px-3.5 py-2.5 text-white shadow-sm ring-1 ring-orange-600/20 hover:shadow-md hover:brightness-105 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400"
+              className="group shrink-0 inline-flex items-center gap-2 rounded-2xl bg-gradient-to-l from-brand to-brand-hover px-3.5 py-2.5 text-white shadow-sm ring-1 ring-brand/20 hover:shadow-md hover:brightness-105 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
               aria-label="הורידו את האפליקציה"
             >
               <Smartphone className="w-5 h-5 shrink-0 transition-transform group-hover:-translate-y-0.5" />
@@ -230,7 +230,7 @@ export default function Feed() {
             <div className="flex flex-col items-center gap-2 pt-2">
               {hasMore && (
                 <div ref={sentinelRef} className="flex items-center justify-center py-3">
-                  <div className="animate-spin rounded-full h-6 w-6 border-2 border-orange-500 border-t-transparent" />
+                  <div className="animate-spin rounded-full h-6 w-6 border-2 border-brand border-t-transparent" />
                 </div>
               )}
               <p className="text-[11px] text-slate-400 dark:text-slate-500">

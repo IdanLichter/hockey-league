@@ -77,7 +77,7 @@ export default function OfficialsAdmin({ games = [], teamsMap = {} }) {
     const a = document.createElement("a"); a.href = url; a.download = "officials-pay.csv"; a.click(); URL.revokeObjectURL(url)
   }
 
-  if (loading) return <div className="flex justify-center py-16"><div className="animate-spin rounded-full h-8 w-8 border-2 border-orange-500 border-t-transparent" /></div>
+  if (loading) return <div className="flex justify-center py-16"><div className="animate-spin rounded-full h-8 w-8 border-2 border-brand border-t-transparent" /></div>
 
   const RoleSlot = ({ game, role }) => {
     const RIcon = roleIcon[role]
@@ -95,7 +95,7 @@ export default function OfficialsAdmin({ games = [], teamsMap = {} }) {
       <div className="flex items-center gap-1.5">
         <AlertTriangle className="w-3.5 h-3.5 text-amber-500 shrink-0" title={`חסר ${OFFICIAL_ROLE_LABEL[role]}`} />
         <select defaultValue="" onChange={e => doAssign(game.id, e.target.value, role)} disabled={busy === `${game.id}:${role}`}
-          className="text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg px-2 py-1 text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-orange-500/30 max-w-[150px]">
+          className="text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg px-2 py-1 text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-brand/30 max-w-[150px]">
           <option value="">{`שבץ ${OFFICIAL_ROLE_LABEL[role]}…`}</option>
           {assignableByRole[role].map(a => <option key={a.user_id} value={a.user_id}>{a.display_name || "—"}</option>)}
         </select>
@@ -106,19 +106,19 @@ export default function OfficialsAdmin({ games = [], teamsMap = {} }) {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-3 flex-wrap">
-        <h2 className="flex items-center gap-2 text-lg font-bold text-slate-900 dark:text-white"><Gavel className="w-5 h-5 text-orange-500" /> בעלי תפקיד</h2>
+        <h2 className="flex items-center gap-2 text-lg font-bold text-slate-900 dark:text-white"><Gavel className="w-5 h-5 text-brand" /> בעלי תפקיד</h2>
         <button onClick={load} className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-600 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"><RefreshCw className="w-3.5 h-3.5" /> רענון</button>
       </div>
 
       {/* Rates */}
       <div className="card p-4">
-        <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-3 flex items-center gap-2"><Coins className="w-4 h-4 text-orange-500" /> תעריף למשחק</h3>
+        <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-3 flex items-center gap-2"><Coins className="w-4 h-4 text-brand" /> תעריף למשחק</h3>
         <div className="flex items-center gap-4 flex-wrap">
           {["judge", "medic"].map(role => (
             <label key={role} className="flex items-center gap-2 text-sm">
               <span className="text-slate-500 dark:text-slate-400">{OFFICIAL_ROLE_LABEL[role]}</span>
               <input type="number" min="0" defaultValue={rates[role] ?? 0} onBlur={e => saveRate(role, e.target.value)}
-                className="w-24 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg px-2 py-1 text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-orange-500/30" />
+                className="w-24 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg px-2 py-1 text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-brand/30" />
               <span className="text-slate-400 text-xs">₪</span>
             </label>
           ))}
@@ -175,7 +175,7 @@ export default function OfficialsAdmin({ games = [], teamsMap = {} }) {
       {/* Pay dashboard */}
       <div className="card overflow-hidden">
         <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between gap-2 flex-wrap">
-          <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2"><Coins className="w-4 h-4 text-orange-500" /> תשלומים (משחקים שהסתיימו)</h3>
+          <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2"><Coins className="w-4 h-4 text-brand" /> תשלומים (משחקים שהסתיימו)</h3>
           <div className="flex items-center gap-1.5">
             <button onClick={copyTemplate} disabled={!paylog.length} className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-40">
               {copied ? <ClipboardCheck className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />} {copied ? "הועתק" : "העתק טקסט"}
@@ -209,7 +209,7 @@ export default function OfficialsAdmin({ games = [], teamsMap = {} }) {
                 ))}
                 <tr className="bg-slate-50 dark:bg-slate-800/40 font-bold">
                   <td className="px-4 py-2.5" colSpan={4}>סה״כ לתשלום</td>
-                  <td className="px-3 py-2.5 text-center tabular-nums text-orange-600 dark:text-orange-400">{grandTotal}₪</td>
+                  <td className="px-3 py-2.5 text-center tabular-nums text-brand dark:text-brand-light">{grandTotal}₪</td>
                 </tr>
               </tbody>
             </table>

@@ -88,7 +88,7 @@ export default function NotificationBell() {
       >
         <Bell className="w-4 h-4" />
         {unread > 0 && (
-          <span className="absolute -top-0.5 -left-0.5 min-w-[16px] h-4 px-1 rounded-full bg-orange-500 text-white text-[10px] font-bold flex items-center justify-center">
+          <span className="absolute -top-0.5 -left-0.5 min-w-[16px] h-4 px-1 rounded-full bg-brand text-white text-[10px] font-bold flex items-center justify-center">
             {unread > 9 ? '9+' : unread}
           </span>
         )}
@@ -109,7 +109,7 @@ export default function NotificationBell() {
               <button
                 onClick={handleEnablePush}
                 disabled={pushBusy}
-                className="mt-2 w-full inline-flex items-center justify-center gap-1.5 rounded-lg bg-orange-500 hover:bg-orange-600 disabled:opacity-60 text-white text-xs font-semibold py-1.5 transition-colors"
+                className="mt-2 w-full inline-flex items-center justify-center gap-1.5 rounded-lg bg-brand hover:bg-brand-hover disabled:opacity-60 text-white text-xs font-semibold py-1.5 transition-colors"
               >
                 <BellRing className="w-3.5 h-3.5" />
                 {pushBusy ? 'מפעיל…' : 'הפעל התראות דחיפה במכשיר הזה'}
@@ -124,7 +124,7 @@ export default function NotificationBell() {
 
           {loading ? (
             <div className="p-6 flex justify-center">
-              <div className="animate-spin rounded-full h-5 w-5 border-2 border-orange-500 border-t-transparent" />
+              <div className="animate-spin rounded-full h-5 w-5 border-2 border-brand border-t-transparent" />
             </div>
           ) : items.length === 0 ? (
             <div className="p-8 text-center text-sm text-slate-400 dark:text-slate-500">אין התראות עדיין</div>
@@ -136,7 +136,7 @@ export default function NotificationBell() {
                     to={notificationHref(n)}
                     onClick={() => setOpen(false)}
                     className={`flex items-start gap-3 px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors ${
-                      n.read_at ? '' : 'bg-orange-50/60 dark:bg-orange-500/5'
+                      n.read_at ? '' : 'bg-brand/[0.06] dark:bg-brand/5'
                     }`}
                   >
                     {n.actor?.avatar_url ? (
@@ -150,7 +150,7 @@ export default function NotificationBell() {
                       <p className="text-sm text-slate-700 dark:text-slate-200 leading-snug">{notificationText(n)}</p>
                       <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">{timeAgo(n.created_at)}</p>
                     </div>
-                    {!n.read_at && <span className="w-2 h-2 rounded-full bg-orange-500 shrink-0 mt-1.5" />}
+                    {!n.read_at && <span className="w-2 h-2 rounded-full bg-brand shrink-0 mt-1.5" />}
                   </Link>
                 </li>
               ))}

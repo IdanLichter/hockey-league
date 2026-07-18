@@ -118,7 +118,7 @@ export default function Profile() {
             <h1 className="text-xl font-extrabold text-slate-900 dark:text-white">הדף שלי</h1>
             <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">התחברו כדי לראות את החשבון שלכם</p>
           </div>
-          <button onClick={openAuth} className="flex items-center gap-2 px-5 py-2 rounded-lg bg-orange-500 text-white text-sm font-semibold hover:bg-orange-600 transition-colors">
+          <button onClick={openAuth} className="flex items-center gap-2 px-5 py-2 rounded-lg bg-brand text-white text-sm font-semibold hover:bg-brand-hover transition-colors">
             <LogIn className="w-4 h-4" /> התחברות / הרשמה
           </button>
         </div>
@@ -129,7 +129,7 @@ export default function Profile() {
   if (authLoading || loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <div className="animate-spin rounded-full h-10 w-10 border-2 border-orange-500 border-t-transparent" />
+        <div className="animate-spin rounded-full h-10 w-10 border-2 border-brand border-t-transparent" />
       </div>
     )
   }
@@ -152,7 +152,7 @@ export default function Profile() {
           {avatar ? (
             <img src={avatar} alt="" className="w-20 h-20 rounded-2xl object-cover shrink-0 bg-slate-100 dark:bg-slate-700" />
           ) : (
-            <div className="w-20 h-20 rounded-2xl shrink-0 flex items-center justify-center bg-orange-500 text-white text-2xl font-extrabold">
+            <div className="w-20 h-20 rounded-2xl shrink-0 flex items-center justify-center bg-brand text-white text-2xl font-extrabold">
               {initial}
             </div>
           )}
@@ -177,7 +177,7 @@ export default function Profile() {
                 <p className="text-[11px] text-slate-400 dark:text-slate-500">הדף האישי שלך כשחקן — סטטיסטיקות ויומן משחקים</p>
               </div>
             </div>
-            <ChevronLeft className="w-5 h-5 text-slate-300 dark:text-slate-600 group-hover:text-orange-500 transition-colors shrink-0" />
+            <ChevronLeft className="w-5 h-5 text-slate-300 dark:text-slate-600 group-hover:text-brand transition-colors shrink-0" />
           </Link>
           <TeamMembershipCard player={player} onChange={reloadProfile} />
           <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-700/50">
@@ -228,20 +228,20 @@ export default function Profile() {
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-3 min-w-0">
               <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center shrink-0">
-                <UserPlus className="w-5 h-5 text-orange-500" />
+                <UserPlus className="w-5 h-5 text-brand" />
               </div>
               <div className="min-w-0">
                 <p className="text-sm font-bold text-slate-900 dark:text-white">שיחקת בליגה?</p>
                 <p className="text-[11px] text-slate-400 dark:text-slate-500">שייכו את החשבון לפרופיל השחקן שלכם וקבלו גישה לסטטיסטיקות שלכם</p>
               </div>
             </div>
-            <Link to="/players" className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg bg-orange-500 text-white hover:bg-orange-600 transition-colors shrink-0">
+            <Link to="/players" className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg bg-brand text-white hover:bg-brand-hover transition-colors shrink-0">
               מצא/י את הפרופיל
             </Link>
           </div>
           <div className="pt-3 border-t border-slate-100 dark:border-slate-700/50 flex items-center justify-between gap-3">
             <p className="text-[11px] text-slate-400 dark:text-slate-500">עדיין אין לך כרטיס שחקן בליגה?</p>
-            <button onClick={() => setShowCreateCard(true)} className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border border-orange-200 dark:border-orange-900/50 text-orange-600 dark:text-orange-400 hover:bg-orange-50 dark:hover:bg-orange-950/30 transition-colors shrink-0">
+            <button onClick={() => setShowCreateCard(true)} className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border border-brand/20 dark:border-brand/25 text-brand dark:text-brand-light hover:bg-brand/[0.06] dark:hover:bg-brand/10 transition-colors shrink-0">
               <UserPlus className="w-3.5 h-3.5" /> צור כרטיס שחקן
             </button>
           </div>
@@ -264,7 +264,7 @@ export default function Profile() {
           )}
           {isAdmin && (
             <Link to="/admin" className="card card-hover p-4 flex items-center gap-3 group">
-              <div className="w-10 h-10 rounded-xl bg-orange-500 text-white flex items-center justify-center shrink-0"><Shield className="w-5 h-5" /></div>
+              <div className="w-10 h-10 rounded-xl bg-brand text-white flex items-center justify-center shrink-0"><Shield className="w-5 h-5" /></div>
               <div className="min-w-0">
                 <p className="text-sm font-bold text-slate-900 dark:text-white">ניהול הליגה</p>
                 <p className="text-[11px] text-slate-400 dark:text-slate-500">משחקים, שחקנים ובקשות בעלות</p>
@@ -284,7 +284,7 @@ export default function Profile() {
             value={name}
             onChange={e => setName(e.target.value.slice(0, 60))}
             placeholder="איך שיופיע בפוסטים ובתגובות"
-            className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500"
+            className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand"
           />
         </div>
 
@@ -294,12 +294,12 @@ export default function Profile() {
             {avatar ? (
               <img src={avatar} alt="" className="w-16 h-16 rounded-2xl object-cover shrink-0 bg-slate-100 dark:bg-slate-700" />
             ) : (
-              <div className="w-16 h-16 rounded-2xl shrink-0 flex items-center justify-center bg-orange-500 text-white text-xl font-extrabold">{initial}</div>
+              <div className="w-16 h-16 rounded-2xl shrink-0 flex items-center justify-center bg-brand text-white text-xl font-extrabold">{initial}</div>
             )}
             <div className="flex flex-col gap-1.5">
               <input ref={avatarFileRef} type="file" accept="image/*" onChange={onPickAvatar} className="hidden" />
               <button type="button" onClick={() => avatarFileRef.current?.click()} disabled={uploadingAvatar}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-orange-500 text-white text-xs font-semibold hover:bg-orange-600 transition-colors disabled:opacity-50">
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-brand text-white text-xs font-semibold hover:bg-brand-hover transition-colors disabled:opacity-50">
                 {uploadingAvatar ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Camera className="w-3.5 h-3.5" />}
                 {uploadingAvatar ? "מעלה…" : (avatar ? "החלפת תמונה" : "העלאת תמונה")}
               </button>
@@ -320,13 +320,13 @@ export default function Profile() {
               onChange={e => setAvatar(e.target.value)}
               placeholder="https://…"
               dir="ltr"
-              className="mt-1.5 w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500 text-left"
+              className="mt-1.5 w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand text-left"
             />
           </details>
         </div>
 
         <button onClick={handleSave} disabled={saving}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg bg-orange-500 text-white text-sm font-semibold hover:bg-orange-600 transition-colors disabled:opacity-50">
+          className="flex items-center gap-2 px-4 py-2 rounded-lg bg-brand text-white text-sm font-semibold hover:bg-brand-hover transition-colors disabled:opacity-50">
           {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : saved ? <Trophy className="w-4 h-4" /> : <Save className="w-4 h-4" />}
           {saved ? "נשמר" : "שמירה"}
         </button>
@@ -351,7 +351,7 @@ export default function Profile() {
       {player && photos.length > 0 && (
         <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="card p-5 space-y-3">
           <h2 className="flex items-center gap-2 text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wide">
-            <Camera className="w-4 h-4 text-orange-500" /> תמונות מהמשחקים
+            <Camera className="w-4 h-4 text-brand" /> תמונות מהמשחקים
           </h2>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
             {photos.map(ph => (

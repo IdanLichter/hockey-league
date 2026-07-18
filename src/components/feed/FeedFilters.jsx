@@ -48,14 +48,14 @@ export default function FeedFilters({ active, onChange, counts = {}, orientation
             onClick={() => onChange(f.key)}
             className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-semibold transition-all ${
               on
-                ? "bg-orange-500 text-white shadow-sm shadow-orange-500/25"
+                ? "bg-brand text-white shadow-sm shadow-brand/25"
                 : "text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700/60 hover:text-slate-900 dark:hover:text-white"
             }`}
           >
             <f.icon size={18} className={on ? "" : "text-slate-400 dark:text-slate-500"} />
             <span className="flex-1 text-right">{f.label}</span>
             {counts[f.key] != null && (
-              <span className={`text-[11px] font-bold ${on ? "text-orange-100" : "text-slate-400 dark:text-slate-500"}`}>
+              <span className={`text-[11px] font-bold ${on ? "text-brand-fg" : "text-slate-400 dark:text-slate-500"}`}>
                 {counts[f.key]}
               </span>
             )}

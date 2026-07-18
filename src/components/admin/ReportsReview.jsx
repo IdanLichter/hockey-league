@@ -70,7 +70,7 @@ export default function ReportsReview() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="flex items-center gap-2 text-lg font-bold text-slate-900 dark:text-white">
-            <Flag className="w-5 h-5 text-orange-500" /> דיווחים על תוכן
+            <Flag className="w-5 h-5 text-brand" /> דיווחים על תוכן
           </h2>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
             סקירת דיווחי משתמשים על פוסטים ותגובות
@@ -87,7 +87,7 @@ export default function ReportsReview() {
           <button key={f.id} onClick={() => setStatus(f.id)}
             className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors ${
               status === f.id
-                ? "bg-orange-500 text-white"
+                ? "bg-brand text-white"
                 : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700"
             }`}>
             {f.label}
@@ -103,7 +103,7 @@ export default function ReportsReview() {
 
       {loading ? (
         <div className="flex items-center justify-center py-16">
-          <div className="animate-spin rounded-full h-8 w-8 border-2 border-orange-500 border-t-transparent" />
+          <div className="animate-spin rounded-full h-8 w-8 border-2 border-brand border-t-transparent" />
         </div>
       ) : error ? (
         <div className="card p-10 text-center space-y-3">
@@ -197,7 +197,7 @@ function ReportRow({ report, busy, confirm, onAskConfirm, onCancel, onConfirm })
             <div className="flex items-center gap-2">
               <button onClick={() => onConfirm(confirm)} disabled={busy}
                 className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg text-white transition-colors disabled:opacity-50 ${
-                  confirm === "remove" ? "bg-red-500 hover:bg-red-600" : "bg-orange-500 hover:bg-orange-600"
+                  confirm === "remove" ? "bg-red-500 hover:bg-red-600" : "bg-brand hover:bg-brand-hover"
                 }`}>
                 {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : confirm === "remove" ? <Trash2 className="w-3.5 h-3.5" /> : <X className="w-3.5 h-3.5" />}
                 {confirm === "remove" ? "כן, מחק" : "כן, התעלם"}

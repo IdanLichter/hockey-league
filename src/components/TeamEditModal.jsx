@@ -3,7 +3,7 @@ import { X, Loader2, Pencil, Image as ImageIcon } from "lucide-react"
 import { updateTeamDetails, uploadTeamLogo } from "@/lib/api"
 import TeamLogo from "@/components/TeamLogo"
 
-const inputCls = "w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500"
+const inputCls = "w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand"
 const labelCls = "block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1.5"
 
 /**
@@ -69,7 +69,7 @@ export default function TeamEditModal({ team, onClose, onSaved }) {
 
         <div className="p-6">
           <div className="flex items-center gap-2 mb-5">
-            <Pencil className="w-5 h-5 text-orange-500" />
+            <Pencil className="w-5 h-5 text-brand" />
             <h3 className="text-lg font-extrabold text-slate-900 dark:text-white">עריכת קבוצה</h3>
           </div>
 
@@ -131,7 +131,7 @@ export default function TeamEditModal({ team, onClose, onSaved }) {
           <div className="mt-5 flex gap-2">
             <button onClick={onClose} className="flex-1 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-semibold hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">ביטול</button>
             <button onClick={save} disabled={saving}
-              className="flex-1 py-2.5 rounded-xl bg-orange-500 text-white font-semibold hover:bg-orange-600 transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
+              className="flex-1 py-2.5 rounded-xl bg-brand text-white font-semibold hover:bg-brand-hover transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
               {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
               שמירה
             </button>

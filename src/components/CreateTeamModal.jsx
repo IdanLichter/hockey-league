@@ -4,7 +4,7 @@ import { AGE_GROUPS } from "@/lib/ageGroups"
 import { requestTeam, uploadTeamLogo } from "@/lib/api"
 import TeamLogo from "@/components/TeamLogo"
 
-const inputCls = "w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500"
+const inputCls = "w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand"
 
 /**
  * Modal: a linked player proposes a new team. Files a PENDING team via the
@@ -64,16 +64,16 @@ export default function CreateTeamModal({ onClose, onCreated }) {
             <div className="w-14 h-14 rounded-full bg-emerald-100 dark:bg-emerald-900/40 flex items-center justify-center mx-auto mb-4">
               <CheckCircle2 className="w-7 h-7 text-emerald-600 dark:text-emerald-400" />
             </div>
-            <h3 className="text-lg font-extrabold text-slate-900 dark:text-white">הבקשה נשלחה 🏒</h3>
+            <h3 className="text-lg font-extrabold text-slate-900 dark:text-white">הבקשה נשלחה 🛼</h3>
             <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">
               הקבוצה שלך ממתינה לאישור מנהל הליגה. ברגע שתאושר תופיע בעמוד הקבוצות ותהיו המאמן/ת שלה.
             </p>
-            <button onClick={onClose} className="mt-5 w-full py-2.5 rounded-xl bg-orange-500 text-white font-semibold hover:bg-orange-600 transition-colors">סגירה</button>
+            <button onClick={onClose} className="mt-5 w-full py-2.5 rounded-xl bg-brand text-white font-semibold hover:bg-brand-hover transition-colors">סגירה</button>
           </div>
         ) : (
           <div className="p-6">
             <div className="flex items-center gap-2 mb-1">
-              <Users className="w-5 h-5 text-orange-500" />
+              <Users className="w-5 h-5 text-brand" />
               <h3 className="text-lg font-extrabold text-slate-900 dark:text-white">פתיחת קבוצה חדשה</h3>
             </div>
             <p className="text-sm text-slate-500 dark:text-slate-400 mb-5">הקבוצה תישלח לאישור מנהל הליגה. לאחר אישור תהיו המאמן/ת שלה.</p>
@@ -94,7 +94,7 @@ export default function CreateTeamModal({ onClose, onCreated }) {
                     const on = groups.includes(a.value)
                     return (
                       <button key={a.value} type="button" onClick={() => toggle(a.value)}
-                        className={`px-3 py-1.5 rounded-full text-sm font-semibold transition-colors ${on ? "bg-orange-500 text-white" : "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700"}`}>
+                        className={`px-3 py-1.5 rounded-full text-sm font-semibold transition-colors ${on ? "bg-brand text-white" : "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700"}`}>
                         {a.label}
                       </button>
                     )
@@ -117,7 +117,7 @@ export default function CreateTeamModal({ onClose, onCreated }) {
             {error && <p className="mt-3 text-sm text-red-600 dark:text-red-400">{error}</p>}
 
             <button onClick={submit} disabled={!canSubmit}
-              className="mt-5 w-full py-2.5 rounded-xl bg-orange-500 text-white font-semibold hover:bg-orange-600 transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
+              className="mt-5 w-full py-2.5 rounded-xl bg-brand text-white font-semibold hover:bg-brand-hover transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
               {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Users className="w-4 h-4" />}
               שליחה לאישור
             </button>

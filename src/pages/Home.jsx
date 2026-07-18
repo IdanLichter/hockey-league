@@ -46,7 +46,7 @@ export default function Home() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <div className="animate-spin rounded-full h-10 w-10 border-2 border-orange-500 border-t-transparent" />
+        <div className="animate-spin rounded-full h-10 w-10 border-2 border-brand border-t-transparent" />
       </div>
     )
   }
@@ -223,7 +223,7 @@ export default function Home() {
 
           <div className="card p-5">
             <h3 className="font-bold text-slate-900 dark:text-white mb-1 flex items-center gap-2">
-              <Swords className="w-5 h-5 text-orange-500" /> זוגות הפלייאוף
+              <Swords className="w-5 h-5 text-brand" /> זוגות הפלייאוף
             </h3>
             <p className="text-xs text-slate-500 dark:text-slate-400 mb-5">כל זוג משחק סדרה של שני משחקים. המנצח עולה ל-Final Four.</p>
 
@@ -272,7 +272,7 @@ export default function Home() {
                 <span>כל זוג משחק סדרה של שני משחקים</span>
               </div>
               <div className="flex items-start gap-2 p-2.5 rounded-lg bg-slate-50 dark:bg-slate-800/50">
-                <Trophy className="w-4 h-4 text-orange-500 shrink-0 mt-0.5" />
+                <Trophy className="w-4 h-4 text-brand shrink-0 mt-0.5" />
                 <span>4 קבוצות מגיעות ל-Final Four</span>
               </div>
             </div>

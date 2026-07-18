@@ -49,7 +49,7 @@ export default function MedicalReview({ coachTeamIds = null }) {
     <div className="space-y-4 mt-8 pt-6 border-t border-slate-100 dark:border-slate-700/50">
       <div className="flex items-center justify-between">
         <h2 className="flex items-center gap-2 text-lg font-bold text-slate-900 dark:text-white">
-          <HeartPulse className="w-5 h-5 text-orange-500" /> אישורים רפואיים
+          <HeartPulse className="w-5 h-5 text-brand" /> אישורים רפואיים
         </h2>
         <button onClick={load} className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-600 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
           <RefreshCw className="w-3.5 h-3.5" /> רענון
@@ -75,7 +75,7 @@ export default function MedicalReview({ coachTeamIds = null }) {
                   תאריך בדיקה
                   <input type="date" value={examDates[item.id] || ""} max={todayStr}
                     onChange={e => setExamDates(prev => ({ ...prev, [item.id]: e.target.value }))}
-                    className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg px-2 py-1.5 text-xs text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-orange-500/30" />
+                    className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg px-2 py-1.5 text-xs text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-brand/30" />
                 </label>
                 <button onClick={() => view(item)}
                   className="flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">

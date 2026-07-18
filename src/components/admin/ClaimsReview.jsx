@@ -54,7 +54,7 @@ export default function ClaimsReview({ teamsMap = {}, coachTeamIds = null }) {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-16">
-        <div className="animate-spin rounded-full h-8 w-8 border-2 border-orange-500 border-t-transparent" />
+        <div className="animate-spin rounded-full h-8 w-8 border-2 border-brand border-t-transparent" />
       </div>
     )
   }
@@ -64,7 +64,7 @@ export default function ClaimsReview({ teamsMap = {}, coachTeamIds = null }) {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="flex items-center gap-2 text-lg font-bold text-slate-900 dark:text-white">
-            <UserPlus className="w-5 h-5 text-orange-500" /> בקשות בעלות על פרופיל
+            <UserPlus className="w-5 h-5 text-brand" /> בקשות בעלות על פרופיל
           </h2>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
             אישור מקשר את החשבון לשחקן ומעניק תפקיד שחקן

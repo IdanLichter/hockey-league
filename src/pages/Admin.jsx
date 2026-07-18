@@ -116,7 +116,7 @@ export default function Admin() {
   if (authLoading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <div className="animate-spin rounded-full h-10 w-10 border-2 border-orange-500 border-t-transparent" />
+        <div className="animate-spin rounded-full h-10 w-10 border-2 border-brand border-t-transparent" />
       </div>
     )
   }
@@ -134,7 +134,7 @@ export default function Admin() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="page-title flex items-center gap-2.5">
-              <Shield className="w-7 h-7 text-orange-500" /> ניהול
+              <Shield className="w-7 h-7 text-brand" /> ניהול
             </h1>
             <p className="page-subtitle mt-1">מחובר כ-{user.email}</p>
           </div>
@@ -155,7 +155,7 @@ export default function Admin() {
                 <button key={tab.id} onClick={() => setActiveTab(tab.id)}
                   className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all whitespace-nowrap shrink-0 lg:w-full ${
                     active
-                      ? "bg-orange-500 text-white shadow-sm shadow-orange-500/25"
+                      ? "bg-brand text-white shadow-sm shadow-brand/25"
                       : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white"
                   }`}>
                   <tab.icon className="w-4 h-4 shrink-0" />
@@ -169,7 +169,7 @@ export default function Admin() {
         <div className="min-w-0">
           {loading ? (
             <div className="flex items-center justify-center min-h-[200px]">
-              <div className="animate-spin rounded-full h-8 w-8 border-2 border-orange-500 border-t-transparent" />
+              <div className="animate-spin rounded-full h-8 w-8 border-2 border-brand border-t-transparent" />
             </div>
           ) : (
             <>
@@ -222,7 +222,7 @@ function AccessDenied() {
               התחבר עם חשבון Google מורשה כדי לגשת לדף הניהול.
             </p>
             <button onClick={signInWithGoogle}
-              className="flex items-center justify-center gap-3 w-full px-6 py-3 bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-xl text-sm font-semibold text-slate-700 dark:text-slate-300 hover:border-orange-500 hover:shadow-md transition-all">
+              className="flex items-center justify-center gap-3 w-full px-6 py-3 bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-xl text-sm font-semibold text-slate-700 dark:text-slate-300 hover:border-brand hover:shadow-md transition-all">
               <svg className="w-5 h-5" viewBox="0 0 24 24">
                 <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/>
                 <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
@@ -385,7 +385,7 @@ function GamesAdmin({ games, teams, players, teamsMap, gameStats, tournaments = 
             <Image className="w-4 h-4" /> פוסטר
           </button>
           <button onClick={() => { resetForm(); setShowForm(true) }}
-            className="flex items-center gap-2 px-4 py-2 bg-orange-500 text-white text-sm font-semibold rounded-xl hover:bg-orange-600 transition-colors">
+            className="flex items-center gap-2 px-4 py-2 bg-brand text-white text-sm font-semibold rounded-xl hover:bg-brand-hover transition-colors">
             <Plus className="w-4 h-4" /> משחק חדש
           </button>
         </div>
@@ -494,7 +494,7 @@ function GamesAdmin({ games, teams, players, teamsMap, gameStats, tournaments = 
           </div>
           <div className="flex gap-2 pt-1">
             <button onClick={handleSave} disabled={saving || !form.home_team_id || !form.away_team_id || !form.game_date}
-              className="flex items-center gap-2 px-5 py-2.5 bg-orange-500 text-white text-sm font-semibold rounded-xl hover:bg-orange-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+              className="flex items-center gap-2 px-5 py-2.5 bg-brand text-white text-sm font-semibold rounded-xl hover:bg-brand-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
               <Save className="w-4 h-4" /> {saving ? 'שומר...' : editingGame ? 'עדכן' : 'צור'}
             </button>
             <button onClick={resetForm} className="px-4 py-2.5 text-sm font-semibold text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 transition-colors">
@@ -507,7 +507,7 @@ function GamesAdmin({ games, teams, players, teamsMap, gameStats, tournaments = 
       {/* Filter */}
       <div className="flex items-center gap-2 flex-wrap">
         <button onClick={() => setRefFilter('all')}
-          className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors ${refFilter === 'all' ? 'bg-orange-500 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'}`}>
+          className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors ${refFilter === 'all' ? 'bg-brand text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'}`}>
           הכל ({games.length})
         </button>
         <button onClick={() => setRefFilter('missing')}
@@ -668,7 +668,7 @@ function GameStatsEditor({ game, players, teamsMap, membersByTeam, existingStats
       className="px-4 pb-4 bg-slate-50 dark:bg-slate-800/30 border-t border-slate-100 dark:border-slate-700">
       <div className="pt-3 pb-2 flex items-center justify-between">
         <h4 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">סטטיסטיקות שחקנים</h4>
-        <button onClick={addStat} className="flex items-center gap-1 text-xs font-semibold text-orange-600 dark:text-orange-400 hover:text-orange-700">
+        <button onClick={addStat} className="flex items-center gap-1 text-xs font-semibold text-brand dark:text-brand-light hover:text-brand-hover">
           <Plus className="w-3 h-3" /> הוסף שחקן
         </button>
       </div>
@@ -904,7 +904,7 @@ function PlayersAdmin({ players, teams, teamsMap, membersByPlayer = new Map(), r
         <input type="text" placeholder="חיפוש שחקן..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
           className="filter-input flex-1 max-w-xs" />
         <button onClick={() => { resetForm(); setShowForm(true) }}
-          className="flex items-center gap-2 px-4 py-2 bg-orange-500 text-white text-sm font-semibold rounded-xl hover:bg-orange-600 transition-colors">
+          className="flex items-center gap-2 px-4 py-2 bg-brand text-white text-sm font-semibold rounded-xl hover:bg-brand-hover transition-colors">
           <Plus className="w-4 h-4" /> שחקן חדש
         </button>
       </div>
@@ -966,12 +966,12 @@ function PlayersAdmin({ players, teams, teamsMap, membersByPlayer = new Map(), r
             <div className="flex items-center gap-4 pt-5">
               <label className="flex items-center gap-2 text-xs font-semibold text-slate-600 dark:text-slate-400 cursor-pointer">
                 <input type="checkbox" checked={form.is_core} onChange={e => setForm({ ...form, is_core: e.target.checked })}
-                  className="rounded border-slate-300 text-orange-500 focus:ring-orange-500" />
+                  className="rounded border-slate-300 text-brand focus:ring-brand" />
                 שחקן ליבה
               </label>
               <label className="flex items-center gap-2 text-xs font-semibold text-slate-600 dark:text-slate-400 cursor-pointer">
                 <input type="checkbox" checked={form.is_referee} onChange={e => setForm({ ...form, is_referee: e.target.checked })}
-                  className="rounded border-slate-300 text-orange-500 focus:ring-orange-500" />
+                  className="rounded border-slate-300 text-brand focus:ring-brand" />
                 שופט
               </label>
             </div>
@@ -998,7 +998,7 @@ function PlayersAdmin({ players, teams, teamsMap, membersByPlayer = new Map(), r
 
           <div className="flex flex-wrap items-center gap-2 pt-1">
             <button onClick={handleSave} disabled={saving || !form.first_name || !form.last_name || !hasTeam}
-              className="flex items-center gap-2 px-5 py-2.5 bg-orange-500 text-white text-sm font-semibold rounded-xl hover:bg-orange-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+              className="flex items-center gap-2 px-5 py-2.5 bg-brand text-white text-sm font-semibold rounded-xl hover:bg-brand-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
               <Save className="w-4 h-4" /> {saving ? 'שומר...' : editingPlayer ? 'עדכן' : 'צור'}
             </button>
             <button onClick={resetForm} className="px-4 py-2.5 text-sm font-semibold text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 transition-colors">
@@ -1027,7 +1027,7 @@ function PlayersAdmin({ players, teams, teamsMap, membersByPlayer = new Map(), r
                     <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${player.position === 'Goalkeeper' ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400' : 'bg-slate-100 text-slate-500 dark:bg-slate-700 dark:text-slate-400'}`}>
                       {player.position === 'Goalkeeper' ? 'GK' : 'FP'}
                     </span>
-                    {player.is_core && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400">C</span>}
+                    {player.is_core && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-brand/10 text-brand dark:bg-brand/20 dark:text-brand-light">C</span>}
                     {player.is_referee && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400">R</span>}
                   </div>
                   {(() => {
@@ -1156,7 +1156,7 @@ function TeamsAdmin({ teams, reload, reviewOnly = false }) {
         <div className="flex items-center justify-between">
           <h2 className="font-bold text-sm text-slate-900 dark:text-white">{teams.length} קבוצות</h2>
           <button onClick={() => { setCreateForm(emptyCreate); setShowCreate(v => !v) }}
-            className="flex items-center gap-2 px-4 py-2 bg-orange-500 text-white text-sm font-semibold rounded-xl hover:bg-orange-600 transition-colors">
+            className="flex items-center gap-2 px-4 py-2 bg-brand text-white text-sm font-semibold rounded-xl hover:bg-brand-hover transition-colors">
             <Plus className="w-4 h-4" /> קבוצה חדשה
           </button>
         </div>
@@ -1191,7 +1191,7 @@ function TeamsAdmin({ teams, reload, reviewOnly = false }) {
           </div>
           <div className="flex gap-2">
             <button onClick={handleCreate} disabled={creating || !createForm.name.trim()}
-              className="flex items-center gap-2 px-4 py-2 bg-orange-500 text-white text-xs font-semibold rounded-xl hover:bg-orange-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+              className="flex items-center gap-2 px-4 py-2 bg-brand text-white text-xs font-semibold rounded-xl hover:bg-brand-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
               <Save className="w-3.5 h-3.5" /> {creating ? 'יוצר...' : 'צור קבוצה'}
             </button>
             <button onClick={() => setShowCreate(false)} className="px-3 py-2 text-xs font-semibold text-slate-500 hover:text-slate-700 transition-colors">ביטול</button>
@@ -1293,7 +1293,7 @@ function TeamsAdmin({ teams, reload, reviewOnly = false }) {
               </div>
               <div className="flex gap-2">
                 <button onClick={handleSave} disabled={saving}
-                  className="flex items-center gap-2 px-4 py-2 bg-orange-500 text-white text-xs font-semibold rounded-xl hover:bg-orange-600 transition-colors disabled:opacity-50">
+                  className="flex items-center gap-2 px-4 py-2 bg-brand text-white text-xs font-semibold rounded-xl hover:bg-brand-hover transition-colors disabled:opacity-50">
                   <Save className="w-3.5 h-3.5" /> {saving ? 'שומר...' : 'שמור'}
                 </button>
                 <button onClick={() => setEditingTeam(null)} className="px-3 py-2 text-xs font-semibold text-slate-500 hover:text-slate-700 transition-colors">
@@ -1368,7 +1368,7 @@ function TournamentsAdmin({ tournaments, reload }) {
       <div className="flex items-center justify-between">
         <h2 className="font-bold text-sm text-slate-900 dark:text-white">{tournaments.length} טורנירים</h2>
         <button onClick={() => { reset(); setShowForm(true) }}
-          className="flex items-center gap-2 px-4 py-2 bg-orange-500 text-white text-sm font-semibold rounded-xl hover:bg-orange-600 transition-colors">
+          className="flex items-center gap-2 px-4 py-2 bg-brand text-white text-sm font-semibold rounded-xl hover:bg-brand-hover transition-colors">
           <Plus className="w-4 h-4" /> טורניר חדש
         </button>
       </div>
@@ -1411,7 +1411,7 @@ function TournamentsAdmin({ tournaments, reload }) {
           </div>
           <div className="flex gap-2 pt-1">
             <button onClick={save} disabled={saving || !form.name.trim()}
-              className="flex items-center gap-2 px-5 py-2.5 bg-orange-500 text-white text-sm font-semibold rounded-xl hover:bg-orange-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+              className="flex items-center gap-2 px-5 py-2.5 bg-brand text-white text-sm font-semibold rounded-xl hover:bg-brand-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
               <Save className="w-4 h-4" /> {saving ? 'שומר...' : editingId ? 'עדכן' : 'צור'}
             </button>
             <button onClick={reset} className="px-4 py-2.5 text-sm font-semibold text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 transition-colors">ביטול</button>
@@ -1430,7 +1430,7 @@ function TournamentsAdmin({ tournaments, reload }) {
               <div className="min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="font-bold text-sm text-slate-900 dark:text-white truncate">{t.name}</span>
-                  <span className="stat-pill bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300">{AGE_LABEL[t.age_group] || t.age_group}</span>
+                  <span className="stat-pill bg-brand/10 text-brand-strong dark:bg-brand/20 dark:text-brand-light">{AGE_LABEL[t.age_group] || t.age_group}</span>
                 </div>
                 <p className="text-xs text-slate-500 mt-0.5">{t.start_date || '—'}{t.end_date ? ` – ${t.end_date}` : ''}{t.notes ? ` · ${t.notes}` : ''}</p>
               </div>
@@ -1456,7 +1456,7 @@ function TournamentsAdmin({ tournaments, reload }) {
               <div className="min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
                   <h3 className="font-bold text-sm text-slate-900 dark:text-white truncate">{t.name}</h3>
-                  <span className="stat-pill bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300">{AGE_LABEL[t.age_group] || t.age_group}</span>
+                  <span className="stat-pill bg-brand/10 text-brand-strong dark:bg-brand/20 dark:text-brand-light">{AGE_LABEL[t.age_group] || t.age_group}</span>
                   <span className="text-[11px] text-slate-400">{(statusOpts.find(s => s.v === t.status) || {}).l || t.status}</span>
                 </div>
                 <p className="text-xs text-slate-500 mt-0.5">{t.start_date || '—'}{t.end_date ? ` – ${t.end_date}` : ''}</p>
@@ -1527,7 +1527,7 @@ function TournamentRequests({ reload }) {
           <h2 className="font-bold text-sm text-slate-900 dark:text-white">בקשות לטורניר</h2>
           <p className="text-xs text-slate-500 mt-0.5">בקשה לטורניר נוער — מנהל הליגה יאשר אותה</p>
         </div>
-        <button onClick={() => setShowForm(v => !v)} className="flex items-center gap-2 px-4 py-2 bg-orange-500 text-white text-sm font-semibold rounded-xl hover:bg-orange-600 transition-colors">
+        <button onClick={() => setShowForm(v => !v)} className="flex items-center gap-2 px-4 py-2 bg-brand text-white text-sm font-semibold rounded-xl hover:bg-brand-hover transition-colors">
           <Plus className="w-4 h-4" /> בקשה חדשה
         </button>
       </div>
@@ -1559,7 +1559,7 @@ function TournamentRequests({ reload }) {
             </div>
           </div>
           <div className="flex gap-2">
-            <button onClick={submit} disabled={saving || !form.name.trim()} className="flex items-center gap-2 px-5 py-2.5 bg-orange-500 text-white text-sm font-semibold rounded-xl hover:bg-orange-600 transition-colors disabled:opacity-50">
+            <button onClick={submit} disabled={saving || !form.name.trim()} className="flex items-center gap-2 px-5 py-2.5 bg-brand text-white text-sm font-semibold rounded-xl hover:bg-brand-hover transition-colors disabled:opacity-50">
               <Save className="w-4 h-4" /> {saving ? 'שולח...' : 'שלח בקשה'}
             </button>
             <button onClick={() => { setShowForm(false); setForm(empty) }} className="px-4 py-2.5 text-sm font-semibold text-slate-500 hover:text-slate-700 transition-colors">ביטול</button>
@@ -1568,7 +1568,7 @@ function TournamentRequests({ reload }) {
       )}
 
       {loading ? (
-        <div className="flex items-center justify-center py-8"><div className="animate-spin rounded-full h-8 w-8 border-2 border-orange-500 border-t-transparent" /></div>
+        <div className="flex items-center justify-center py-8"><div className="animate-spin rounded-full h-8 w-8 border-2 border-brand border-t-transparent" /></div>
       ) : requests.length === 0 ? (
         <div className="card p-8 text-center text-sm text-slate-400">לא שלחת בקשות עדיין.</div>
       ) : (
@@ -1580,7 +1580,7 @@ function TournamentRequests({ reload }) {
                 <div className="min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
                     <h3 className="font-bold text-sm text-slate-900 dark:text-white truncate">{t.name}</h3>
-                    <span className="stat-pill bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300">{AGE_LABEL[t.age_group] || t.age_group}</span>
+                    <span className="stat-pill bg-brand/10 text-brand-strong dark:bg-brand/20 dark:text-brand-light">{AGE_LABEL[t.age_group] || t.age_group}</span>
                     <span className={`stat-pill ${si.cls}`}>{si.l}</span>
                   </div>
                   <p className="text-xs text-slate-500 mt-0.5">{t.start_date || '—'}{t.end_date ? ` – ${t.end_date}` : ''}</p>
@@ -1630,7 +1630,7 @@ function UsersAdmin({ adminUsers, currentUserEmail, reload }) {
     <div className="space-y-4">
       <div className="card p-5">
         <h3 className="font-bold text-sm text-slate-900 dark:text-white mb-4 flex items-center gap-2">
-          <UserPlus className="w-4 h-4 text-orange-500" /> הוסף מנהל חדש
+          <UserPlus className="w-4 h-4 text-brand" /> הוסף מנהל חדש
         </h3>
         <div className="flex flex-col sm:flex-row gap-2">
           <input type="email" placeholder="אימייל..." value={newEmail} onChange={e => setNewEmail(e.target.value)}
@@ -1638,7 +1638,7 @@ function UsersAdmin({ adminUsers, currentUserEmail, reload }) {
           <input type="text" placeholder="שם (אופציונלי)" value={newName} onChange={e => setNewName(e.target.value)}
             className="filter-input w-full sm:w-48" />
           <button onClick={handleAdd} disabled={saving || !newEmail}
-            className="flex items-center justify-center gap-2 px-5 py-2.5 bg-orange-500 text-white text-sm font-semibold rounded-xl hover:bg-orange-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+            className="flex items-center justify-center gap-2 px-5 py-2.5 bg-brand text-white text-sm font-semibold rounded-xl hover:bg-brand-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
             <Plus className="w-4 h-4" /> {saving ? 'מוסיף...' : 'הוסף'}
           </button>
         </div>
@@ -1654,8 +1654,8 @@ function UsersAdmin({ adminUsers, currentUserEmail, reload }) {
           {adminUsers.map(u => (
             <div key={u.id} className="flex items-center justify-between px-5 py-3.5">
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-full bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center">
-                  <Crown className="w-4 h-4 text-orange-600 dark:text-orange-400" />
+                <div className="w-9 h-9 rounded-full bg-brand/10 dark:bg-brand/20 flex items-center justify-center">
+                  <Crown className="w-4 h-4 text-brand dark:text-brand-light" />
                 </div>
                 <div>
                   <p className="font-semibold text-sm text-slate-900 dark:text-white">{u.name || u.email}</p>
@@ -1733,7 +1733,7 @@ function SeasonAdmin({ games, teams, players, reload }) {
       {/* Current season summary */}
       <div className="card p-5">
         <h3 className="font-bold text-sm text-slate-900 dark:text-white mb-4 flex items-center gap-2">
-          <Archive className="w-4 h-4 text-orange-500" /> סיום עונה וארכוב
+          <Archive className="w-4 h-4 text-brand" /> סיום עונה וארכוב
         </h3>
         <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
           פעולה זו תשמור את כל נתוני העונה הנוכחית בארכיון ותאפס את כל הסטטיסטיקות לקראת העונה הבאה.

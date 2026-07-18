@@ -61,7 +61,7 @@ export default function MobileApp() {
       <div className="flex flex-wrap gap-2 mb-8">
         {FEATURES.map(({ icon: Icon, label }) => (
           <span key={label} className="inline-flex items-center gap-1.5 rounded-full bg-surface-sunken px-3 py-1.5 text-[13px] font-semibold text-fg-soft">
-            <Icon className="w-4 h-4 text-orange-500 shrink-0" />
+            <Icon className="w-4 h-4 text-brand shrink-0" />
             {label}
           </span>
         ))}
@@ -139,7 +139,7 @@ export default function MobileApp() {
           <ShieldCheck className="w-4 h-4 text-emerald-500" />
           ללא פרסומות · לא אוספים מיקום · לא מוכרים מידע
         </span>
-        <Link to="/privacy" className="font-semibold text-orange-600 dark:text-orange-400 hover:underline">
+        <Link to="/privacy" className="font-semibold text-brand dark:text-brand-light hover:underline">
           מדיניות פרטיות
         </Link>
       </div>

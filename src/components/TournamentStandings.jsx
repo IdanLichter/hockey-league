@@ -35,7 +35,7 @@ export default function TournamentStandings({ teamIds = [], games = [], teamsMap
   return (
     <div className="card p-5">
       <h2 className="flex items-center gap-2 text-sm font-bold text-slate-900 dark:text-white mb-3">
-        <Trophy className="w-4 h-4 text-orange-500" /> טבלת הטורניר
+        <Trophy className="w-4 h-4 text-brand" /> טבלת הטורניר
       </h2>
       {!playedAny ? (
         <p className="text-sm text-slate-400 text-center py-4">הטבלה תתעדכן לאחר המשחקים הראשונים</p>
@@ -65,7 +65,7 @@ export default function TournamentStandings({ teamIds = [], games = [], teamsMap
                     <td className="py-2">
                       <div className="flex items-center gap-2 min-w-0">
                         <TeamLogo team={team} size={6} />
-                        <TeamLink team={team} className="font-semibold text-slate-800 dark:text-slate-200 truncate hover:text-orange-500 transition-colors">{team?.name || "—"}</TeamLink>
+                        <TeamLink team={team} className="font-semibold text-slate-800 dark:text-slate-200 truncate hover:text-brand transition-colors">{team?.name || "—"}</TeamLink>
                       </div>
                     </td>
                     <td className="text-center tabular-nums text-slate-500">{r.p}</td>

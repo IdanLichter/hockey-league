@@ -37,16 +37,16 @@ export default function TournamentTeamsManager({ tournamentId, ageGroup, rows = 
   }
 
   return (
-    <div className="card p-5 space-y-3 ring-1 ring-orange-500/20">
+    <div className="card p-5 space-y-3 ring-1 ring-brand/20">
       <h2 className="text-sm font-bold text-slate-900 dark:text-white">ניהול קבוצות בטורניר</h2>
       <div className="flex items-center gap-2">
         <select value={teamId} onChange={e => setTeamId(e.target.value)}
-          className="flex-1 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-2 text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-orange-500/30">
+          className="flex-1 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-2 text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-brand/30">
           <option value="">הזמן קבוצה…</option>
           {choices.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
         </select>
         <button onClick={invite} disabled={!teamId || busy}
-          className="flex items-center gap-1.5 text-sm font-semibold px-3 py-2 rounded-lg bg-orange-500 text-white hover:bg-orange-600 transition-colors disabled:opacity-50 shrink-0">
+          className="flex items-center gap-1.5 text-sm font-semibold px-3 py-2 rounded-lg bg-brand text-white hover:bg-brand-hover transition-colors disabled:opacity-50 shrink-0">
           {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />} הזמן
         </button>
       </div>

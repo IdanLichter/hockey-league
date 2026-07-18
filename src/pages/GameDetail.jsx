@@ -109,7 +109,7 @@ export default function GameDetail() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <div className="animate-spin rounded-full h-10 w-10 border-2 border-orange-500 border-t-transparent" />
+        <div className="animate-spin rounded-full h-10 w-10 border-2 border-brand border-t-transparent" />
       </div>
     )
   }
@@ -128,7 +128,7 @@ export default function GameDetail() {
                 <RefreshCw className="w-3.5 h-3.5" /> נסה שוב
               </button>
             )}
-            <Link to="/games" className="flex items-center gap-1.5 px-3 py-1.5 bg-orange-500 text-white rounded-lg text-xs font-semibold hover:bg-orange-600 transition-colors">
+            <Link to="/games" className="flex items-center gap-1.5 px-3 py-1.5 bg-brand text-white rounded-lg text-xs font-semibold hover:bg-brand-hover transition-colors">
               <ArrowRight className="w-3.5 h-3.5" /> חזרה למשחקים
             </Link>
           </div>
@@ -181,7 +181,7 @@ export default function GameDetail() {
   const redCards = stats.reduce((sum, s) => sum + (s.red_cards || 0), 0)
 
   const tiles = played ? [
-    { val: game.home_score + game.away_score, label: "סה״כ שערים", color: "text-orange-500" },
+    { val: game.home_score + game.away_score, label: "סה״כ שערים", color: "text-brand" },
     { val: game.home_score, label: "שערי הבית", color: "text-emerald-600 dark:text-emerald-400" },
     { val: game.away_score, label: "שערי החוץ", color: "text-emerald-600 dark:text-emerald-400" },
     { val: blueCards, label: "כרטיסים כחולים", color: "text-blue-600 dark:text-blue-400" },
@@ -252,7 +252,7 @@ export default function GameDetail() {
           {/* Home (right in RTL) */}
           <TeamLink team={home} className="flex flex-col items-center gap-2 flex-1 min-w-0 group">
             <TeamLogo team={home} size={14} />
-            <span className={`font-bold text-sm text-center truncate w-full group-hover:text-orange-500 transition-colors ${homeWin ? 'text-emerald-700 dark:text-emerald-300' : 'text-slate-900 dark:text-white'}`}>{home?.name || '—'}</span>
+            <span className={`font-bold text-sm text-center truncate w-full group-hover:text-brand transition-colors ${homeWin ? 'text-emerald-700 dark:text-emerald-300' : 'text-slate-900 dark:text-white'}`}>{home?.name || '—'}</span>
             <span className={`text-[11px] font-medium ${homeWin ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400'}`}>{tie ? 'תיקו' : homeWin ? 'מנצחת' : 'בית'}</span>
           </TeamLink>
 
@@ -279,7 +279,7 @@ export default function GameDetail() {
           {/* Away (left in RTL) */}
           <TeamLink team={away} className="flex flex-col items-center gap-2 flex-1 min-w-0 group">
             <TeamLogo team={away} size={14} />
-            <span className={`font-bold text-sm text-center truncate w-full group-hover:text-orange-500 transition-colors ${awayWin ? 'text-emerald-700 dark:text-emerald-300' : 'text-slate-900 dark:text-white'}`}>{away?.name || '—'}</span>
+            <span className={`font-bold text-sm text-center truncate w-full group-hover:text-brand transition-colors ${awayWin ? 'text-emerald-700 dark:text-emerald-300' : 'text-slate-900 dark:text-white'}`}>{away?.name || '—'}</span>
             <span className={`text-[11px] font-medium ${awayWin ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400'}`}>{tie ? 'תיקו' : awayWin ? 'מנצחת' : 'חוץ'}</span>
           </TeamLink>
         </div>
@@ -378,7 +378,7 @@ export default function GameDetail() {
         <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="card overflow-hidden">
           <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-700">
             <h2 className="flex items-center gap-2 font-bold text-sm text-slate-900 dark:text-white">
-              <Users className="w-4 h-4 text-orange-500" /> הרכבים וסטטיסטיקות
+              <Users className="w-4 h-4 text-brand" /> הרכבים וסטטיסטיקות
             </h2>
           </div>
           <div className="p-4 sm:p-5">
@@ -401,7 +401,7 @@ export default function GameDetail() {
                             const p = playersMap[stat.player_id]
                             return (
                               <div key={stat.id} className="flex items-center justify-between gap-2 py-1.5 px-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
-                                <PlayerLink playerId={stat.player_id} className="text-sm text-slate-700 dark:text-slate-300 hover:text-orange-500 transition-colors truncate min-w-0">
+                                <PlayerLink playerId={stat.player_id} className="text-sm text-slate-700 dark:text-slate-300 hover:text-brand transition-colors truncate min-w-0">
                                   {p ? `${p.first_name} ${p.last_name}` : '—'}
                                 </PlayerLink>
                                 <StatPills stat={stat} />
@@ -442,7 +442,7 @@ export default function GameDetail() {
         <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.12 }} className="card overflow-hidden">
           <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-700">
             <h2 className="flex items-center gap-2 font-bold text-sm text-slate-900 dark:text-white">
-              <Flame className="w-4 h-4 text-orange-500" /> כובשי השערים
+              <Flame className="w-4 h-4 text-brand" /> כובשי השערים
             </h2>
           </div>
           <div className="p-3 sm:p-4 space-y-0.5">
@@ -456,7 +456,7 @@ export default function GameDetail() {
                     {team
                       ? <TeamLogo team={team} size={6} />
                       : <span className="w-6 h-6 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center text-[10px] text-slate-400 shrink-0">א</span>}
-                    <PlayerLink playerId={stat.player_id} className="font-medium text-sm text-slate-900 dark:text-white truncate hover:text-orange-500 transition-colors">
+                    <PlayerLink playerId={stat.player_id} className="font-medium text-sm text-slate-900 dark:text-white truncate hover:text-brand transition-colors">
                       {name}
                     </PlayerLink>
                   </div>
@@ -472,7 +472,7 @@ export default function GameDetail() {
       <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.14 }} className="card overflow-hidden">
         <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-700">
           <h2 className="flex items-center gap-2 font-bold text-sm text-slate-900 dark:text-white">
-            <Swords className="w-4 h-4 text-orange-500" /> מפגשים קודמים
+            <Swords className="w-4 h-4 text-brand" /> מפגשים קודמים
           </h2>
           {h2h.length > 0 && <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-1">התוצאות מנקודת מבט {home?.name || 'הבית'}</p>}
         </div>
@@ -506,7 +506,7 @@ export default function GameDetail() {
       <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.16 }} className="card overflow-hidden">
         <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-700">
           <h2 className="flex items-center gap-2 font-bold text-sm text-slate-900 dark:text-white">
-            <TrendingUp className="w-4 h-4 text-orange-500" /> טופס לפני המשחק
+            <TrendingUp className="w-4 h-4 text-brand" /> טופס לפני המשחק
           </h2>
         </div>
         <div className="p-4 space-y-3">
@@ -515,7 +515,7 @@ export default function GameDetail() {
               <TeamLink team={team} className="flex items-center gap-2.5 min-w-0 group">
                 <TeamLogo team={team} size={8} />
                 <div className="min-w-0">
-                  <p className="font-semibold text-sm text-slate-900 dark:text-white truncate group-hover:text-orange-500 transition-colors">{team?.name || '—'}</p>
+                  <p className="font-semibold text-sm text-slate-900 dark:text-white truncate group-hover:text-brand transition-colors">{team?.name || '—'}</p>
                   <p className="text-[11px] text-slate-400 dark:text-slate-500">{side}</p>
                 </div>
               </TeamLink>
@@ -539,7 +539,7 @@ export default function GameDetail() {
       {/* ============ TEAM PAGE LINKS ============ */}
       <div className="grid grid-cols-2 gap-3">
         {[home, away].map((team, i) => (
-          <TeamLink key={i} team={team} className="card-hover flex items-center justify-center gap-2 py-3.5 px-3 text-sm font-semibold text-slate-700 dark:text-slate-200 hover:text-orange-600 dark:hover:text-orange-400 transition-colors">
+          <TeamLink key={i} team={team} className="card-hover flex items-center justify-center gap-2 py-3.5 px-3 text-sm font-semibold text-slate-700 dark:text-slate-200 hover:text-brand dark:hover:text-brand-light transition-colors">
             <TeamLogo team={team} size={6} />
             <span className="truncate">{team?.name || '—'}</span>
             <ArrowLeft className="w-3.5 h-3.5 shrink-0" />

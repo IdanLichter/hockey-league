@@ -42,7 +42,7 @@ export default function ContentCreators() {
   if (authLoading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <div className="animate-spin rounded-full h-10 w-10 border-2 border-orange-500 border-t-transparent" />
+        <div className="animate-spin rounded-full h-10 w-10 border-2 border-brand border-t-transparent" />
       </div>
     )
   }
@@ -55,7 +55,7 @@ export default function ContentCreators() {
     <div className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto space-y-5">
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
         <h1 className="page-title flex items-center gap-2.5">
-          <EditIcon className="w-7 h-7 text-orange-500" /> יוצרי תוכן
+          <EditIcon className="w-7 h-7 text-brand" /> יוצרי תוכן
         </h1>
         <p className="page-subtitle mt-1">זיהוי שחקנים בתמונות, ניהול קבוצות תמונות, דיווחים ואלבומים חדשים</p>
       </motion.div>
@@ -70,7 +70,7 @@ export default function ContentCreators() {
                 <button key={tab.id} onClick={() => setActiveTab(tab.id)}
                   className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all whitespace-nowrap shrink-0 lg:w-full ${
                     active
-                      ? "bg-orange-500 text-white shadow-sm shadow-orange-500/25"
+                      ? "bg-brand text-white shadow-sm shadow-brand/25"
                       : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white"
                   }`}>
                   <tab.icon className="w-4 h-4 shrink-0" />
@@ -109,7 +109,7 @@ function AccessDenied({ signedIn, email }) {
               התחבר עם חשבון מורשה כדי לגשת לאזור יוצרי התוכן.
             </p>
             <button onClick={signInWithGoogle}
-              className="flex items-center justify-center gap-3 w-full px-6 py-3 bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-xl text-sm font-semibold text-slate-700 dark:text-slate-300 hover:border-orange-500 hover:shadow-md transition-all">
+              className="flex items-center justify-center gap-3 w-full px-6 py-3 bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-xl text-sm font-semibold text-slate-700 dark:text-slate-300 hover:border-brand hover:shadow-md transition-all">
               <svg className="w-5 h-5" viewBox="0 0 24 24">
                 <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/>
                 <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
@@ -190,7 +190,7 @@ function AlbumSubmissions() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="flex items-center gap-2 text-lg font-bold text-slate-900 dark:text-white">
-            <FolderPlus className="w-5 h-5 text-orange-500" /> אלבומים חדשים
+            <FolderPlus className="w-5 h-5 text-brand" /> אלבומים חדשים
           </h2>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
             שליחת קישור לאלבום Google Photos להוספת תמונות חדשות
@@ -202,7 +202,7 @@ function AlbumSubmissions() {
       </div>
 
       {/* Note: processing is offline, not instant. */}
-      <div className="card p-4 text-sm text-slate-600 dark:text-slate-300 leading-relaxed border-orange-200 dark:border-orange-900/40 bg-orange-50/50 dark:bg-orange-950/20">
+      <div className="card p-4 text-sm text-slate-600 dark:text-slate-300 leading-relaxed border-brand/20 dark:border-brand/25 bg-brand/[0.06] dark:bg-brand/10">
         השליחות נכנסות לתור לעיבוד לא-מיידי — הורדת התמונות מהאלבום, זיהוי הפנים וקיבוצן לקבוצות תמונות חדשות
         נעשים באופן לא-מקוון. לכן אלבום שנשלח לא יופיע מיד, אלא לאחר העיבוד (הסטטוס יתעדכן ל״הושלם״).
       </div>
@@ -222,7 +222,7 @@ function AlbumSubmissions() {
         </div>
         {formError && <p className="text-xs text-red-600 dark:text-red-400">{formError}</p>}
         <button type="submit" disabled={saving || !url.trim()}
-          className="flex items-center gap-2 px-5 py-2.5 bg-orange-500 text-white text-sm font-semibold rounded-xl hover:bg-orange-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+          className="flex items-center gap-2 px-5 py-2.5 bg-brand text-white text-sm font-semibold rounded-xl hover:bg-brand-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
           {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
           {saving ? "שולח..." : "שליחת אלבום"}
         </button>
@@ -231,7 +231,7 @@ function AlbumSubmissions() {
       {/* Submitted albums list */}
       {loading ? (
         <div className="flex items-center justify-center py-12">
-          <div className="animate-spin rounded-full h-8 w-8 border-2 border-orange-500 border-t-transparent" />
+          <div className="animate-spin rounded-full h-8 w-8 border-2 border-brand border-t-transparent" />
         </div>
       ) : loadError ? (
         <div className="card p-6 text-center space-y-3">
@@ -251,7 +251,7 @@ function AlbumSubmissions() {
             <div key={s.id} className="card p-4 flex items-center justify-between gap-3">
               <div className="min-w-0 flex-1">
                 <a href={s.url} target="_blank" rel="noopener noreferrer" dir="ltr"
-                  className="inline-flex items-center gap-1 text-sm font-semibold text-slate-700 dark:text-slate-200 hover:text-orange-500 transition-colors truncate max-w-full">
+                  className="inline-flex items-center gap-1 text-sm font-semibold text-slate-700 dark:text-slate-200 hover:text-brand transition-colors truncate max-w-full">
                   <ExternalLink className="w-3.5 h-3.5 shrink-0" />
                   <span className="truncate">{s.url}</span>
                 </a>

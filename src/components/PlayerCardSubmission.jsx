@@ -3,7 +3,7 @@ import { X, Loader2, UserPlus, CheckCircle2 } from "lucide-react"
 import { getTeams } from "@/lib/api"
 import { createPlayerSubmission } from "@/lib/playerSubmissions"
 
-const inputCls = "w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500"
+const inputCls = "w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand"
 
 function Field({ label, children }) {
   return (
@@ -66,18 +66,18 @@ export default function PlayerCardSubmission({ onClose, onSubmitted }) {
             <div className="w-14 h-14 rounded-full bg-emerald-100 dark:bg-emerald-900/40 flex items-center justify-center mx-auto mb-4">
               <CheckCircle2 className="w-7 h-7 text-emerald-600 dark:text-emerald-400" />
             </div>
-            <h3 className="text-lg font-extrabold text-slate-900 dark:text-white">הבקשה נשלחה 🏒</h3>
+            <h3 className="text-lg font-extrabold text-slate-900 dark:text-white">הבקשה נשלחה 🛼</h3>
             <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">
               כרטיס השחקן שלך נשלח לאישור. תופיע/י בליגה מרגע שהבקשה תאושר.
             </p>
-            <button onClick={onClose} className="mt-5 w-full py-2.5 rounded-xl bg-orange-500 text-white font-semibold hover:bg-orange-600 transition-colors">
+            <button onClick={onClose} className="mt-5 w-full py-2.5 rounded-xl bg-brand text-white font-semibold hover:bg-brand-hover transition-colors">
               סגירה
             </button>
           </div>
         ) : (
           <div className="p-6">
             <div className="flex items-center gap-2 mb-1">
-              <UserPlus className="w-5 h-5 text-orange-500" />
+              <UserPlus className="w-5 h-5 text-brand" />
               <h3 className="text-lg font-extrabold text-slate-900 dark:text-white">צור כרטיס שחקן</h3>
             </div>
             <p className="text-sm text-slate-500 dark:text-slate-400 mb-5">
@@ -122,7 +122,7 @@ export default function PlayerCardSubmission({ onClose, onSubmitted }) {
             {error && <p className="mt-3 text-sm text-red-600 dark:text-red-400">{error}</p>}
 
             <button onClick={submit} disabled={!canSubmit}
-              className="mt-5 w-full py-2.5 rounded-xl bg-orange-500 text-white font-semibold hover:bg-orange-600 transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
+              className="mt-5 w-full py-2.5 rounded-xl bg-brand text-white font-semibold hover:bg-brand-hover transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
               {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />}
               שליחה לאישור
             </button>

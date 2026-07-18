@@ -41,7 +41,7 @@ export function MediaClusters() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <div className="animate-spin rounded-full h-10 w-10 border-2 border-orange-500 border-t-transparent" />
+        <div className="animate-spin rounded-full h-10 w-10 border-2 border-brand border-t-transparent" />
       </div>
     )
   }
@@ -60,7 +60,7 @@ export function MediaClusters() {
     <div className="space-y-5">
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
         <h1 className="page-title flex items-center gap-2.5">
-          <CameraIcon className="w-7 h-7 text-orange-500" /> מדיה — זיהוי שחקנים
+          <CameraIcon className="w-7 h-7 text-brand" /> מדיה — זיהוי שחקנים
         </h1>
         <p className="page-subtitle mt-1">
           {clusters.length} שחקנים עדיין לא זוהו · {resolved} כבר זוהו
@@ -141,7 +141,7 @@ function ClusterCard({ cluster, index, summary, onSubmitted }) {
           <HelpCircle className="w-3 h-3" /> {cluster.size} תמונות
         </div>
         {count > 0 && (
-          <div className="absolute top-2 left-2 px-2 py-0.5 rounded-full bg-orange-500/90 text-white text-[11px] font-semibold">
+          <div className="absolute top-2 left-2 px-2 py-0.5 rounded-full bg-brand/90 text-white text-[11px] font-semibold">
             {count} {count === 1 ? "הצעה" : "הצעות"}
           </div>
         )}
@@ -177,7 +177,7 @@ function ClusterCard({ cluster, index, summary, onSubmitted }) {
             </div>
             {msg && <span className="text-xs text-red-600 dark:text-red-400">{msg}</span>}
             <button type="submit" disabled={state === "sending"}
-              className="flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg bg-orange-500 text-white text-sm font-semibold hover:bg-orange-600 disabled:opacity-60 transition-colors">
+              className="flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg bg-brand text-white text-sm font-semibold hover:bg-brand-hover disabled:opacity-60 transition-colors">
               <Send className="w-3.5 h-3.5" /> {state === "sending" ? "שולח..." : "זה השחקן"}
             </button>
           </form>
@@ -185,7 +185,7 @@ function ClusterCard({ cluster, index, summary, onSubmitted }) {
 
         {cluster.source_detail_url && (
           <a href={cluster.source_detail_url} target="_blank" rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 text-xs text-slate-400 hover:text-orange-500 transition-colors mt-auto pt-1">
+            className="inline-flex items-center gap-1 text-xs text-slate-400 hover:text-brand transition-colors mt-auto pt-1">
             <ExternalLink className="w-3 h-3" /> צפו בתמונה המקורית
           </a>
         )}

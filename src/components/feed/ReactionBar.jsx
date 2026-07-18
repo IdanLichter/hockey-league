@@ -17,7 +17,7 @@ function CommentAvatar({ url, name, className = "w-8 h-8" }) {
   const initial = (name || "?").trim().charAt(0).toUpperCase() || "?"
   return url
     ? <img src={url} alt="" className={`${className} rounded-full object-cover shrink-0`} />
-    : <div className={`${className} rounded-full bg-orange-500 text-white flex items-center justify-center text-sm font-bold shrink-0`}>{initial}</div>
+    : <div className={`${className} rounded-full bg-brand text-white flex items-center justify-center text-sm font-bold shrink-0`}>{initial}</div>
 }
 
 export default function ReactionBar({ itemKey, liked: likedInit = false, likeCount: likeInit = 0, commentCount: commentInit = 0, blockedIds }) {
@@ -112,7 +112,7 @@ export default function ReactionBar({ itemKey, liked: likedInit = false, likeCou
           <Heart className={`w-4 h-4 ${liked ? "fill-current" : ""}`} />
           {likeCount > 0 ? <span>{likeCount}</span> : <span>אהבתי</span>}
         </button>
-        <button onClick={toggleComments} className="flex items-center gap-1.5 font-semibold text-slate-500 dark:text-slate-400 hover:text-orange-500 transition-colors">
+        <button onClick={toggleComments} className="flex items-center gap-1.5 font-semibold text-slate-500 dark:text-slate-400 hover:text-brand transition-colors">
           <MessageCircle className="w-4 h-4" />
           {commentCount > 0 ? <span>{commentCount}</span> : <span>תגובה</span>}
         </button>
@@ -139,11 +139,11 @@ export default function ReactionBar({ itemKey, liked: likedInit = false, likeCou
                               onChange={e => setCommentDraft(e.target.value.slice(0, 1000))}
                               rows={2}
                               autoFocus
-                              className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1.5 text-xs text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500 resize-none"
+                              className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1.5 text-xs text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand resize-none"
                             />
                             <div className="flex items-center gap-2 mt-1.5">
                               <button onClick={() => saveEditComment(c)} disabled={savingComment || !commentDraft.trim()}
-                                className="flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-lg bg-orange-500 text-white hover:bg-orange-600 transition-colors disabled:opacity-50">
+                                className="flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-lg bg-brand text-white hover:bg-brand-hover transition-colors disabled:opacity-50">
                                 {savingComment ? <Loader2 className="w-3 h-3 animate-spin" /> : null} שמירה
                               </button>
                               <button onClick={() => setEditingCommentId(null)} disabled={savingComment}
@@ -173,14 +173,14 @@ export default function ReactionBar({ itemKey, liked: likedInit = false, likeCou
                         value={newComment}
                         onChange={e => setNewComment(e.target.value.slice(0, 1000))}
                         placeholder="כתבו תגובה…"
-                        className="flex-1 min-w-0 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full px-3 py-1.5 text-xs text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500"
+                        className="flex-1 min-w-0 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full px-3 py-1.5 text-xs text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand"
                       />
-                      <button type="submit" disabled={posting || !newComment.trim()} className="shrink-0 w-8 h-8 rounded-full bg-orange-500 text-white flex items-center justify-center disabled:opacity-50">
+                      <button type="submit" disabled={posting || !newComment.trim()} className="shrink-0 w-8 h-8 rounded-full bg-brand text-white flex items-center justify-center disabled:opacity-50">
                         {posting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
                       </button>
                     </form>
                   ) : (
-                    <button onClick={openAuth} className="text-xs text-orange-600 dark:text-orange-400 font-semibold hover:underline pt-1">התחברו כדי להגיב</button>
+                    <button onClick={openAuth} className="text-xs text-brand dark:text-brand-light font-semibold hover:underline pt-1">התחברו כדי להגיב</button>
                   )}
                 </>
               )}

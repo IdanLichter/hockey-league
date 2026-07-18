@@ -41,7 +41,7 @@ export default function VenuesAdmin() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-3 flex-wrap">
-        <h2 className="flex items-center gap-2 text-lg font-bold text-slate-900 dark:text-white"><MapPin className="w-5 h-5 text-orange-500" /> מגרשים</h2>
+        <h2 className="flex items-center gap-2 text-lg font-bold text-slate-900 dark:text-white"><MapPin className="w-5 h-5 text-brand" /> מגרשים</h2>
         <button onClick={load} className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-600 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"><RefreshCw className="w-3.5 h-3.5" /> רענון</button>
       </div>
 
@@ -50,21 +50,21 @@ export default function VenuesAdmin() {
         <div className="flex-1">
           <label className="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1">שם המגרש</label>
           <input value={name} onChange={e => setName(e.target.value)} placeholder="לדוגמה: אולם ספורט גבעת עדה"
-            className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-2 text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-orange-500/30" />
+            className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-2 text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-brand/30" />
         </div>
         <div className="sm:w-40">
           <label className="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1">עיר (רשות)</label>
           <input value={city} onChange={e => setCity(e.target.value)} placeholder="עיר"
-            className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-2 text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-orange-500/30" />
+            className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-2 text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-brand/30" />
         </div>
         <button onClick={add} disabled={busy === "add" || !name.trim()}
-          className="flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg bg-orange-500 text-white text-sm font-semibold hover:bg-orange-600 transition-colors disabled:opacity-50"><Plus className="w-4 h-4" /> הוספה</button>
+          className="flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg bg-brand text-white text-sm font-semibold hover:bg-brand-hover transition-colors disabled:opacity-50"><Plus className="w-4 h-4" /> הוספה</button>
       </div>
       {error && <p className="text-xs text-red-600 dark:text-red-400">{error}</p>}
 
       {/* List */}
       {venues === null ? (
-        <div className="flex justify-center py-10"><div className="animate-spin rounded-full h-7 w-7 border-2 border-orange-500 border-t-transparent" /></div>
+        <div className="flex justify-center py-10"><div className="animate-spin rounded-full h-7 w-7 border-2 border-brand border-t-transparent" /></div>
       ) : venues.length === 0 ? (
         <p className="text-center text-sm text-slate-400 py-8">אין מגרשים עדיין</p>
       ) : (
@@ -74,7 +74,7 @@ export default function VenuesAdmin() {
               {editId === v.id ? (
                 <input value={editName} onChange={e => setEditName(e.target.value)} autoFocus
                   onKeyDown={e => e.key === "Enter" && saveRename(v)}
-                  className="flex-1 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg px-2 py-1 text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-orange-500/30" />
+                  className="flex-1 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg px-2 py-1 text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-brand/30" />
               ) : (
                 <div className="min-w-0 flex items-center gap-2">
                   <span className={`text-sm font-semibold truncate ${v.is_active ? "text-slate-900 dark:text-white" : "text-slate-400 line-through"}`}>{v.name}</span>

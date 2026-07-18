@@ -63,7 +63,7 @@ export default function TeamDetail() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <div className="animate-spin rounded-full h-10 w-10 border-2 border-orange-500 border-t-transparent" />
+        <div className="animate-spin rounded-full h-10 w-10 border-2 border-brand border-t-transparent" />
       </div>
     )
   }
@@ -102,7 +102,7 @@ export default function TeamDetail() {
   const gd = (team.goals_for || 0) - (team.goals_against || 0)
 
   const tiles = [
-    { icon: Trophy, val: team.points || 0, label: "נקודות", color: "text-orange-500" },
+    { icon: Trophy, val: team.points || 0, label: "נקודות", color: "text-brand" },
     { icon: Target, val: team.goals_for || 0, label: "שערי זכות", color: "text-emerald-500" },
     { icon: Shield, val: team.goals_against || 0, label: "שערי חובה", color: "text-red-500" },
     { icon: Users, val: `${gd > 0 ? '+' : ''}${gd}`, label: "הפרש שערים", color: gd >= 0 ? "text-emerald-500" : "text-red-500" },
@@ -131,7 +131,7 @@ export default function TeamDetail() {
               <h1 className="page-title truncate">{team.name}</h1>
               {isSeniorTeam
                 ? <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-700 px-2 py-0.5 rounded-md">#{rank} בטבלה</span>
-                : <span className="text-[11px] font-bold text-orange-600 dark:text-orange-400 bg-orange-100 dark:bg-orange-900/30 px-2 py-0.5 rounded-md">{AGE_LABEL[ageOf(team)]}</span>}
+                : <span className="text-[11px] font-bold text-brand dark:text-brand-light bg-brand/10 dark:bg-brand/20 px-2 py-0.5 rounded-md">{AGE_LABEL[ageOf(team)]}</span>}
             </div>
             <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
               {team.city}{team.founded_year ? ` • נוסדה ${team.founded_year}` : ''}
@@ -169,7 +169,7 @@ export default function TeamDetail() {
       <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="card overflow-hidden">
         <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between gap-3">
           <h2 className="flex items-center gap-2 font-bold text-sm text-slate-900 dark:text-white">
-            <Users className="w-4 h-4 text-orange-500" /> סגל
+            <Users className="w-4 h-4 text-brand" /> סגל
           </h2>
           <div className="flex items-center gap-3 shrink-0">
             {isLinkedPlayer && !onThisTeam && (
@@ -178,7 +178,7 @@ export default function TeamDetail() {
                 : joinState === 'pending'
                   ? <span className="text-[11px] font-semibold text-amber-600 dark:text-amber-400">בקשה ממתינה</span>
                   : <button onClick={doJoin} disabled={joinState === 'sending'}
-                      className="text-[11px] font-semibold px-2.5 py-1 rounded-lg bg-orange-500 text-white hover:bg-orange-600 transition-colors disabled:opacity-50">
+                      className="text-[11px] font-semibold px-2.5 py-1 rounded-lg bg-brand text-white hover:bg-brand-hover transition-colors disabled:opacity-50">
                       {joinState === 'sending' ? 'שולח…' : 'בקש להצטרף'}
                     </button>
             )}
@@ -191,7 +191,7 @@ export default function TeamDetail() {
             <Link key={player.id} to={`/players/${player.id}`}
               className="flex items-center justify-between py-2 px-3 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors text-sm">
               <div className="flex items-center gap-2 min-w-0">
-                {player.is_core && <span className="w-1.5 h-1.5 rounded-full bg-orange-500 shrink-0" />}
+                {player.is_core && <span className="w-1.5 h-1.5 rounded-full bg-brand shrink-0" />}
                 <span className="font-medium text-slate-900 dark:text-white truncate">{player.first_name} {player.last_name}</span>
                 {player.jersey_number != null && <span className="text-[10px] text-slate-400 font-mono shrink-0">#{player.jersey_number}</span>}
                 <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded shrink-0 ${player.position === 'Goalkeeper' ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400' : 'bg-slate-100 text-slate-500 dark:bg-slate-700 dark:text-slate-400'}`}>
@@ -218,7 +218,7 @@ export default function TeamDetail() {
         <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.13 }} className="card overflow-hidden">
           <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-700">
             <h2 className="flex items-center gap-2 font-bold text-sm text-slate-900 dark:text-white">
-              <Calendar className="w-4 h-4 text-orange-500" /> משחקים הבאים
+              <Calendar className="w-4 h-4 text-brand" /> משחקים הבאים
             </h2>
           </div>
           <div className="p-4 space-y-2">
@@ -231,13 +231,13 @@ export default function TeamDetail() {
                   <div className="flex items-center gap-2.5 min-w-0">
                     <TeamLogo team={opp} size={8} />
                     <div className="min-w-0">
-                      <p className="font-semibold text-sm text-slate-900 dark:text-white truncate group-hover:text-orange-500 transition-colors">{opp?.name || '—'}</p>
+                      <p className="font-semibold text-sm text-slate-900 dark:text-white truncate group-hover:text-brand transition-colors">{opp?.name || '—'}</p>
                       <p className="text-[11px] text-slate-400 dark:text-slate-500">
                         {format(new Date(game.game_date), "d/M/yyyy")} · {isHome ? 'בית' : 'חוץ'}{game.venue ? ` · ${game.venue}` : ''}
                       </p>
                     </div>
                   </div>
-                  <span dir="ltr" className="inline-flex items-center gap-1 text-xs font-bold px-2 py-1 rounded-md bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400 shrink-0 tabular-nums">
+                  <span dir="ltr" className="inline-flex items-center gap-1 text-xs font-bold px-2 py-1 rounded-md bg-brand/10 text-brand dark:bg-brand/20 dark:text-brand-light shrink-0 tabular-nums">
                     <Clock className="w-3 h-3" /> {format(new Date(game.game_date), "HH:mm")}
                   </span>
                 </Link>
@@ -251,7 +251,7 @@ export default function TeamDetail() {
       <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} className="card overflow-hidden">
         <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-700">
           <h2 className="flex items-center gap-2 font-bold text-sm text-slate-900 dark:text-white">
-            <Calendar className="w-4 h-4 text-orange-500" /> תוצאות אחרונות
+            <Calendar className="w-4 h-4 text-brand" /> תוצאות אחרונות
           </h2>
         </div>
         <div className="p-4 space-y-2">
@@ -271,7 +271,7 @@ export default function TeamDetail() {
                 <Link to={`/teams/${opp?.id}`} className="flex items-center gap-2.5 min-w-0 group">
                   <TeamLogo team={opp} size={8} />
                   <div className="min-w-0">
-                    <p className="font-semibold text-sm text-slate-900 dark:text-white truncate group-hover:text-orange-500 transition-colors">{opp?.name || '—'}</p>
+                    <p className="font-semibold text-sm text-slate-900 dark:text-white truncate group-hover:text-brand transition-colors">{opp?.name || '—'}</p>
                     <p className="text-[11px] text-slate-400 dark:text-slate-500">
                       {format(new Date(game.game_date), "d/M/yyyy")} · {isHome ? 'בית' : 'חוץ'}
                       {game.game_type === FRIENDLY_GAME_TYPE && (

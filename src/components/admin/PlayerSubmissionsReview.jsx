@@ -48,7 +48,7 @@ export default function PlayerSubmissionsReview({ teamsMap = {}, coachTeamIds = 
   if (loading) {
     return (
       <div className="flex items-center justify-center py-16">
-        <div className="animate-spin rounded-full h-8 w-8 border-2 border-orange-500 border-t-transparent" />
+        <div className="animate-spin rounded-full h-8 w-8 border-2 border-brand border-t-transparent" />
       </div>
     )
   }
@@ -58,7 +58,7 @@ export default function PlayerSubmissionsReview({ teamsMap = {}, coachTeamIds = 
       <div className="flex items-center justify-between">
         <div>
           <h2 className="flex items-center gap-2 text-lg font-bold text-slate-900 dark:text-white">
-            <UserCheck className="w-5 h-5 text-orange-500" /> כרטיסי שחקן חדשים
+            <UserCheck className="w-5 h-5 text-brand" /> כרטיסי שחקן חדשים
           </h2>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
             אישור יוצר את כרטיס השחקן ומשייך אותו לחשבון המבקש/ת

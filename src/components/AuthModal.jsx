@@ -21,7 +21,7 @@ function Field({ icon: Icon, value, onChange, ...props }) {
         {...props}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl pr-9 pl-3 py-2.5 text-sm text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500 transition-all"
+        className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl pr-9 pl-3 py-2.5 text-sm text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand transition-all"
       />
     </div>
   )
@@ -97,14 +97,14 @@ export default function AuthModal() {
             <div className="w-14 h-14 rounded-full bg-emerald-100 dark:bg-emerald-900/40 flex items-center justify-center mx-auto mb-4">
               <Mail className="w-7 h-7 text-emerald-600 dark:text-emerald-400" />
             </div>
-            <h3 className="text-lg font-extrabold text-slate-900 dark:text-white">כמעט על המגרש 🏒</h3>
+            <h3 className="text-lg font-extrabold text-slate-900 dark:text-white">כמעט על המגרש 🛼</h3>
             <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">
               שלחנו קישור אימות ל־<span className="font-semibold text-slate-700 dark:text-slate-300">{email}</span>. לחצו עליו — ואתם בהרכב.
             </p>
             <p className="text-xs text-slate-400 dark:text-slate-500 mt-2">
               לא הגיע? הציצו בתיקיית הספאם — לפעמים המייל נתקע ליד הבמה.
             </p>
-            <button onClick={close} className="mt-5 w-full py-2.5 rounded-xl bg-orange-500 text-white font-semibold hover:bg-orange-600 transition-colors">
+            <button onClick={close} className="mt-5 w-full py-2.5 rounded-xl bg-brand text-white font-semibold hover:bg-brand-hover transition-colors">
               אלופים, הבנתי
             </button>
           </div>
@@ -147,7 +147,7 @@ export default function AuthModal() {
               <button
                 type="submit"
                 disabled={busy}
-                className="w-full py-2.5 rounded-xl bg-orange-500 text-white font-bold hover:bg-orange-600 transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
+                className="w-full py-2.5 rounded-xl bg-brand text-white font-bold hover:bg-brand-hover transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
               >
                 {busy && <Loader2 className="w-4 h-4 animate-spin" />}
                 {mode === "signin" ? "התחברות" : "יצירת חשבון"}
@@ -169,9 +169,9 @@ export default function AuthModal() {
 
             <p className="text-center text-xs text-slate-500 dark:text-slate-400 mt-5">
               {mode === "signin" ? (
-                <>אין לכם חשבון? <button type="button" onClick={() => switchMode("signup")} className="font-bold text-orange-600 dark:text-orange-400 hover:underline">הרשמה</button></>
+                <>אין לכם חשבון? <button type="button" onClick={() => switchMode("signup")} className="font-bold text-brand dark:text-brand-light hover:underline">הרשמה</button></>
               ) : (
-                <>כבר יש לכם חשבון? <button type="button" onClick={() => switchMode("signin")} className="font-bold text-orange-600 dark:text-orange-400 hover:underline">התחברות</button></>
+                <>כבר יש לכם חשבון? <button type="button" onClick={() => switchMode("signin")} className="font-bold text-brand dark:text-brand-light hover:underline">התחברות</button></>
               )}
             </p>
           </>

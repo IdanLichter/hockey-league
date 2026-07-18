@@ -56,7 +56,7 @@ export default function TournamentDetail() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <div className="animate-spin rounded-full h-10 w-10 border-2 border-orange-500 border-t-transparent" />
+        <div className="animate-spin rounded-full h-10 w-10 border-2 border-brand border-t-transparent" />
       </div>
     )
   }
@@ -96,13 +96,13 @@ export default function TournamentDetail() {
       {/* header */}
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="card p-5 sm:p-6">
         <div className="flex items-start gap-4">
-          <div className="w-14 h-14 rounded-2xl bg-orange-500/10 flex items-center justify-center shrink-0">
-            <Trophy className="w-7 h-7 text-orange-500" />
+          <div className="w-14 h-14 rounded-2xl bg-brand/10 flex items-center justify-center shrink-0">
+            <Trophy className="w-7 h-7 text-brand" />
           </div>
           <div className="min-w-0">
             <h1 className="text-xl font-extrabold text-slate-900 dark:text-white">{tournament.name}</h1>
             <div className="flex items-center gap-2 flex-wrap mt-2">
-              <span className="stat-pill bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300">{AGE_LABEL[tournament.age_group] || tournament.age_group}</span>
+              <span className="stat-pill bg-brand/10 text-brand-strong dark:bg-brand/20 dark:text-brand-light">{AGE_LABEL[tournament.age_group] || tournament.age_group}</span>
               <span className={`stat-pill ${st.cls}`}>{st.label}</span>
               {range && <span className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1"><Calendar className="w-3.5 h-3.5" /> {range}</span>}
             </div>
@@ -142,7 +142,7 @@ export default function TournamentDetail() {
       {teamIds.length > 0 && (
         <div className="card p-5">
           <h2 className="flex items-center gap-2 text-sm font-bold text-slate-900 dark:text-white mb-3">
-            <Users className="w-4 h-4 text-orange-500" /> קבוצות משתתפות ({teamIds.length})
+            <Users className="w-4 h-4 text-brand" /> קבוצות משתתפות ({teamIds.length})
           </h2>
           <div className="flex flex-wrap gap-2">
             {teamIds.map(tid => {
@@ -150,7 +150,7 @@ export default function TournamentDetail() {
               return (
                 <div key={tid} className="flex items-center gap-2 bg-slate-50 dark:bg-slate-800/60 rounded-xl px-3 py-1.5">
                   <TeamLogo team={team} size={6} />
-                  <TeamLink team={team} className="text-sm font-semibold text-slate-800 dark:text-slate-200 hover:text-orange-500 transition-colors">{team?.name || "—"}</TeamLink>
+                  <TeamLink team={team} className="text-sm font-semibold text-slate-800 dark:text-slate-200 hover:text-brand transition-colors">{team?.name || "—"}</TeamLink>
                 </div>
               )
             })}
@@ -164,7 +164,7 @@ export default function TournamentDetail() {
       {/* games / results */}
       <div className="card p-5">
         <h2 className="flex items-center gap-2 text-sm font-bold text-slate-900 dark:text-white mb-3">
-          <Calendar className="w-4 h-4 text-orange-500" /> משחקים ({games.length})
+          <Calendar className="w-4 h-4 text-brand" /> משחקים ({games.length})
         </h2>
         {games.length === 0 ? (
           <p className="text-sm text-slate-400 text-center py-6">עדיין לא נקבעו משחקים לטורניר זה</p>
@@ -177,7 +177,7 @@ export default function TournamentDetail() {
                 <div key={g.id} className="flex items-center gap-3 py-2.5 px-3 rounded-xl bg-slate-50 dark:bg-slate-800/50">
                   {/* RTL: home on the right, away on the left; score rendered away:home */}
                   <div className="flex-1 flex items-center justify-end gap-2 min-w-0">
-                    <TeamLink team={home} className="text-sm font-semibold text-slate-800 dark:text-slate-200 truncate text-left hover:text-orange-500 transition-colors">{home?.name || "—"}</TeamLink>
+                    <TeamLink team={home} className="text-sm font-semibold text-slate-800 dark:text-slate-200 truncate text-left hover:text-brand transition-colors">{home?.name || "—"}</TeamLink>
                     <TeamLogo team={home} size={6} />
                   </div>
                   <div className="shrink-0 text-center min-w-[3.5rem]">
@@ -189,7 +189,7 @@ export default function TournamentDetail() {
                   </div>
                   <div className="flex-1 flex items-center gap-2 min-w-0">
                     <TeamLogo team={away} size={6} />
-                    <TeamLink team={away} className="text-sm font-semibold text-slate-800 dark:text-slate-200 truncate hover:text-orange-500 transition-colors">{away?.name || "—"}</TeamLink>
+                    <TeamLink team={away} className="text-sm font-semibold text-slate-800 dark:text-slate-200 truncate hover:text-brand transition-colors">{away?.name || "—"}</TeamLink>
                   </div>
                 </div>
               )

@@ -16,7 +16,7 @@ export default function ScheduleGenerator({ tournament, teamIds = [], teamsMap =
   const [preview, setPreview] = useState(null)
   const [busy, setBusy] = useState(false)
 
-  const selectCls = "mt-1 w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1.5 text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-orange-500/30"
+  const selectCls = "mt-1 w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1.5 text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-brand/30"
   const name = (tid) => teamsMap[tid]?.name || "—"
 
   const compute = () => {
@@ -37,16 +37,16 @@ export default function ScheduleGenerator({ tournament, teamIds = [], teamsMap =
 
   if (teamIds.length < 2) {
     return (
-      <div className="card p-5 text-sm text-slate-500 dark:text-slate-400 ring-1 ring-orange-500/20">
+      <div className="card p-5 text-sm text-slate-500 dark:text-slate-400 ring-1 ring-brand/20">
         כדי ליצור לוח משחקים, הזמינו לפחות שתי קבוצות שאישרו השתתפות.
       </div>
     )
   }
 
   return (
-    <div className="card p-5 space-y-3 ring-1 ring-orange-500/20">
+    <div className="card p-5 space-y-3 ring-1 ring-brand/20">
       <h2 className="flex items-center gap-2 text-sm font-bold text-slate-900 dark:text-white">
-        <CalendarPlus className="w-4 h-4 text-orange-500" /> יצירת לוח משחקים
+        <CalendarPlus className="w-4 h-4 text-brand" /> יצירת לוח משחקים
       </h2>
       {existingGames > 0 && (
         <p className="text-xs text-amber-600 dark:text-amber-400">כבר יש {existingGames} משחקים בטורניר. יצירה מוסיפה משחקים חדשים (לא מוחקת קיימים).</p>
@@ -76,12 +76,12 @@ export default function ScheduleGenerator({ tournament, teamIds = [], teamsMap =
       </div>
       <div className="flex items-center gap-2">
         <button onClick={compute}
-          className="text-sm font-semibold px-3 py-2 rounded-lg border border-orange-300 dark:border-orange-800 text-orange-600 dark:text-orange-400 hover:bg-orange-50 dark:hover:bg-orange-950/30 transition-colors">
+          className="text-sm font-semibold px-3 py-2 rounded-lg border border-brand/30 dark:border-brand/25 text-brand dark:text-brand-light hover:bg-brand/[0.06] dark:hover:bg-brand/10 transition-colors">
           תצוגה מקדימה
         </button>
         {preview && (
           <button onClick={create} disabled={busy || !preview.games.length}
-            className="flex items-center gap-1.5 text-sm font-semibold px-3 py-2 rounded-lg bg-orange-500 text-white hover:bg-orange-600 transition-colors disabled:opacity-50">
+            className="flex items-center gap-1.5 text-sm font-semibold px-3 py-2 rounded-lg bg-brand text-white hover:bg-brand-hover transition-colors disabled:opacity-50">
             {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <CalendarPlus className="w-4 h-4" />} צור {preview.games.length} משחקים
           </button>
         )}

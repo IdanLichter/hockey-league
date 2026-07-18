@@ -15,7 +15,7 @@ export default function WhatsNew() {
     </div>
   )
   const Li = ({ children }) => (
-    <li className="flex gap-2"><span className="text-orange-400 shrink-0">•</span><span>{children}</span></li>
+    <li className="flex gap-2"><span className="text-brand-light shrink-0">•</span><span>{children}</span></li>
   )
   const B = ({ children }) => <span className="font-semibold text-slate-900 dark:text-white">{children}</span>
 
@@ -23,7 +23,7 @@ export default function WhatsNew() {
     <div className="card overflow-hidden">
       <button onClick={() => setOpen(o => !o)} className="w-full flex items-center justify-between gap-3 px-5 py-4 text-right">
         <span className="flex items-center gap-2 font-bold text-slate-900 dark:text-white">
-          <Sparkles className="w-5 h-5 text-orange-500" /> מה חדש בפאנל הניהול — מדריך למנהל
+          <Sparkles className="w-5 h-5 text-brand" /> מה חדש בפאנל הניהול — מדריך למנהל
         </span>
         <ChevronDown className={`w-5 h-5 text-slate-400 transition-transform ${open ? "rotate-180" : ""}`} />
       </button>

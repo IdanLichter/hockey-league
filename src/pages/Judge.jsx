@@ -42,7 +42,7 @@ function JudgePicker() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <div className="animate-spin rounded-full h-10 w-10 border-2 border-orange-500 border-t-transparent" />
+        <div className="animate-spin rounded-full h-10 w-10 border-2 border-brand border-t-transparent" />
       </div>
     )
   }
@@ -81,7 +81,7 @@ function JudgePicker() {
     <div className="p-4 sm:p-6 lg:p-8 max-w-3xl mx-auto space-y-5">
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
         <h1 className="page-title flex items-center gap-2.5">
-          <Gavel className="w-7 h-7 text-orange-500" /> שיפוט משחקים
+          <Gavel className="w-7 h-7 text-brand" /> שיפוט משחקים
         </h1>
         <p className="page-subtitle mt-1">בחר/י משחק כדי לנהל תוצאה וסטטיסטיקות בזמן אמת</p>
       </motion.div>
@@ -129,7 +129,7 @@ function JudgePicker() {
                     <span className="flex items-center gap-1"><Calendar className="w-3.5 h-3.5" />{format(new Date(game.game_date), "d/M/yyyy")}</span>
                     <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5" />{format(new Date(game.game_date), "HH:mm")}</span>
                     <span className="flex items-center gap-1"><MapPin className="w-3.5 h-3.5" />{game.venue || '—'}</span>
-                    <span className="mr-auto flex items-center gap-1 font-semibold text-orange-600 dark:text-orange-400">
+                    <span className="mr-auto flex items-center gap-1 font-semibold text-brand dark:text-brand-light">
                       פתח לוח שיפוט <ChevronLeft className="w-3.5 h-3.5" />
                     </span>
                   </div>

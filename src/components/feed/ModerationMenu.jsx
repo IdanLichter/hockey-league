@@ -202,9 +202,9 @@ function ReportModal({ targetType, targetId, onClose }) {
             <div className="space-y-1 mb-3">
               {REPORT_REASONS.map(r => (
                 <label key={r}
-                  className="flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700/50 has-[:checked]:border-orange-500 has-[:checked]:bg-orange-50 dark:has-[:checked]:bg-orange-950/30">
+                  className="flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700/50 has-[:checked]:border-brand has-[:checked]:bg-brand/[0.06] dark:has-[:checked]:bg-brand/10">
                   <input type="radio" name="report-reason" value={r} checked={reason === r}
-                    onChange={() => setReason(r)} className="accent-orange-500" />
+                    onChange={() => setReason(r)} className="accent-brand" />
                   <span className="text-xs font-medium text-slate-700 dark:text-slate-200">{r}</span>
                 </label>
               ))}
@@ -217,7 +217,7 @@ function ReportModal({ targetType, targetId, onClose }) {
               rows={3}
               maxLength={DETAILS_MAX}
               placeholder="מה קרה?"
-              className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500 resize-none"
+              className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand resize-none"
             />
             <div className="mt-1 text-[10px] text-slate-400 text-left tabular-nums">{details.length}/{DETAILS_MAX}</div>
 
@@ -225,7 +225,7 @@ function ReportModal({ targetType, targetId, onClose }) {
 
             <div className="flex items-center gap-2 mt-3">
               <button type="submit" disabled={busy}
-                className="flex-1 flex items-center justify-center gap-1.5 text-xs font-bold px-3 py-2 rounded-lg bg-orange-500 text-white hover:bg-orange-600 transition-colors disabled:opacity-50">
+                className="flex-1 flex items-center justify-center gap-1.5 text-xs font-bold px-3 py-2 rounded-lg bg-brand text-white hover:bg-brand-hover transition-colors disabled:opacity-50">
                 {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Flag className="w-3.5 h-3.5" />} שליחת דיווח
               </button>
               <button type="button" onClick={onClose} disabled={busy}

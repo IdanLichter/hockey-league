@@ -81,7 +81,7 @@ export default function PlayerDetail() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <div className="animate-spin rounded-full h-10 w-10 border-2 border-orange-500 border-t-transparent" />
+        <div className="animate-spin rounded-full h-10 w-10 border-2 border-brand border-t-transparent" />
       </div>
     )
   }
@@ -231,7 +231,7 @@ export default function PlayerDetail() {
               {myTeams.length ? myTeams.map(({ team: tm, age }) => (
                 <Link key={tm.id} to={`/teams/${tm.id}`} className="flex items-center gap-2 group w-fit">
                   <TeamLogo team={tm} size={6} />
-                  <span className="text-sm font-medium text-slate-500 dark:text-slate-400 group-hover:text-orange-500 transition-colors">{tm.name}</span>
+                  <span className="text-sm font-medium text-slate-500 dark:text-slate-400 group-hover:text-brand transition-colors">{tm.name}</span>
                   {age !== DEFAULT_AGE && (
                     <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">{AGE_LABEL[age]}</span>
                   )}
@@ -252,7 +252,7 @@ export default function PlayerDetail() {
                   <Shirt className="w-3.5 h-3.5" /> {player.jersey_number}
                 </span>
               )}
-              {player.is_core && <span className="stat-pill bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400">ליבה</span>}
+              {player.is_core && <span className="stat-pill bg-brand/10 text-brand dark:bg-brand/20 dark:text-brand-light">ליבה</span>}
               {player.is_referee && <span className="stat-pill bg-indigo-100 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-300">שופט</span>}
               {accountBadges && deriveRoleItems({
                 isAdmin: accountBadges.isAdmin,
@@ -294,7 +294,7 @@ export default function PlayerDetail() {
             <>
               <span className="text-sm text-slate-600 dark:text-slate-300">שיחקת בליגה? דרוש/י בעלות על הפרופיל</span>
               <button onClick={openAuth}
-                className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg bg-orange-500 text-white hover:bg-orange-600 transition-colors shrink-0">
+                className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg bg-brand text-white hover:bg-brand-hover transition-colors shrink-0">
                 <UserPlus className="w-3.5 h-3.5" /> התחברות
               </button>
             </>
@@ -302,7 +302,7 @@ export default function PlayerDetail() {
             <>
               <span className="text-sm text-slate-600 dark:text-slate-300">זה אתה?</span>
               <button onClick={handleClaim} disabled={claimBusy}
-                className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg bg-orange-500 text-white hover:bg-orange-600 transition-colors disabled:opacity-50 shrink-0">
+                className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg bg-brand text-white hover:bg-brand-hover transition-colors disabled:opacity-50 shrink-0">
                 <UserPlus className="w-3.5 h-3.5" /> {claimBusy ? 'שולח...' : 'בקש בעלות על הפרופיל'}
               </button>
             </>
@@ -348,7 +348,7 @@ export default function PlayerDetail() {
       {hasAchievements && (
         <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.08 }} className="card p-5 space-y-4">
           <h2 className="flex items-center gap-2 text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wide">
-            <Award className="w-4 h-4 text-orange-500" /> הישגים ותארים
+            <Award className="w-4 h-4 text-brand" /> הישגים ותארים
           </h2>
 
           {/* Titles + summary counts */}
@@ -358,7 +358,7 @@ export default function PlayerDetail() {
                 <h.icon className="w-3.5 h-3.5" /> {h.label}
               </span>
             ))}
-            {bigGames > 0 && <span className="stat-pill bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300">🔥 {bigGames} משחקי ענק</span>}
+            {bigGames > 0 && <span className="stat-pill bg-brand/10 text-brand-strong dark:bg-brand/20 dark:text-brand-light">🔥 {bigGames} משחקי ענק</span>}
             {hatTricks > 0 && <span className="stat-pill bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">🎩 {hatTricks} שלושערים</span>}
             {isGK && cleanSheets > 0 && <span className="stat-pill bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">🧤 {cleanSheets} שערים נקיים</span>}
           </div>
@@ -374,7 +374,7 @@ export default function PlayerDetail() {
                       <p className="text-sm font-semibold text-slate-900 dark:text-white">
                         {m.kind === 'big_game' ? 'משחק ענק' : 'שלושער'} · {m.goals} שערים
                       </p>
-                      <Link to={m.opp ? `/teams/${m.opp.id}` : '#'} className="text-[11px] text-slate-400 dark:text-slate-500 hover:text-orange-500 transition-colors">
+                      <Link to={m.opp ? `/teams/${m.opp.id}` : '#'} className="text-[11px] text-slate-400 dark:text-slate-500 hover:text-brand transition-colors">
                         מול {m.opp?.name || '—'} · {format(new Date(m.game.game_date), "d/M/yyyy")}
                       </Link>
                     </div>
@@ -394,14 +394,14 @@ export default function PlayerDetail() {
       <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="card overflow-hidden">
         <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between gap-3 flex-wrap">
           <h2 className="flex items-center gap-2 font-bold text-sm text-slate-900 dark:text-white">
-            <Calendar className="w-4 h-4 text-orange-500" /> יומן משחקים
+            <Calendar className="w-4 h-4 text-brand" /> יומן משחקים
           </h2>
           <div className="flex items-center gap-3">
             {comps.length > 2 && (
               <div className="flex gap-1">
                 {comps.map(c => (
                   <button key={c.id} onClick={() => setLogFilter(c.id)}
-                    className={`text-[11px] font-semibold px-2.5 py-1 rounded-lg transition-colors ${logFilter === c.id ? 'bg-slate-900 dark:bg-orange-500 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'}`}>
+                    className={`text-[11px] font-semibold px-2.5 py-1 rounded-lg transition-colors ${logFilter === c.id ? 'bg-slate-900 dark:bg-brand text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'}`}>
                     {c.label}
                   </button>
                 ))}
@@ -430,7 +430,7 @@ export default function PlayerDetail() {
                 <Link to={opp ? `/teams/${opp.id}` : '#'} className="flex items-center gap-2.5 min-w-0 group">
                   <TeamLogo team={opp} size={8} />
                   <div className="min-w-0">
-                    <p className="font-semibold text-sm text-slate-900 dark:text-white truncate group-hover:text-orange-500 transition-colors">{opp?.name || '—'}</p>
+                    <p className="font-semibold text-sm text-slate-900 dark:text-white truncate group-hover:text-brand transition-colors">{opp?.name || '—'}</p>
                     <p className="text-[11px] text-slate-400 dark:text-slate-500">
                       {format(new Date(game.game_date), "d/M/yyyy")} · {isHome ? 'בית' : 'חוץ'}
                       {game.game_type === FRIENDLY_GAME_TYPE && (

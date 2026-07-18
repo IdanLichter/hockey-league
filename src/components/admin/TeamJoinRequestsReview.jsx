@@ -44,7 +44,7 @@ export default function TeamJoinRequestsReview({ teamsMap = {}, coachTeamIds = n
   if (loading) {
     return (
       <div className="flex items-center justify-center py-16">
-        <div className="animate-spin rounded-full h-8 w-8 border-2 border-orange-500 border-t-transparent" />
+        <div className="animate-spin rounded-full h-8 w-8 border-2 border-brand border-t-transparent" />
       </div>
     )
   }
@@ -54,7 +54,7 @@ export default function TeamJoinRequestsReview({ teamsMap = {}, coachTeamIds = n
       <div className="flex items-center justify-between">
         <div>
           <h2 className="flex items-center gap-2 text-lg font-bold text-slate-900 dark:text-white">
-            <ArrowLeftRight className="w-5 h-5 text-orange-500" /> בקשות הצטרפות לקבוצה
+            <ArrowLeftRight className="w-5 h-5 text-brand" /> בקשות הצטרפות לקבוצה
           </h2>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">אישור משייך את השחקן/ית לקבוצה</p>
         </div>

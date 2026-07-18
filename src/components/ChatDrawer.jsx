@@ -110,7 +110,7 @@ export default function ChatDrawer() {
       {!open && (
         <button
           onClick={openDrawer}
-          className="fixed bottom-6 left-6 z-40 w-14 h-14 rounded-full bg-orange-500 hover:bg-orange-600 text-white shadow-lg shadow-orange-500/30 flex items-center justify-center transition-colors"
+          className="fixed bottom-6 left-6 z-40 w-14 h-14 rounded-full bg-brand hover:bg-brand-hover text-white shadow-lg shadow-brand/30 flex items-center justify-center transition-colors"
           aria-label="הודעות"
         >
           <MessageCircle className="w-6 h-6" />
@@ -144,7 +144,7 @@ export default function ChatDrawer() {
               <h3 className="font-bold text-slate-900 dark:text-white flex-1">{view === 'new' ? 'הודעה חדשה' : 'הודעות'}</h3>
             )}
             {view === 'inbox' && (
-              <button onClick={openNew} className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-orange-600 dark:text-orange-400" aria-label="שיחה חדשה" title="שיחה חדשה">
+              <button onClick={openNew} className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-brand dark:text-brand-light" aria-label="שיחה חדשה" title="שיחה חדשה">
                 <Plus className="w-5 h-5" />
               </button>
             )}
@@ -156,7 +156,7 @@ export default function ChatDrawer() {
           {/* Body */}
           {loading ? (
             <div className="flex-1 flex items-center justify-center">
-              <div className="animate-spin rounded-full h-6 w-6 border-2 border-orange-500 border-t-transparent" />
+              <div className="animate-spin rounded-full h-6 w-6 border-2 border-brand border-t-transparent" />
             </div>
           ) : view === 'inbox' ? (
             convs.length === 0 ? (
@@ -178,7 +178,7 @@ export default function ChatDrawer() {
                         </div>
                         <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{c.last.body}</p>
                       </div>
-                      {c.unread > 0 && <span className="min-w-[18px] h-[18px] px-1 rounded-full bg-orange-500 text-white text-[10px] font-bold flex items-center justify-center shrink-0">{c.unread}</span>}
+                      {c.unread > 0 && <span className="min-w-[18px] h-[18px] px-1 rounded-full bg-brand text-white text-[10px] font-bold flex items-center justify-center shrink-0">{c.unread}</span>}
                     </button>
                   </li>
                 ))}
@@ -193,7 +193,7 @@ export default function ChatDrawer() {
                     value={memberQuery}
                     onChange={(e) => setMemberQuery(e.target.value)}
                     placeholder="חיפוש חבר/ה בליגה"
-                    className="w-full pr-9 pl-3 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500/40"
+                    className="w-full pr-9 pl-3 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand/40"
                   />
                 </div>
               </div>
@@ -220,7 +220,7 @@ export default function ChatDrawer() {
                   const mine = m.sender_id === user.id
                   return (
                     <div key={m.id} className={`max-w-[80%] ${mine ? 'self-start' : 'self-end'}`}>
-                      <div className={`px-3 py-2 rounded-2xl text-sm break-words ${mine ? 'bg-orange-500 text-white rounded-bl-sm' : 'bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-100 rounded-br-sm'}`}>
+                      <div className={`px-3 py-2 rounded-2xl text-sm break-words ${mine ? 'bg-brand text-white rounded-bl-sm' : 'bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-100 rounded-br-sm'}`}>
                         {m.body}
                       </div>
                       <div className={`text-[10px] text-slate-400 mt-0.5 ${mine ? 'text-right' : 'text-left'}`}>{clockTime(m.created_at)}</div>
@@ -236,9 +236,9 @@ export default function ChatDrawer() {
                   onKeyDown={onKeyDown}
                   rows={1}
                   placeholder="הקלד/י הודעה…"
-                  className="flex-1 resize-none max-h-28 px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500/40"
+                  className="flex-1 resize-none max-h-28 px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand/40"
                 />
-                <button onClick={send} disabled={sending || !draft.trim()} className="w-10 h-10 rounded-xl bg-orange-500 hover:bg-orange-600 disabled:opacity-40 text-white flex items-center justify-center shrink-0 transition-colors" aria-label="שלח">
+                <button onClick={send} disabled={sending || !draft.trim()} className="w-10 h-10 rounded-xl bg-brand hover:bg-brand-hover disabled:opacity-40 text-white flex items-center justify-center shrink-0 transition-colors" aria-label="שלח">
                   <Send className="w-4 h-4" />
                 </button>
               </div>

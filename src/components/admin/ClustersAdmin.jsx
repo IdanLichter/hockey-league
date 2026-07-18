@@ -98,7 +98,7 @@ export default function ClustersAdmin({ players = [] }) {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="flex items-center gap-2 text-lg font-bold text-slate-900 dark:text-white">
-            <Images className="w-5 h-5 text-orange-500" /> עריכת קבוצות תמונות
+            <Images className="w-5 h-5 text-brand" /> עריכת קבוצות תמונות
           </h2>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
             תיקון שם, ביטול זיהוי והחזרה לעמוד המדיה, או שיוך שחקן ישירות ללא המתנה להצעות
@@ -142,7 +142,7 @@ export default function ClustersAdmin({ players = [] }) {
 
       {loading ? (
         <div className="flex items-center justify-center py-12">
-          <div className="animate-spin rounded-full h-8 w-8 border-2 border-orange-500 border-t-transparent" />
+          <div className="animate-spin rounded-full h-8 w-8 border-2 border-brand border-t-transparent" />
         </div>
       ) : shown.length === 0 ? (
         <div className="card p-10 text-center">
@@ -197,7 +197,7 @@ function ClusterRow({ cluster: c, players, playerName, busy, value, onChange, co
     ? { text: c.player_name || "ללא שם", cls: "text-sm font-bold text-slate-900 dark:text-white truncate" }
     : hidden
       ? { text: "מוסתר", cls: "text-xs font-semibold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400" }
-      : { text: "לא מזוהה", cls: "text-xs font-semibold px-2 py-0.5 rounded-full bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400" }
+      : { text: "לא מזוהה", cls: "text-xs font-semibold px-2 py-0.5 rounded-full bg-brand/10 dark:bg-brand/20 text-brand dark:text-brand-light" }
 
   return (
     <div className="card p-4 flex flex-col sm:flex-row gap-4">
@@ -221,7 +221,7 @@ function ClusterRow({ cluster: c, players, playerName, busy, value, onChange, co
               להחזיר את קבוצת התמונות לעמוד המדיה? ההצעות הקיימות יימחקו והשם יוסר מהתמונות.
             </span>
             <button onClick={onReopen} disabled={busy}
-              className="flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-lg bg-orange-500 text-white hover:bg-orange-600 transition-colors disabled:opacity-50">
+              className="flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-lg bg-brand text-white hover:bg-brand-hover transition-colors disabled:opacity-50">
               {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Undo2 className="w-3.5 h-3.5" />} כן, החזר למדיה
             </button>
             <button onClick={onCancelConfirm} disabled={busy}

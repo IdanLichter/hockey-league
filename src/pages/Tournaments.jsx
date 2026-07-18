@@ -40,7 +40,7 @@ export default function Tournaments() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <div className="animate-spin rounded-full h-10 w-10 border-2 border-orange-500 border-t-transparent" />
+        <div className="animate-spin rounded-full h-10 w-10 border-2 border-brand border-t-transparent" />
       </div>
     )
   }
@@ -62,7 +62,7 @@ export default function Tournaments() {
     <div className="p-4 sm:p-6 lg:p-8 max-w-4xl mx-auto space-y-5">
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
         <h1 className="page-title flex items-center gap-2.5">
-          <Trophy className="w-7 h-7 text-orange-500" /> טורנירים
+          <Trophy className="w-7 h-7 text-brand" /> טורנירים
         </h1>
         <p className="page-subtitle mt-1">טורנירים לקבוצות הנוער</p>
       </motion.div>
@@ -81,13 +81,13 @@ export default function Tournaments() {
             return (
               <motion.div key={t.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}>
                 <Link to={`/tournaments/${t.id}`} className="card card-hover p-4 sm:p-5 flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-2xl bg-orange-500/10 flex items-center justify-center shrink-0">
-                    <Trophy className="w-6 h-6 text-orange-500" />
+                  <div className="w-12 h-12 rounded-2xl bg-brand/10 flex items-center justify-center shrink-0">
+                    <Trophy className="w-6 h-6 text-brand" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <h3 className="font-bold text-base text-slate-900 dark:text-white truncate">{t.name}</h3>
-                      <span className="stat-pill bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300">{AGE_LABEL[t.age_group] || t.age_group}</span>
+                      <span className="stat-pill bg-brand/10 text-brand-strong dark:bg-brand/20 dark:text-brand-light">{AGE_LABEL[t.age_group] || t.age_group}</span>
                       <span className={`stat-pill ${st.cls}`}>{st.label}</span>
                     </div>
                     {range && <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 flex items-center gap-1"><Calendar className="w-3.5 h-3.5" /> {range}</p>}
