@@ -27,8 +27,8 @@ export default async function handler(req, res) {
   const pageUrl = `${site}/${encodeURIComponent(type)}/${encodeURIComponent(id)}`
 
   // Fallback = the league card (same content as the static index.html tags).
-  let title = 'ליגת הרולר הוקי הישראלית'
-  let desc = 'ליגת רולר הוקי - טבלה, משחקים, סטטיסטיקות ועוד'
+  let title = 'ליגת הוקי הגלגיליות הישראלית'
+  let desc = 'ליגת הוקי גלגיליות - טבלה, משחקים, סטטיסטיקות ועוד'
   let image = `${site}/logos/main-logo.png`
 
   try {
@@ -55,7 +55,7 @@ export default async function handler(req, res) {
           title = `${h} נגד ${a}`
           desc = g.status === 'completed' && g.home_score != null
             ? `${h} ${g.home_score} - ${g.away_score} ${a}`
-            : 'משחק בליגת הרולר הוקי הישראלית'
+            : 'משחק בליגת הוקי הגלגיליות הישראלית'
           image = absImg(g.home?.logo_url || g.away?.logo_url)
         }
       }
@@ -70,7 +70,7 @@ export default async function handler(req, res) {
 <meta name="description" content="${esc(desc)}"/>
 <link rel="canonical" href="${esc(pageUrl)}"/>
 <meta property="og:type" content="website"/>
-<meta property="og:site_name" content="ליגת הרולר הוקי הישראלית"/>
+<meta property="og:site_name" content="ליגת הוקי הגלגיליות הישראלית"/>
 <meta property="og:locale" content="he_IL"/>
 <meta property="og:title" content="${esc(title)}"/>
 <meta property="og:description" content="${esc(desc)}"/>

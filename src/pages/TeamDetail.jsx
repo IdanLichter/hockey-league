@@ -31,7 +31,7 @@ export default function TeamDetail() {
   const teamName = teams.find(t => t.id === id)?.name
   useSeo({
     title: teamName || 'קבוצה',
-    description: teamName ? `סגל, תוצאות וסטטיסטיקות של ${teamName} בליגת הרולר הוקי הישראלית` : undefined,
+    description: teamName ? `סגל, תוצאות וסטטיסטיקות של ${teamName} בליגת הוקי הגלגיליות הישראלית` : undefined,
     path: `/teams/${id}`,
   })
 

@@ -74,8 +74,12 @@ something — worth re-reading before touching the same systems again.
 
 ## Identity / branding
 
-- The brand is **roller hockey** (`רולר` / `הגלגליות` per the crest + site title
-  "ליגת הרולר הוקי הישראלית"), **not** "rink" — despite the `rinkhockeyil.com` domain and app id.
+- The sport is **rink hockey** — Hebrew **הוקי גלגיליות** (quad skates, ball + curved stick).
+  The English brand `rinkhockeyIL` / `rinkhockeyil.com` and the app id are **correct**. It is
+  **not** roller/inline hockey (**הוקי רולר**) or ice hockey (**הוקי קרח**) — those are different
+  sports. ⚠️ An earlier version of this note had it backwards ("the brand is roller hockey, not
+  rink"); the whole app was mistakenly branded "ליגת הרולר הוקי" and was corrected to
+  "ליגת הוקי הגלגיליות" on 2026-07-18. Do not reintroduce "רולר".
 - Package/bundle id is `com.arielbiton.rinkhockeyil` for both iOS and Android.
 - The Android app is **sideloaded** (no Play distribution) → no Google Play App Signing → the
   **release-keystore SHA-1 is the final signing cert** (no separate Play App Signing SHA-1 needed).

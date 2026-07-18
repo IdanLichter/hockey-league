@@ -15,7 +15,7 @@ export default function Privacy() {
 
       <div className="card p-5 sm:p-6 space-y-6 text-slate-700 dark:text-slate-200 leading-relaxed text-[15px]">
         <Section title="מי אנחנו">
-          rinkhockeyIL היא אפליקציה קהילתית עצמאית לקהילת הוקי גלגליות חובבנית בישראל (אתר, iOS ו‑Android) —
+          rinkhockeyIL היא אפליקציה קהילתית עצמאית לקהילת הוקי גלגיליות חובבנית בישראל (אתר, iOS ו‑Android) —
           טבלה, משחקים, סטטיסטיקות, פיד קהילתי וכלי שיפוט. היא אינה משויכת לאף ליגה, פדרציה או ארגון ספורט
           רשמי ואינה מייצגת עצמה ככזו. מדיניות זו מסבירה איזה מידע נאסף וכיצד נעשה בו שימוש.
         </Section>

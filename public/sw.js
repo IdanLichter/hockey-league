@@ -10,7 +10,7 @@ self.addEventListener('push', (event) => {
   let data = {}
   try { data = event.data ? event.data.json() : {} } catch { /* non-JSON payload */ }
 
-  const title = data.title || 'רולר הוקי'
+  const title = data.title || 'הוקי גלגיליות'
   const options = {
     body: data.body || '',
     icon: '/icons/icon-192.png',

@@ -30,10 +30,10 @@ function buildPrompt(homeColor, awayColor, posterType) {
   const awayName = colorToName(awayColor)
 
   if (posterType === 'matchday') {
-    return `Abstract dramatic inline hockey arena background for a match day poster. Dark professional sports broadcast atmosphere with subtle orange and deep blue energy accents. Ice arena with dramatic overhead spotlights, volumetric fog, and epic arena atmosphere. Cinematic wide shot. Large clean dark center area suitable for text overlay. No text, no logos, no people, no faces, no letters, no numbers, no words, no watermarks. Professional sports broadcast quality, ultra high detail, cinematic lighting, 4K.`
+    return `Abstract dramatic rink hockey arena background for a match day poster. Dark professional sports broadcast atmosphere with subtle orange and deep blue energy accents. Indoor rink hockey arena with dramatic overhead spotlights, volumetric fog, and epic arena atmosphere. Cinematic wide shot. Large clean dark center area suitable for text overlay. No text, no logos, no people, no faces, no letters, no numbers, no words, no watermarks. Professional sports broadcast quality, ultra high detail, cinematic lighting, 4K.`
   }
 
-  return `Abstract dramatic sports arena background for an inline hockey match poster. An intense visual clash of two powerful color energies: ${homeName} energy surging from the right side and ${awayName} energy surging from the left side, colliding explosively in the center with bright light effects and particle bursts. Dark moody ice arena atmosphere, dramatic volumetric lighting from above, lens flares at the collision point, swirling energy particles, epic cinematic tone. No text, no logos, no people, no faces, no letters, no numbers, no words, no watermarks. Professional sports broadcast quality, ultra high detail, cinematic, 4K.`
+  return `Abstract dramatic sports arena background for a rink hockey match poster. An intense visual clash of two powerful color energies: ${homeName} energy surging from the right side and ${awayName} energy surging from the left side, colliding explosively in the center with bright light effects and particle bursts. Dark moody indoor arena atmosphere, dramatic volumetric lighting from above, lens flares at the collision point, swirling energy particles, epic cinematic tone. No text, no logos, no people, no faces, no letters, no numbers, no words, no watermarks. Professional sports broadcast quality, ultra high detail, cinematic, 4K.`
 }
 
 function getCacheKey(homeColor, awayColor, posterType) {

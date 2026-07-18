@@ -294,7 +294,7 @@ export async function generateMatchDayPoster(games, teamsMap, options = {}) {
   ctx.font = `500 16px ${FONT}`
   ctx.fillStyle = 'rgba(255,255,255,0.4)'
   ctx.textAlign = 'center'
-  ctx.fillText('ליגת הוקי גלגליות ישראל', W / 2, H - 22)
+  ctx.fillText('ליגת הוקי גלגיליות ישראל', W / 2, H - 22)
 
   const botBar = ctx.createLinearGradient(0, 0, W, 0)
   botBar.addColorStop(0, BRAND_ORANGE)
@@ -462,7 +462,7 @@ export async function generateSingleMatchPoster(game, teamsMap, options = {}) {
   ctx.textBaseline = 'middle'
   ctx.font = `600 24px ${FONT}`
   ctx.fillStyle = 'rgba(255,255,255,0.4)'
-  drawTextWithShadow(ctx, 'ליגת הוקי גלגליות', W / 2, 125)
+  drawTextWithShadow(ctx, 'ליגת הוקי גלגיליות', W / 2, 125)
 
   // --- Team logos: diagonal positioning, natural shape ---
   const logoSize = 310

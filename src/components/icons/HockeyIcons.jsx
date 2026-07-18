@@ -1,5 +1,5 @@
 // Custom rink-hockey line icons — one cohesive family (24×24 grid, 2px stroke,
-// `currentColor`, rounded caps). The family signature is a small filled "puck"
+// `currentColor`, rounded caps). The family signature is a small filled "ball"
 // accent in the brand color; pass `mono` to make that accent `currentColor` too
 // (needed on solid-brand backgrounds like an active nav item). The accent reads
 // the live palette via `rgb(var(--brand))`, so it follows light/dark + any restyle.
@@ -38,7 +38,7 @@ export function Rink({ mono, ...props }) {
   )
 }
 
-// The league table — "טבלה": ranked rows; the leader's marker is the puck.
+// The league table — "טבלה": ranked rows; the leader's marker is the ball.
 export function Standings({ mono, ...props }) {
   const a = mono ? "currentColor" : O
   return (
@@ -54,7 +54,7 @@ export function Standings({ mono, ...props }) {
   )
 }
 
-// Crossed sticks over the puck — "משחקים": two shafts form an X, blades hook up.
+// Crossed sticks over the ball — "משחקים": two shafts form an X, blades hook up.
 export function Crossed({ mono, ...props }) {
   const a = mono ? "currentColor" : O
   return (
@@ -78,7 +78,7 @@ export function Teams({ mono, ...props }) {
   )
 }
 
-// A skating player with the puck — "שחקנים".
+// A skating player with the ball — "שחקנים".
 export function Player({ mono, ...props }) {
   const a = mono ? "currentColor" : O
   return (
@@ -105,7 +105,7 @@ export function Whistle({ mono, ...props }) {
   )
 }
 
-// Ascending bars topped with the puck — "סטטיסטיקות".
+// Ascending bars topped with the ball — "סטטיסטיקות".
 export function Stats({ mono, ...props }) {
   const a = mono ? "currentColor" : O
   return (
@@ -198,7 +198,7 @@ export function StickBall({ mono, ...props }) {
   )
 }
 
-// A hockey goal: frame + net, puck tucked in the top corner.
+// A hockey goal: frame + net, ball tucked in the top corner.
 export function Goal({ mono, ...props }) {
   const a = mono ? "currentColor" : O
   return (
@@ -211,7 +211,7 @@ export function Goal({ mono, ...props }) {
   )
 }
 
-// A goalie glove catching the puck.
+// A goalie glove catching the ball.
 export function Glove({ mono, ...props }) {
   const a = mono ? "currentColor" : O
   return (

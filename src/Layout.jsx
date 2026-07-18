@@ -16,7 +16,7 @@ import OnboardingModal from "./components/OnboardingModal"
 import NotificationBell from "./components/NotificationBell"
 import ChatDrawer from "./components/ChatDrawer"
 
-// Nav uses the hockey icons in `mono`, so the brand-color puck accent becomes
+// Nav uses the hockey icons in `mono`, so the brand-color ball accent becomes
 // currentColor and stays visible on the active tab's solid-brand background.
 const NavRink = (p) => <Rink mono {...p} />
 const NavStandings = (p) => <Standings mono {...p} />

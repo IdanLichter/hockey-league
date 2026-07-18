@@ -12,18 +12,18 @@ import { supabase } from '@/lib/supabase'
 // call useSeo() themselves with the entity's name; because this component renders
 // before <Routes>, their effect runs after this one and wins.
 const ROUTES = {
-  '/': { title: 'המגרש', description: 'עדכונים, תוצאות ורגעים מליגת הרולר הוקי הישראלית' },
-  '/standings': { title: 'טבלת הליגה', description: 'טבלת הדירוג המלאה של ליגת הרולר הוקי הישראלית' },
-  '/games': { title: 'משחקים', description: 'לוח המשחקים והתוצאות של ליגת הרולר הוקי' },
-  '/statistics': { title: 'סטטיסטיקות', description: 'מלכי השערים, כרטיסים ושערים נקיים בליגת הרולר הוקי' },
-  '/teams': { title: 'קבוצות', description: 'כל הקבוצות בליגת הרולר הוקי הישראלית' },
-  '/players': { title: 'שחקנים', description: 'כל השחקנים בליגת הרולר הוקי הישראלית' },
+  '/': { title: 'המגרש', description: 'עדכונים, תוצאות ורגעים מליגת הוקי הגלגיליות הישראלית' },
+  '/standings': { title: 'טבלת הליגה', description: 'טבלת הדירוג המלאה של ליגת הוקי הגלגיליות הישראלית' },
+  '/games': { title: 'משחקים', description: 'לוח המשחקים והתוצאות של ליגת הוקי הגלגיליות' },
+  '/statistics': { title: 'סטטיסטיקות', description: 'מלכי השערים, כרטיסים ושערים נקיים בליגת הוקי הגלגיליות' },
+  '/teams': { title: 'קבוצות', description: 'כל הקבוצות בליגת הוקי הגלגיליות הישראלית' },
+  '/players': { title: 'שחקנים', description: 'כל השחקנים בליגת הוקי הגלגיליות הישראלית' },
   '/media': { title: 'מדיה', description: 'תמונות ורגעים מהמשחקים' },
-  '/final-four': { title: 'פיינל פור', description: 'שלב הפיינל פור של ליגת הרולר הוקי' },
-  '/tournaments': { title: 'טורנירים', description: 'טורנירים לקבוצות הנוער בליגת הרולר הוקי הישראלית' },
-  '/app': { title: 'הורדת האפליקציה', description: 'אפליקציית הקהילה של הרולר הוקי הישראלי — טבלה, משחקים וסטטיסטיקות ל-iOS ו-Android' },
-  '/creators': { title: 'אזור יוצרי תוכן', description: 'אזור יוצרי התוכן של ליגת הרולר הוקי הישראלית' },
-  '/archive': { title: 'ארכיון', description: 'עונות קודמות של ליגת הרולר הוקי הישראלית' },
+  '/final-four': { title: 'פיינל פור', description: 'שלב הפיינל פור של ליגת הוקי הגלגיליות' },
+  '/tournaments': { title: 'טורנירים', description: 'טורנירים לקבוצות הנוער בליגת הוקי הגלגיליות הישראלית' },
+  '/app': { title: 'הורדת האפליקציה', description: 'אפליקציית הקהילה של הוקי הגלגיליות הישראלי — טבלה, משחקים וסטטיסטיקות ל-iOS ו-Android' },
+  '/creators': { title: 'אזור יוצרי תוכן', description: 'אזור יוצרי התוכן של ליגת הוקי הגלגיליות הישראלית' },
+  '/archive': { title: 'ארכיון', description: 'עונות קודמות של ליגת הוקי הגלגיליות הישראלית' },
   '/privacy': { title: 'מדיניות פרטיות' },
 }
 

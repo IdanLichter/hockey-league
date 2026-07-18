@@ -39,7 +39,7 @@ export default function PlayerDetail() {
   const playerName = player ? `${player.first_name} ${player.last_name}` : null
   useSeo({
     title: playerName || 'שחקן',
-    description: playerName ? `סטטיסטיקות, שערים וכרטיסים של ${playerName} בליגת הרולר הוקי הישראלית` : undefined,
+    description: playerName ? `סטטיסטיקות, שערים וכרטיסים של ${playerName} בליגת הוקי הגלגיליות הישראלית` : undefined,
     path: `/players/${id}`,
   })
 

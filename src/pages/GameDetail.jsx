@@ -68,7 +68,7 @@ export default function GameDetail() {
   useSeo({
     title: home && away ? `${home.name} נגד ${away.name}` : 'משחק',
     description: home && away
-      ? `תוצאה, הרכבים וסטטיסטיקות מהמשחק בין ${home.name} ל${away.name} בליגת הרולר הוקי הישראלית`
+      ? `תוצאה, הרכבים וסטטיסטיקות מהמשחק בין ${home.name} ל${away.name} בליגת הוקי הגלגיליות הישראלית`
       : undefined,
     path: `/games/${id}`,
   })

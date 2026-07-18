@@ -65,7 +65,7 @@ export default function OfficialsAdmin({ games = [], teamsMap = {} }) {
   const grandTotal = paylog.reduce((s, p) => s + Number(p.total || 0), 0)
   const payTemplate = () => {
     const lines = paylog.map(p => `${p.display_name || "—"} · ${OFFICIAL_ROLE_LABEL[p.role]}: ${p.games_worked} משחקים × ${p.rate}₪ = ${p.total}₪`)
-    return `תשלום לבעלי תפקיד — ליגת הרולר הוקי\n\n${lines.join("\n")}\n\nסה״כ: ${grandTotal}₪`
+    return `תשלום לבעלי תפקיד — ליגת הוקי הגלגיליות\n\n${lines.join("\n")}\n\nסה״כ: ${grandTotal}₪`
   }
   const copyTemplate = async () => {
     try { await navigator.clipboard.writeText(payTemplate()); setCopied(true); setTimeout(() => setCopied(false), 1800) } catch { /* ignore */ }

@@ -14,8 +14,8 @@ import { useEffect } from 'react'
 // hockey-league-pro.vercel.app deployment canonicalizes here too rather than
 // competing with it for the same content.
 export const SITE_URL = import.meta.env.VITE_SITE_URL || 'https://rinkhockeyil.com'
-export const SITE_NAME = 'ליגת הרולר הוקי הישראלית'
-export const DEFAULT_DESCRIPTION = 'ליגת רולר הוקי - טבלה, משחקים, סטטיסטיקות ועוד'
+export const SITE_NAME = 'ליגת הוקי הגלגיליות הישראלית'
+export const DEFAULT_DESCRIPTION = 'ליגת הוקי גלגיליות - טבלה, משחקים, סטטיסטיקות ועוד'
 const DEFAULT_IMAGE = `${SITE_URL}/logos/main-logo.png`
 
 // Gated tooling: no public content, must never land in a search index.
@@ -78,7 +78,7 @@ export function useSeo({ title, description, path, image, noindex = false } = {}
 // only fields we actually hold, so nothing is fabricated.
 // ---------------------------------------------------------------------------
 
-const SPORT = 'Roller hockey'
+const SPORT = 'Rink hockey'
 
 /** The league itself. Emitted on the home route. */
 export function organizationJsonLd() {
