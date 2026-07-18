@@ -144,7 +144,7 @@ export default function Home() {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ delay: i * 0.03 }}
-                    className={`group transition-colors ${
+                    className={`group relative transition-colors ${
                       i === 0
                         ? "bg-gold/[0.08] hover:bg-gold/[0.14]"
                         : i % 2 === 0
@@ -168,12 +168,6 @@ export default function Home() {
                         {zone === "ff" && <span className="shrink-0 text-[10px] px-1.5 py-0.5 rounded font-bold bg-gold/[0.15] text-gold">FF</span>}
                         {zone === "po" && <span className="shrink-0 text-[10px] px-1.5 py-0.5 rounded font-bold bg-brand/[0.12] text-brand-strong dark:text-brand-light">PO</span>}
                       </div>
-                      {/* Points bar: leader = full width, others scaled to their points ratio; grows right→left.
-                          Inset ring gives a defined edge so even white/pale team colours stay visible. */}
-                      <div className="relative mt-1.5 h-1.5 rounded-full bg-fg/[0.08] overflow-hidden" title={`${team.points || 0} נק׳`}>
-                        <div className="absolute inset-y-0 right-0 rounded-full ring-1 ring-inset ring-black/15 dark:ring-white/20 transition-[width] duration-500"
-                             style={{ width: `${pointsBarPct(team.points || 0)}%`, backgroundColor: team.primary_color || "#94a3b8" }} />
-                      </div>
                     </td>
                     <td className="px-2 py-3 text-center tabular-nums text-fg-muted">{played(team)}</td>
                     <td className="px-2 py-3 text-center tabular-nums font-bold text-pos">{team.wins || 0}</td>
@@ -188,6 +182,15 @@ export default function Home() {
                     </td>
                     <td className="ps-2 pe-4 py-3 text-center">
                       <span className="stat-num text-lg text-brand">{team.points || 0}</span>
+                      {/* Points bar — spans the FULL row width, pinned to the row's bottom edge. It sits in
+                          this (static) cell but the <tr> is `relative`, so it measures against the whole row.
+                          A ::before on the row itself would spawn a phantom table-cell and shift the columns.
+                          Leader = full width, others scaled to points ratio; grows right→left (RTL). Inset
+                          ring keeps even white/pale team colours visible. */}
+                      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-1.5 bg-fg/[0.06]" aria-hidden="true">
+                        <div className="absolute inset-y-0 right-0 rounded-l-full ring-1 ring-inset ring-black/10 dark:ring-white/15 transition-[width] duration-500"
+                             style={{ width: `${pointsBarPct(team.points || 0)}%`, backgroundColor: team.primary_color || "#94a3b8" }} />
+                      </div>
                     </td>
                   </motion.tr>
                 )})}
