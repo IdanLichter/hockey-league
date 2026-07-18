@@ -194,7 +194,7 @@ export default function Feed() {
 
             <Link
               to="/app"
-              className="group shrink-0 inline-flex items-center gap-2 rounded-2xl bg-gradient-to-l from-brand to-brand-hover px-3.5 py-2.5 text-white shadow-sm ring-1 ring-brand/20 hover:shadow-md hover:brightness-105 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+              className="group shrink-0 hidden sm:inline-flex items-center gap-2 rounded-2xl bg-gradient-to-l from-brand to-brand-hover px-3.5 py-2.5 text-white shadow-sm ring-1 ring-brand/20 hover:shadow-md hover:brightness-105 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
               aria-label="הורידו את האפליקציה"
             >
               <Smartphone className="w-5 h-5 shrink-0 transition-transform group-hover:-translate-y-0.5" />
