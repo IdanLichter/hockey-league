@@ -17,6 +17,7 @@ import Composer from "@/components/feed/Composer"
 import LiveGameBanner from "@/components/LiveGameBanner"
 import { useLiveGames } from "@/lib/useLiveGames"
 import FeedFilters, { matchesFilter } from "@/components/feed/FeedFilters"
+import QuickActions from "@/components/feed/QuickActions"
 import { StandingsWidget, NextGameWidget, LeadersWidget } from "@/components/feed/Widgets"
 import OnlinePresence from "@/components/OnlinePresence"
 
@@ -171,8 +172,9 @@ export default function Feed() {
     <div className="max-w-[1500px] mx-auto p-4 sm:p-6 lg:p-8">
       <div className="lg:grid lg:grid-cols-[200px_minmax(0,1fr)_300px] lg:gap-6 lg:items-start">
         {/* (1) Filter rail — right-most in RTL */}
-        <aside className="hidden lg:block lg:sticky lg:top-20 self-start">
+        <aside className="hidden lg:block lg:sticky lg:top-20 self-start space-y-4">
           <FeedFilters active={filter} onChange={setFilter} counts={counts} />
+          <QuickActions games={games} teamsMap={teamsMap} />
         </aside>
 
         {/* (2) Center column — feed */}
@@ -211,6 +213,7 @@ export default function Feed() {
           {/* Mobile-only filters + compact widgets */}
           <div className="lg:hidden space-y-5">
             <FeedFilters orientation="horizontal" active={filter} onChange={setFilter} counts={counts} />
+            <QuickActions games={games} teamsMap={teamsMap} />
             <StandingsWidget teams={teams} />
             <NextGameWidget games={games} teams={teams} />
           </div>
