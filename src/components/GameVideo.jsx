@@ -1,13 +1,13 @@
 import { useState, useEffect, useRef, useCallback } from "react"
 import { motion } from "framer-motion"
-import { Video, Radio, Plus, Trash2, ExternalLink, Youtube, Tag, Camera, Square, Eye } from "lucide-react"
+import { Video, Radio, Trash2, ExternalLink, Tag, Camera, Square, Eye } from "lucide-react"
 import { useAuth } from "@/lib/AuthContext"
 import { useStreamViewers } from "@/lib/useStreamViewers"
 import {
-  getGameVideo, attachVideo, detachVideo, addMarker, deleteMarker,
-  subscribeGameVideo, parseYouTubeId, fmtClock, goLiveCloudflare, getViewerIceServers,
+  getGameVideo, detachVideo, addMarker, deleteMarker,
+  subscribeGameVideo, fmtClock, goLiveCloudflare, getViewerIceServers,
 } from "@/lib/video"
-import { publishWHIP } from "@/lib/whip"
+import { publishWHIP, confirmBroadcastLive } from "@/lib/whip"
 import { playWHEP } from "@/lib/whep"
 
 // Marker kinds → Hebrew label + emoji + pill colour (reuses the StatPills palette).
@@ -170,12 +170,11 @@ function LocalBroadcast({ previewRef, starting, onStop }) {
 }
 
 export default function GameVideo({ game, home, away, players = [] }) {
-  const { user, isAdmin, isContentEditor, isJudgeRole, coachTeamIds, openAuth } = useAuth()
+  const { isAdmin, isContentEditor } = useAuth()
   const [video, setVideo] = useState(null)
   const [loading, setLoading] = useState(true)
   const [player, setPlayer] = useState(null)
   const [duration, setDuration] = useState(0)
-  const [showAttach, setShowAttach] = useState(false)
   const [broadcast, setBroadcast] = useState(null) // null | 'starting' | { stop }
   const previewRef = useRef(null)
   const sessionRef = useRef(null)
@@ -239,22 +238,31 @@ export default function GameVideo({ game, home, away, players = [] }) {
       previewRef.current.play?.().catch(() => {})
     }
     let data
+    let session
     try {
       data = await goLiveCloudflare(gameId)
       if (!data?.whipUrl) throw new Error("no whip url")
-      const session = await publishWHIP(data.whipUrl, stream, data.iceServers)
+      session = await publishWHIP(data.whipUrl, stream, data.iceServers)
+      // Honest check: confirm Cloudflare is actually SERVING the broadcast (a
+      // viewer could connect) before we claim "live". Catches the case where the
+      // browser connected but the media never reached Cloudflare — e.g. a cellular
+      // hotspot — which would otherwise show a fake "משדר" nobody can watch.
+      const reallyLive = await confirmBroadcastLive(data.cfCustomerCode, data.uid)
+      if (!reallyLive) throw new Error("not-reaching-server")
       sessionRef.current = session
       setBroadcast(session)
       load() // refresh the row (badge/kind); spectators already got the realtime insert
     } catch (e) {
+      try { session?.stop?.() } catch { /* ignore */ }
       try { stream.getTracks().forEach((t) => t.stop()) } catch { /* ignore */ }
       if (previewRef.current) previewRef.current.srcObject = null
-      // The edge fn already inserted the game_videos row; if the media never
-      // connected, remove it so spectators don't see a dead "live" embed.
+      // The edge fn already inserted the game_videos row; if the broadcast never
+      // reached Cloudflare, remove it so spectators don't see a dead "live" embed.
       if (data?.videoRowId) { try { await detachVideo(data.videoRowId) } catch { /* ignore */ } }
       const msg = String(e?.message || "")
-      alert(msg.startsWith("ice-failed")
-        ? `החיבור לשידור נכשל — הרשת חוסמת את השידור. נסו רשת אחרת.\n\n(טכני: ${msg.replace("ice-failed|", "")})`
+      const networkFail = msg.startsWith("ice-failed") || msg === "not-reaching-server"
+      alert(networkFail
+        ? "השידור לא הצליח להגיע לשרת. נסו רשת אחרת — לא נקודת גישה סלולרית (הוטספוט) מהטלפון, שחוסמת שידור."
         : (msg || "שגיאה בהתחלת השידור"))
       setBroadcast(null)
       load()
@@ -279,8 +287,8 @@ export default function GameVideo({ game, home, away, players = [] }) {
   }, [])
 
   if (loading) return null
-  // Nothing to show and the viewer can't add one → render nothing at all.
-  if (!video && !canStream) return null
+  // Render nothing unless there's a video, or a live game this user can stream to.
+  if (!video && !(isLive && canStream)) return null
 
   return (
     <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="card overflow-hidden">
@@ -350,25 +358,20 @@ export default function GameVideo({ game, home, away, players = [] }) {
               <MarkerForm player={player} videoRef={video.id} home={home} away={away} players={players} onAdded={load} />
             )}
 
-            <a href={`https://www.youtube.com/watch?v=${video.video_id}`} target="_blank" rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 text-xs text-slate-400 hover:text-orange-500 transition-colors">
-              <ExternalLink className="w-3 h-3" /> פתח ב-YouTube
-            </a>
+            {video.provider !== "cloudflare" && (
+              <a href={`https://www.youtube.com/watch?v=${video.video_id}`} target="_blank" rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-xs text-slate-400 hover:text-orange-500 transition-colors">
+                <ExternalLink className="w-3 h-3" /> פתח ב-YouTube
+              </a>
+            )}
           </>
         ) : (
-          <div className="space-y-3">
-            {isLive && canStream && (
-              <button onClick={startBroadcast}
-                className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold text-white bg-red-500 hover:bg-red-600 transition-colors">
-                <Camera className="w-4 h-4" /> שדר עכשיו מהמצלמה
-              </button>
-            )}
-            <AttachCard
-              isLive={isLive} show={showAttach} setShow={setShowAttach}
-              onAttach={onAttach(gameId, isLive, load)} requireAuth={!user ? openAuth : null}
-              secondary={isLive && canStream}
-            />
-          </div>
+          isLive && canStream ? (
+            <button onClick={startBroadcast}
+              className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold text-white bg-red-500 hover:bg-red-600 transition-colors">
+              <Camera className="w-4 h-4" /> שדר עכשיו מהמצלמה
+            </button>
+          ) : null
         )}
       </div>
     </motion.div>
@@ -383,74 +386,6 @@ const onDetach = (video, reload) => async () => {
 const onDeleteMarker = (id, reload) => async () => {
   try { await deleteMarker(id); reload() } catch (e) { alert(e.message) }
 }
-const onAttach = (gameId, isLive, reload) => async (url) => {
-  await attachVideo(gameId, { url, kind: isLive ? "live" : "full" })
-  reload()
-}
-
-// "Go live" / "add video" card shown to streamers when a game has no video yet.
-function AttachCard({ isLive, show, setShow, onAttach, requireAuth, secondary = false }) {
-  const [url, setUrl] = useState("")
-  const [busy, setBusy] = useState(false)
-  const [err, setErr] = useState(null)
-
-  const submit = async (e) => {
-    e.preventDefault()
-    if (requireAuth) { requireAuth(); return }
-    if (!parseYouTubeId(url)) { setErr("קישור YouTube לא תקין"); return }
-    try { setBusy(true); setErr(null); await onAttach(url); setUrl("") }
-    catch (e2) { setErr(e2.message || "שגיאה") } finally { setBusy(false) }
-  }
-
-  if (!show) {
-    // When the camera "go live" button is the primary CTA, this steps back to a
-    // quiet "or paste a YouTube link" affordance.
-    if (secondary) {
-      return (
-        <button onClick={() => setShow(true)}
-          className="w-full text-center text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors">
-          או הדבק קישור YouTube לשידור
-        </button>
-      )
-    }
-    return (
-      <button onClick={() => setShow(true)}
-        className={`w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold text-white transition-colors ${isLive ? "bg-red-500 hover:bg-red-600" : "bg-orange-500 hover:bg-orange-600"}`}>
-        {isLive ? <><Radio className="w-4 h-4" /> התחל שידור חי</> : <><Plus className="w-4 h-4" /> הוסף וידאו מהמשחק</>}
-      </button>
-    )
-  }
-
-  return (
-    <form onSubmit={submit} className="space-y-3">
-      {isLive && (
-        <ol className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed list-decimal pr-4 space-y-0.5">
-          <li>פתחו את אפליקציית YouTube (או Streamlabs) והתחילו שידור חי כ<span className="font-semibold">לא רשום</span> (Unlisted).</li>
-          <li>העתיקו את הקישור לשידור.</li>
-          <li>הדביקו כאן — השידור יופיע לכל הצופים באתר ובאפליקציה.</li>
-        </ol>
-      )}
-      <div className="flex items-center gap-2 rounded-xl border border-slate-200 dark:border-slate-700 px-3 focus-within:border-orange-400">
-        <Youtube className="w-4 h-4 text-red-500 shrink-0" />
-        <input value={url} onChange={(e) => setUrl(e.target.value)} dir="ltr" autoFocus
-          placeholder="https://youtu.be/..." className="w-full bg-transparent py-2.5 text-sm outline-none text-left" />
-      </div>
-      {err && <p className="text-xs text-red-600 dark:text-red-400">{err}</p>}
-      {isLive && <p className="text-[11px] text-slate-400">שימו לב: מוזיקת רקע במגרש עלולה להשתיק את השידור (זכויות יוצרים).</p>}
-      <div className="flex gap-2">
-        <button type="submit" disabled={busy}
-          className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-sm font-semibold text-white disabled:opacity-60 transition-colors ${isLive ? "bg-red-500 hover:bg-red-600" : "bg-orange-500 hover:bg-orange-600"}`}>
-          {busy ? "מחבר..." : isLive ? "שדר עכשיו" : "הוסף"}
-        </button>
-        <button type="button" onClick={() => setShow(false)}
-          className="px-4 py-2.5 rounded-xl text-sm font-semibold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">
-          ביטול
-        </button>
-      </div>
-    </form>
-  )
-}
-
 // Editor tool: capture the player's current time and tag it as a marker.
 function MarkerForm({ player, videoRef, home, away, players, onAdded }) {
   const [open, setOpen] = useState(false)

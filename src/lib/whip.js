@@ -120,3 +120,34 @@ export async function publishWHIP(whipUrl, stream, iceServers) {
   }
   return { pc, stop }
 }
+
+// After publishing, confirm Cloudflare is actually SERVING the broadcast — i.e. a
+// viewer could connect right now. The WHEP endpoint returns 201 when the
+// broadcast is live and 409 "not started" when the media never arrived (e.g. the
+// publish "connected" locally but a cellular hotspot ate the packets, so nobody
+// could ever watch). We probe it for a few seconds to ride out normal startup,
+// and return true/false so the caller can show an honest error instead of a fake
+// "live". The probe is a throwaway recvonly offer — we only read the status code.
+export async function confirmBroadcastLive(code, uid, { timeoutMs = 15000 } = {}) {
+  if (!code || !uid) return false
+  const playUrl = `https://customer-${code}.cloudflarestream.com/${uid}/webRTC/play`
+  const deadline = Date.now() + timeoutMs
+  while (Date.now() < deadline) {
+    let pc
+    try {
+      pc = new RTCPeerConnection()
+      pc.addTransceiver("video", { direction: "recvonly" })
+      pc.addTransceiver("audio", { direction: "recvonly" })
+      await pc.setLocalDescription(await pc.createOffer())
+      const res = await fetch(playUrl, {
+        method: "POST",
+        headers: { "content-type": "application/sdp" },
+        body: pc.localDescription.sdp,
+      })
+      pc.close()
+      if (res.status === 201 || res.ok) return true // Cloudflare is serving it
+    } catch { try { pc?.close() } catch { /* ignore */ } }
+    await new Promise((r) => setTimeout(r, 2000))
+  }
+  return false
+}
