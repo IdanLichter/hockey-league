@@ -11,6 +11,7 @@ import {
   Hand, RectangleVertical, SkipForward, Save, Undo2, Plus, Minus, X, Maximize, Minimize,
   Loader2, Check,
 } from "lucide-react"
+import { StickBall } from "@/components/icons/HockeyIcons"
 
 /* ============================================================================
  * Web judge scoreboard — a faithful mirror of the iOS `ScoreboardView`.
@@ -384,7 +385,7 @@ export default function GameScoreboard({ game, home, guest, players }) {
             <button onClick={() => engine.resetPassive()}
               className="flex items-center gap-1.5 px-3 py-1 rounded-full transition-transform"
               style={{ background: T.panel, color: engine.passiveIsWarning ? T.passiveWarning : T.passive, transform: engine.passiveIsWarning ? "scale(1.1)" : "none" }}>
-              <span className="text-[13px]">🏒</span>
+              <StickBall mono className="w-3.5 h-3.5" />
               <span className="text-[15px] font-black tabular-nums">{engine.passiveSeconds}</span>
             </button>
           )}
