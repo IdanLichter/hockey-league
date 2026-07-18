@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client'
 import App from './App.jsx'
 import { ThemeProvider } from './lib/ThemeContext.jsx'
 import { AuthProvider } from './lib/AuthContext.jsx'
+import { PresenceProvider } from './lib/PresenceContext.jsx'
 import { initAnalytics } from './lib/analytics'
 import './index.css'
 
@@ -13,7 +14,9 @@ ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <ThemeProvider>
       <AuthProvider>
-        <App />
+        <PresenceProvider>
+          <App />
+        </PresenceProvider>
       </AuthProvider>
     </ThemeProvider>
   </React.StrictMode>,

@@ -18,6 +18,7 @@ import LiveGameBanner from "@/components/LiveGameBanner"
 import { useLiveGames } from "@/lib/useLiveGames"
 import FeedFilters, { matchesFilter } from "@/components/feed/FeedFilters"
 import { StandingsWidget, NextGameWidget, LeadersWidget } from "@/components/feed/Widgets"
+import OnlinePresence from "@/components/OnlinePresence"
 
 const SEASON_NAME = "2025-26"
 const PAGE_SIZE = 25
@@ -178,11 +179,15 @@ export default function Feed() {
         <div className="space-y-5 min-w-0">
           {/* Page header — title on the right (RTL), "download the app" banner on the left */}
           <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="flex items-start justify-between gap-3">
-            <div>
-              <h1 className="page-title flex items-center gap-2.5">
-                <Rink className="w-7 h-7 text-brand" /> המגרש
-              </h1>
-              <p className="page-subtitle mt-1">כל מה שקורה בליגה</p>
+            <div className="flex items-center gap-3">
+              <div>
+                <h1 className="page-title flex items-center gap-2.5">
+                  <Rink className="w-7 h-7 text-brand" /> המגרש
+                </h1>
+                <p className="page-subtitle mt-1">כל מה שקורה בליגה</p>
+              </div>
+              {/* Live "who's online" count (Realtime Presence), beside the title */}
+              <OnlinePresence />
             </div>
 
             <Link
