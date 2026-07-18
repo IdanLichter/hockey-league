@@ -54,7 +54,7 @@ function NavAvatar({ profile, email, className = "w-8 h-8" }) {
     )
   }
   return (
-    <div className={`${className} rounded-full shrink-0 flex items-center justify-center bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500`}>
+    <div className={`${className} rounded-full shrink-0 flex items-center justify-center bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400`}>
       <UserCircle className="w-3/5 h-3/5" />
     </div>
   )

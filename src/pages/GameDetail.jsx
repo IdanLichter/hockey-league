@@ -121,7 +121,7 @@ export default function GameDetail() {
         <div className="card p-6 flex flex-col items-center justify-center text-center gap-3 min-h-[300px]">
           <Calendar className="w-12 h-12 text-slate-300 dark:text-slate-600" />
           <h2 className="text-lg font-bold text-slate-700 dark:text-slate-200">{notFound ? 'המשחק לא נמצא' : 'שגיאה בטעינת המשחק'}</h2>
-          <p className="text-sm text-slate-400 dark:text-slate-500">{notFound ? 'ייתכן שהמשחק הוסר או שהקישור שגוי' : 'משהו השתבש, נסו שוב'}</p>
+          <p className="text-sm text-slate-500 dark:text-slate-400">{notFound ? 'ייתכן שהמשחק הוסר או שהקישור שגוי' : 'משהו השתבש, נסו שוב'}</p>
           <div className="flex gap-2 mt-1">
             {!notFound && (
               <button onClick={loadData} className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-600 text-white rounded-lg text-xs font-semibold hover:bg-slate-700 transition-colors">
@@ -264,9 +264,9 @@ export default function GameDetail() {
                  the away team) and home_score last (right, beside home). Do NOT flip
                  to home:away — see hockey-league-rtl-score-gotcha memory. */
               <div className="text-3xl sm:text-4xl font-extrabold tabular-nums tracking-tight">
-                <span className={awayWin ? 'text-emerald-600 dark:text-emerald-400' : homeWin ? 'text-slate-400 dark:text-slate-500' : 'text-slate-900 dark:text-white'}>{game.away_score}</span>
+                <span className={awayWin ? 'text-emerald-600 dark:text-emerald-400' : homeWin ? 'text-slate-500 dark:text-slate-400' : 'text-slate-900 dark:text-white'}>{game.away_score}</span>
                 <span className="text-slate-300 dark:text-slate-600 mx-1.5">:</span>
-                <span className={homeWin ? 'text-emerald-600 dark:text-emerald-400' : awayWin ? 'text-slate-400 dark:text-slate-500' : 'text-slate-900 dark:text-white'}>{game.home_score}</span>
+                <span className={homeWin ? 'text-emerald-600 dark:text-emerald-400' : awayWin ? 'text-slate-500 dark:text-slate-400' : 'text-slate-900 dark:text-white'}>{game.home_score}</span>
               </div>
             ) : (
               <div className="flex flex-col items-center">
@@ -366,7 +366,7 @@ export default function GameDetail() {
             {tiles.map(({ val, label, color }) => (
               <div key={label} className="card p-4 text-center">
                 <p className={`text-2xl font-extrabold ${color}`}>{val}</p>
-                <p className="text-[11px] text-slate-400 dark:text-slate-500 font-medium mt-0.5">{label}</p>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium mt-0.5">{label}</p>
               </div>
             ))}
           </div>
@@ -383,7 +383,7 @@ export default function GameDetail() {
           </div>
           <div className="p-4 sm:p-5">
             {stats.length === 0 ? (
-              <p className="text-center text-sm text-slate-400 dark:text-slate-500 py-6">לא הוזנו סטטיסטיקות למשחק זה</p>
+              <p className="text-center text-sm text-slate-500 dark:text-slate-400 py-6">לא הוזנו סטטיסטיקות למשחק זה</p>
             ) : (
               <>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-6">
@@ -396,7 +396,7 @@ export default function GameDetail() {
                           <h3 className="text-xs font-bold text-slate-500 dark:text-slate-400 truncate">{teamsMap[tid]?.name || '—'}</h3>
                         </div>
                         <div className="space-y-0.5">
-                          {rows.length === 0 && <p className="text-xs text-slate-400 dark:text-slate-500 py-1">אין נתונים</p>}
+                          {rows.length === 0 && <p className="text-xs text-slate-500 dark:text-slate-400 py-1">אין נתונים</p>}
                           {rows.map(stat => {
                             const p = playersMap[stat.player_id]
                             return (
@@ -474,11 +474,11 @@ export default function GameDetail() {
           <h2 className="flex items-center gap-2 font-bold text-sm text-slate-900 dark:text-white">
             <Swords className="w-4 h-4 text-brand" /> מפגשים קודמים
           </h2>
-          {h2h.length > 0 && <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-1">התוצאות מנקודת מבט {home?.name || 'הבית'}</p>}
+          {h2h.length > 0 && <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">התוצאות מנקודת מבט {home?.name || 'הבית'}</p>}
         </div>
         <div className="p-4 space-y-2">
           {h2h.length === 0 ? (
-            <p className="text-center text-sm text-slate-400 dark:text-slate-500 py-6">אין מפגשים קודמים בין הקבוצות</p>
+            <p className="text-center text-sm text-slate-500 dark:text-slate-400 py-6">אין מפגשים קודמים בין הקבוצות</p>
           ) : h2h.map(g => {
             const wasHome = g.home_team_id === game.home_team_id
             const my = wasHome ? g.home_score : g.away_score
@@ -489,7 +489,7 @@ export default function GameDetail() {
                 <div className="flex items-center gap-2 min-w-0 text-xs text-slate-500 dark:text-slate-400">
                   <Calendar className="w-3.5 h-3.5 shrink-0" />
                   <span>{format(new Date(g.game_date), "d/M/yyyy")}</span>
-                  <span className="text-slate-400 dark:text-slate-500">· {g.game_type}</span>
+                  <span className="text-slate-500 dark:text-slate-400">· {g.game_type}</span>
                 </div>
                 {/* dir=ltr isolates the standalone score so RTL can't split away:home
                     and mispair digits (see hockey-league-rtl-score-gotcha). */}
@@ -516,7 +516,7 @@ export default function GameDetail() {
                 <TeamLogo team={team} size={8} />
                 <div className="min-w-0">
                   <p className="font-semibold text-sm text-slate-900 dark:text-white truncate group-hover:text-brand transition-colors">{team?.name || '—'}</p>
-                  <p className="text-[11px] text-slate-400 dark:text-slate-500">{side}</p>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400">{side}</p>
                 </div>
               </TeamLink>
               {form.length > 0 ? (
@@ -529,7 +529,7 @@ export default function GameDetail() {
                   ))}
                 </div>
               ) : (
-                <span className="text-[11px] text-slate-400 dark:text-slate-500 shrink-0">אין משחקים קודמים</span>
+                <span className="text-[11px] text-slate-500 dark:text-slate-400 shrink-0">אין משחקים קודמים</span>
               )}
             </div>
           ))}

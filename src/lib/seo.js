@@ -15,7 +15,7 @@ import { useEffect } from 'react'
 // competing with it for the same content.
 export const SITE_URL = import.meta.env.VITE_SITE_URL || 'https://rinkhockeyil.com'
 export const SITE_NAME = 'ליגת הוקי הגלגיליות הישראלית'
-export const DEFAULT_DESCRIPTION = 'ליגת הוקי גלגיליות - טבלה, משחקים, סטטיסטיקות ועוד'
+export const DEFAULT_DESCRIPTION = 'ליגת הוקי הגלגיליות הישראלית — טבלת הליגה המעודכנת, תוצאות ולוח משחקים, סטטיסטיקות שחקנים וקבוצות, שידורים חיים, גלריית תמונות וטורנירים. כל מה שקורה במגרש, במקום אחד.'
 const DEFAULT_IMAGE = `${SITE_URL}/logos/main-logo.png`
 
 // Gated tooling: no public content, must never land in a search index.

@@ -285,11 +285,11 @@ export default function PlayerDetail() {
               </button>
             </>
           ) : takenByOther ? (
-            <span className="text-sm text-slate-400 dark:text-slate-500">פרופיל זה כבר משויך לחשבון קיים</span>
+            <span className="text-sm text-slate-500 dark:text-slate-400">פרופיל זה כבר משויך לחשבון קיים</span>
           ) : pendingElsewhere ? (
-            <span className="text-sm text-slate-400 dark:text-slate-500">כבר הגשת בקשת בעלות על שחקן אחר</span>
+            <span className="text-sm text-slate-500 dark:text-slate-400">כבר הגשת בקשת בעלות על שחקן אחר</span>
           ) : linkedElsewhere ? (
-            <span className="text-sm text-slate-400 dark:text-slate-500">החשבון שלך כבר משויך לשחקן אחר</span>
+            <span className="text-sm text-slate-500 dark:text-slate-400">החשבון שלך כבר משויך לשחקן אחר</span>
           ) : !user ? (
             <>
               <span className="text-sm text-slate-600 dark:text-slate-300">שיחקת בליגה? דרוש/י בעלות על הפרופיל</span>
@@ -325,13 +325,13 @@ export default function PlayerDetail() {
           {tiles.map(({ val, label, color }) => (
             <div key={label} className="card p-4 text-center">
               <p className={`text-2xl font-extrabold ${color}`}>{val}</p>
-              <p className="text-[11px] text-slate-400 dark:text-slate-500 font-medium mt-0.5">{label}</p>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium mt-0.5">{label}</p>
             </div>
           ))}
         </div>
         {form.length > 0 && (
           <div className="flex items-center gap-2.5 mt-3">
-            <span className="text-[11px] text-slate-400 dark:text-slate-500 font-medium">{form.length} משחקים אחרונים</span>
+            <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">{form.length} משחקים אחרונים</span>
             <div className="flex gap-1">
               {form.map((r, i) => (
                 <span key={i} title={r === 'win' ? 'ניצחון' : r === 'loss' ? 'הפסד' : 'תיקו'}
@@ -374,7 +374,7 @@ export default function PlayerDetail() {
                       <p className="text-sm font-semibold text-slate-900 dark:text-white">
                         {m.kind === 'big_game' ? 'משחק ענק' : 'שלושער'} · {m.goals} שערים
                       </p>
-                      <Link to={m.opp ? `/teams/${m.opp.id}` : '#'} className="text-[11px] text-slate-400 dark:text-slate-500 hover:text-brand transition-colors">
+                      <Link to={m.opp ? `/teams/${m.opp.id}` : '#'} className="text-[11px] text-slate-500 dark:text-slate-400 hover:text-brand transition-colors">
                         מול {m.opp?.name || '—'} · {format(new Date(m.game.game_date), "d/M/yyyy")}
                       </Link>
                     </div>
@@ -407,12 +407,12 @@ export default function PlayerDetail() {
                 ))}
               </div>
             )}
-            {gameLog.length > 0 && <span className="text-[11px] text-slate-400 dark:text-slate-500 font-medium">{filteredLog.length} מתוך {gameLog.length}</span>}
+            {gameLog.length > 0 && <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">{filteredLog.length} מתוך {gameLog.length}</span>}
           </div>
         </div>
         <div className="p-4 space-y-2">
           {filteredLog.length === 0 && (
-            <p className="text-center text-slate-400 dark:text-slate-500 py-8 text-sm">אין משחקים מתועדים</p>
+            <p className="text-center text-slate-500 dark:text-slate-400 py-8 text-sm">אין משחקים מתועדים</p>
           )}
           {filteredLog.map(({ stat, game }) => {
             const isHome = game.home_team_id === player.team_id
@@ -431,7 +431,7 @@ export default function PlayerDetail() {
                   <TeamLogo team={opp} size={8} />
                   <div className="min-w-0">
                     <p className="font-semibold text-sm text-slate-900 dark:text-white truncate group-hover:text-brand transition-colors">{opp?.name || '—'}</p>
-                    <p className="text-[11px] text-slate-400 dark:text-slate-500">
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400">
                       {format(new Date(game.game_date), "d/M/yyyy")} · {isHome ? 'בית' : 'חוץ'}
                       {game.game_type === FRIENDLY_GAME_TYPE && (
                         <span className="text-violet-500 dark:text-violet-400 font-medium"> · ידידותי (לא נספר)</span>

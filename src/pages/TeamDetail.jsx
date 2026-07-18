@@ -159,7 +159,7 @@ export default function TeamDetail() {
             <div key={label} className="card p-4 text-center">
               <Icon className={`w-4 h-4 ${color} mx-auto mb-1`} />
               <p className="text-2xl font-extrabold text-slate-900 dark:text-white">{val}</p>
-              <p className="text-[11px] text-slate-400 dark:text-slate-500 font-medium mt-0.5">{label}</p>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium mt-0.5">{label}</p>
             </div>
           ))}
         </div>
@@ -182,11 +182,11 @@ export default function TeamDetail() {
                       {joinState === 'sending' ? 'שולח…' : 'בקש להצטרף'}
                     </button>
             )}
-            <span className="text-[11px] text-slate-400 dark:text-slate-500 font-medium">{roster.length} שחקנים</span>
+            <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">{roster.length} שחקנים</span>
           </div>
         </div>
         <div className="p-3 sm:p-4 space-y-1">
-          {roster.length === 0 && <p className="text-center text-slate-400 dark:text-slate-500 py-8 text-sm">אין שחקנים</p>}
+          {roster.length === 0 && <p className="text-center text-slate-500 dark:text-slate-400 py-8 text-sm">אין שחקנים</p>}
           {roster.map(player => (
             <Link key={player.id} to={`/players/${player.id}`}
               className="flex items-center justify-between py-2 px-3 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors text-sm">
@@ -232,7 +232,7 @@ export default function TeamDetail() {
                     <TeamLogo team={opp} size={8} />
                     <div className="min-w-0">
                       <p className="font-semibold text-sm text-slate-900 dark:text-white truncate group-hover:text-brand transition-colors">{opp?.name || '—'}</p>
-                      <p className="text-[11px] text-slate-400 dark:text-slate-500">
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400">
                         {format(new Date(game.game_date), "d/M/yyyy")} · {isHome ? 'בית' : 'חוץ'}{game.venue ? ` · ${game.venue}` : ''}
                       </p>
                     </div>
@@ -255,7 +255,7 @@ export default function TeamDetail() {
           </h2>
         </div>
         <div className="p-4 space-y-2">
-          {results.length === 0 && <p className="text-center text-slate-400 dark:text-slate-500 py-8 text-sm">אין תוצאות</p>}
+          {results.length === 0 && <p className="text-center text-slate-500 dark:text-slate-400 py-8 text-sm">אין תוצאות</p>}
           {results.map(game => {
             const isHome = game.home_team_id === id
             const opp = teamsMap[isHome ? game.away_team_id : game.home_team_id]
@@ -272,7 +272,7 @@ export default function TeamDetail() {
                   <TeamLogo team={opp} size={8} />
                   <div className="min-w-0">
                     <p className="font-semibold text-sm text-slate-900 dark:text-white truncate group-hover:text-brand transition-colors">{opp?.name || '—'}</p>
-                    <p className="text-[11px] text-slate-400 dark:text-slate-500">
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400">
                       {format(new Date(game.game_date), "d/M/yyyy")} · {isHome ? 'בית' : 'חוץ'}
                       {game.game_type === FRIENDLY_GAME_TYPE && (
                         <span className="text-violet-500 dark:text-violet-400 font-medium"> · ידידותי</span>
