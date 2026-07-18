@@ -179,15 +179,15 @@ export default function Feed() {
         <div className="space-y-5 min-w-0">
           {/* Page header — title on the right (RTL), "download the app" banner on the left */}
           <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="flex items-start justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <div>
+            <div>
+              <div className="flex items-center gap-3">
                 <h1 className="page-title flex items-center gap-2.5">
                   <Rink className="w-7 h-7 text-brand" /> המגרש
                 </h1>
-                <p className="page-subtitle mt-1">כל מה שקורה בליגה</p>
+                {/* Live "who's skating" count (Realtime Presence), on the title's line */}
+                <OnlinePresence />
               </div>
-              {/* Live "who's online" count (Realtime Presence), beside the title */}
-              <OnlinePresence />
+              <p className="page-subtitle mt-1">כל מה שקורה בליגה</p>
             </div>
 
             <Link
