@@ -3,7 +3,7 @@ import { Link } from "react-router-dom"
 import { motion } from "framer-motion"
 import {
   UserCircle, Shield, Gavel, UserCheck, LogIn, LogOut, Sun, Moon,
-  Save, Loader2, Clock, ChevronLeft, UserPlus, Trophy, Unlink, Camera
+  Save, Loader2, Clock, ChevronLeft, UserPlus, Trophy, Unlink, Camera, KeyRound, CheckCircle2
 } from "lucide-react"
 import { useAuth } from "@/lib/AuthContext"
 import { useTheme } from "@/lib/ThemeContext"
@@ -18,7 +18,7 @@ import { RoleBadges, deriveRoleItems } from "@/components/RoleBadges"
 const sizedUrl = (url, w = 600) => (url ? url.replace(/=w\d+(-h\d+)?.*$/, `=w${w}`) : url)
 
 export default function Profile() {
-  const { user, isAdmin, hasRole, roles, loading: authLoading, signOut, openAuth, refreshProfile } = useAuth()
+  const { user, isAdmin, hasRole, roles, loading: authLoading, signOut, openAuth, refreshProfile, signInWithEmail, updatePassword } = useAuth()
   const { dark, toggle } = useTheme()
 
   const [data, setData] = useState(null)
@@ -35,6 +35,44 @@ export default function Profile() {
   const [uploadingAvatar, setUploadingAvatar] = useState(false)
   const [avatarErr, setAvatarErr] = useState(null)
   const avatarFileRef = useRef(null)
+
+  // Change-password (email/password accounts only — OAuth users have no password)
+  const [curPw, setCurPw] = useState("")
+  const [newPw, setNewPw] = useState("")
+  const [confirmPw, setConfirmPw] = useState("")
+  const [pwBusy, setPwBusy] = useState(false)
+  const [pwErr, setPwErr] = useState(null)
+  const [pwDone, setPwDone] = useState(false)
+  const hasPasswordLogin = !!(
+    user?.identities?.some(i => i.provider === "email") ||
+    user?.app_metadata?.providers?.includes("email") ||
+    user?.app_metadata?.provider === "email"
+  )
+
+  const changePassword = async (e) => {
+    e.preventDefault()
+    setPwErr(null); setPwDone(false)
+    if (newPw.length < 6) { setPwErr("הסיסמה החדשה חייבת להכיל לפחות 6 תווים"); return }
+    if (newPw !== confirmPw) { setPwErr("הסיסמאות אינן תואמות"); return }
+    setPwBusy(true)
+    try {
+      // Verify identity by re-authenticating with the current password before
+      // changing it — Supabase's updateUser doesn't require it by default, so
+      // this closes the "someone at an unlocked screen changes it" hole.
+      await signInWithEmail(user.email, curPw)
+      await updatePassword(newPw)
+      setPwDone(true)
+      setCurPw(""); setNewPw(""); setConfirmPw("")
+      setTimeout(() => setPwDone(false), 4000)
+    } catch (err) {
+      const m = (err?.message || "").toLowerCase()
+      if (m.includes("invalid login") || m.includes("credentials")) setPwErr("הסיסמה הנוכחית שגויה")
+      else if (m.includes("different from the old") || m.includes("should be different") || m.includes("same")) setPwErr("בחרו סיסמה שונה מהסיסמה הנוכחית")
+      else setPwErr(err?.message || "אירעה שגיאה. נסו שוב")
+    } finally {
+      setPwBusy(false)
+    }
+  }
 
   useEffect(() => {
     let alive = true
@@ -330,6 +368,31 @@ export default function Profile() {
           {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : saved ? <Trophy className="w-4 h-4" /> : <Save className="w-4 h-4" />}
           {saved ? "נשמר" : "שמירה"}
         </button>
+
+        {hasPasswordLogin && (
+          <form onSubmit={changePassword} className="pt-4 border-t border-slate-100 dark:border-slate-700/50 space-y-3">
+            <div className="flex items-center gap-2">
+              <KeyRound className="w-4 h-4 text-slate-400" />
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white">שינוי סיסמה</h3>
+            </div>
+            <input type="password" autoComplete="current-password" required placeholder="סיסמה נוכחית"
+              value={curPw} onChange={e => setCurPw(e.target.value)}
+              className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand" />
+            <input type="password" autoComplete="new-password" required minLength={6} placeholder="סיסמה חדשה (לפחות 6 תווים)"
+              value={newPw} onChange={e => setNewPw(e.target.value)}
+              className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand" />
+            <input type="password" autoComplete="new-password" required minLength={6} placeholder="אימות סיסמה חדשה"
+              value={confirmPw} onChange={e => setConfirmPw(e.target.value)}
+              className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand" />
+            {pwErr && <p className="text-xs text-red-600 dark:text-red-400 font-medium bg-red-50 dark:bg-red-950/40 rounded-lg px-3 py-2">{pwErr}</p>}
+            {pwDone && <p className="flex items-center gap-1.5 text-xs text-emerald-600 dark:text-emerald-400 font-medium"><CheckCircle2 className="w-4 h-4" /> הסיסמה עודכנה בהצלחה</p>}
+            <button type="submit" disabled={pwBusy}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-brand text-white text-sm font-semibold hover:bg-brand-hover transition-colors disabled:opacity-50">
+              {pwBusy ? <Loader2 className="w-4 h-4 animate-spin" /> : <KeyRound className="w-4 h-4" />}
+              עדכון סיסמה
+            </button>
+          </form>
+        )}
 
         <div className="pt-4 border-t border-slate-100 dark:border-slate-700/50 flex flex-wrap items-center gap-2">
           <button onClick={toggle}

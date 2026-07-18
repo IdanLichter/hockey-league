@@ -175,6 +175,24 @@ export function AuthProvider({ children }) {
     return data
   }
 
+  // Send a password-reset email. The link returns the user to /reset-password.
+  // NOTE: that URL (for BOTH deploy targets + localhost) must be in Supabase's
+  // Auth → URL Configuration → Redirect URLs allowlist, or Supabase ignores
+  // redirectTo and falls back to the Site URL.
+  const resetPassword = async (email) => {
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: window.location.origin + '/reset-password',
+    })
+    if (error) throw error
+  }
+
+  // Set a new password for the currently-authenticated user. Used by both the
+  // recovery page (recovery session from the email link) and the /me form.
+  const updatePassword = async (newPassword) => {
+    const { error } = await supabase.auth.updateUser({ password: newPassword })
+    if (error) throw error
+  }
+
   const signOut = async () => {
     await supabase.auth.signOut()
     setUser(null)
@@ -189,7 +207,7 @@ export function AuthProvider({ children }) {
   return (
     <AuthContext.Provider value={{
       user, isAdmin, roles, hasRole, coachTeamIds, isJudgeRole, isContentEditor, isLeagueManager, isMedic, canPost, profile, refreshProfile, loading, authOpen,
-      signInWithGoogle, signUpWithEmail, signInWithEmail, signOut,
+      signInWithGoogle, signUpWithEmail, signInWithEmail, resetPassword, updatePassword, signOut,
       openAuth, closeAuth,
     }}>
       {children}

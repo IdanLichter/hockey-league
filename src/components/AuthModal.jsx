@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { X, Mail, Lock, User, Loader2, Clock } from "lucide-react"
+import { X, Mail, Lock, User, Loader2, Clock, KeyRound } from "lucide-react"
 import { useAuth } from "@/lib/AuthContext"
 
 function translateAuthError(msg = "") {
@@ -38,15 +38,21 @@ function GoogleIcon() {
   )
 }
 
+const TITLES = {
+  signin: { h: "התחברות", sub: "התחברו לחשבון שלכם" },
+  signup: { h: "הרשמה", sub: "הצטרפו לקהילת הליגה" },
+  forgot: { h: "איפוס סיסמה", sub: "נשלח אליכם קישור לבחירת סיסמה חדשה" },
+}
+
 export default function AuthModal() {
-  const { authOpen, closeAuth, signInWithEmail, signUpWithEmail, signInWithGoogle } = useAuth()
-  const [mode, setMode] = useState("signin") // 'signin' | 'signup'
+  const { authOpen, closeAuth, signInWithEmail, signUpWithEmail, signInWithGoogle, resetPassword } = useAuth()
+  const [mode, setMode] = useState("signin") // 'signin' | 'signup' | 'forgot'
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [name, setName] = useState("")
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState(null)
-  const [sent, setSent] = useState(null) // null | 'confirm' | 'ratelimit'
+  const [sent, setSent] = useState(null) // null | 'confirm' | 'ratelimit' | 'reset'
 
   if (!authOpen) return null
 
@@ -68,6 +74,9 @@ export default function AuthModal() {
       if (mode === "signup") {
         const data = await signUpWithEmail(email.trim(), password, name.trim())
         if (!data?.session) { setSent('confirm') } // confirmation email required
+      } else if (mode === "forgot") {
+        await resetPassword(email.trim())
+        setSent('reset')
       } else {
         await signInWithEmail(email.trim(), password)
         // onAuthStateChange closes the modal on success
@@ -124,13 +133,29 @@ export default function AuthModal() {
               סבבה, אחכה
             </button>
           </div>
+        ) : sent === 'reset' ? (
+          <div className="text-center py-6">
+            <div className="w-14 h-14 rounded-full bg-brand/10 dark:bg-brand/20 flex items-center justify-center mx-auto mb-4">
+              <KeyRound className="w-7 h-7 text-brand dark:text-brand-light" />
+            </div>
+            <h3 className="text-lg font-extrabold text-slate-900 dark:text-white">בדקו את המייל 📩</h3>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">
+              אם קיים חשבון עבור <span className="font-semibold text-slate-700 dark:text-slate-300">{email}</span>, שלחנו אליו קישור לאיפוס הסיסמה. לחצו עליו ובחרו סיסמה חדשה.
+            </p>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
+              לא הגיע? הציצו בתיקיית הספאם — לפעמים המייל נתקע ליד הבמה.
+            </p>
+            <button onClick={close} className="mt-5 w-full py-2.5 rounded-xl bg-brand text-white font-semibold hover:bg-brand-hover transition-colors">
+              הבנתי
+            </button>
+          </div>
         ) : (
           <>
             <h2 className="text-xl font-extrabold text-slate-900 dark:text-white text-center">
-              {mode === "signin" ? "התחברות" : "הרשמה"}
+              {TITLES[mode].h}
             </h2>
             <p className="text-center text-sm text-slate-500 dark:text-slate-400 mt-1">
-              {mode === "signin" ? "התחברו לחשבון שלכם" : "הצטרפו לקהילת הליגה"}
+              {TITLES[mode].sub}
             </p>
 
             <form onSubmit={submit} className="mt-5 space-y-3">
@@ -138,7 +163,17 @@ export default function AuthModal() {
                 <Field icon={User} type="text" placeholder="שם תצוגה" value={name} onChange={setName} autoComplete="name" />
               )}
               <Field icon={Mail} type="email" placeholder="אימייל" value={email} onChange={setEmail} required autoComplete="email" />
-              <Field icon={Lock} type="password" placeholder="סיסמה (לפחות 6 תווים)" value={password} onChange={setPassword} required minLength={6} autoComplete={mode === "signin" ? "current-password" : "new-password"} />
+              {mode !== "forgot" && (
+                <Field icon={Lock} type="password" placeholder="סיסמה (לפחות 6 תווים)" value={password} onChange={setPassword} required minLength={6} autoComplete={mode === "signin" ? "current-password" : "new-password"} />
+              )}
+
+              {mode === "signin" && (
+                <div className="text-left -mt-1">
+                  <button type="button" onClick={() => switchMode("forgot")} className="text-xs font-semibold text-brand dark:text-brand-light hover:underline">
+                    שכחתי סיסמה
+                  </button>
+                </div>
+              )}
 
               {error && (
                 <p className="text-xs text-red-600 dark:text-red-400 font-medium bg-red-50 dark:bg-red-950/40 rounded-lg px-3 py-2">{error}</p>
@@ -150,28 +185,34 @@ export default function AuthModal() {
                 className="w-full py-2.5 rounded-xl bg-brand text-white font-bold hover:bg-brand-hover transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
               >
                 {busy && <Loader2 className="w-4 h-4 animate-spin" />}
-                {mode === "signin" ? "התחברות" : "יצירת חשבון"}
+                {mode === "signin" ? "התחברות" : mode === "signup" ? "יצירת חשבון" : "שליחת קישור לאיפוס"}
               </button>
             </form>
 
-            <div className="flex items-center gap-3 my-4">
-              <div className="flex-1 h-px bg-slate-200 dark:bg-slate-700" />
-              <span className="text-[11px] text-slate-400">או</span>
-              <div className="flex-1 h-px bg-slate-200 dark:bg-slate-700" />
-            </div>
+            {mode !== "forgot" && (
+              <>
+                <div className="flex items-center gap-3 my-4">
+                  <div className="flex-1 h-px bg-slate-200 dark:bg-slate-700" />
+                  <span className="text-[11px] text-slate-400">או</span>
+                  <div className="flex-1 h-px bg-slate-200 dark:bg-slate-700" />
+                </div>
 
-            <button
-              onClick={() => signInWithGoogle()}
-              className="w-full py-2.5 rounded-xl border border-slate-200 dark:border-slate-600 font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/60 transition-colors flex items-center justify-center gap-2"
-            >
-              <GoogleIcon /> המשך עם Google
-            </button>
+                <button
+                  onClick={() => signInWithGoogle()}
+                  className="w-full py-2.5 rounded-xl border border-slate-200 dark:border-slate-600 font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/60 transition-colors flex items-center justify-center gap-2"
+                >
+                  <GoogleIcon /> המשך עם Google
+                </button>
+              </>
+            )}
 
             <p className="text-center text-xs text-slate-500 dark:text-slate-400 mt-5">
               {mode === "signin" ? (
                 <>אין לכם חשבון? <button type="button" onClick={() => switchMode("signup")} className="font-bold text-brand dark:text-brand-light hover:underline">הרשמה</button></>
-              ) : (
+              ) : mode === "signup" ? (
                 <>כבר יש לכם חשבון? <button type="button" onClick={() => switchMode("signin")} className="font-bold text-brand dark:text-brand-light hover:underline">התחברות</button></>
+              ) : (
+                <>נזכרתם בסיסמה? <button type="button" onClick={() => switchMode("signin")} className="font-bold text-brand dark:text-brand-light hover:underline">חזרה להתחברות</button></>
               )}
             </p>
           </>

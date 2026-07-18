@@ -25,6 +25,7 @@ const ArchivePage = lazy(() => import('./pages/Archive'))
 const Media = lazy(() => import('./pages/Media'))
 const ContentCreators = lazy(() => import('./pages/ContentCreators'))
 const Profile = lazy(() => import('./pages/Profile'))
+const ResetPassword = lazy(() => import('./pages/ResetPassword'))
 const Privacy = lazy(() => import('./pages/Privacy'))
 const MobileApp = lazy(() => import('./pages/MobileApp'))
 const NotFound = lazy(() => import('./pages/NotFound'))
@@ -72,6 +73,7 @@ function App() {
             <Route path="/players" element={<Players />} />
             <Route path="/players/:id" element={<PlayerDetail />} />
             <Route path="/me" element={<Profile />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/privacy" element={<Privacy />} />
             <Route path="/app" element={<MobileApp />} />
             <Route path="/media" element={<Media />} />
