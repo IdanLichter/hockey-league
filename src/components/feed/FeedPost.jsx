@@ -51,7 +51,10 @@ const fade = {
 }
 
 /* ---- Auto-matched game photo (players' faces) attached to an event ---- */
-const sizedUrl = (url, w = 1280) => (url ? url.replace(/=w\d+(-h\d+)?.*$/, `=w${w}`) : url)
+// Feed thumbnails render in a ~360–750px column and are height-cropped (max-h-80),
+// so a 1000px-wide source stays crisp on retina while shedding ~40% of the bytes a
+// full 1280px source cost (Google Photos oversizing was the page's biggest payload).
+const sizedUrl = (url, w = 1000) => (url ? url.replace(/=w\d+(-h\d+)?.*$/, `=w${w}`) : url)
 
 function EventPhoto({ photo, itemKey, candidates = [], onRefreshed }) {
   const { isAdmin, isContentEditor } = useAuth()

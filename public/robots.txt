@@ -6,4 +6,4 @@ Disallow: /admin
 Disallow: /judge
 Disallow: /me
 
-Sitemap: https://hockey-league-pro.vercel.app/sitemap.xml
+Sitemap: https://rinkhockeyil.com/sitemap.xml

@@ -8,10 +8,12 @@ import { useEffect } from 'react'
 // per-route tags. Non-rendering scrapers — WhatsApp, Twitter — read the static
 // tags in index.html. Giving them real per-page previews needs prerendering/SSG.
 
-// Host is env-parametrized so the branded domain is one Vercel env var away
+// Host is env-parametrized so the domain is one Vercel env var away
 // (VITE_SITE_URL) without touching code — every canonical / OG / JSON-LD URL
-// derives from it. Falls back to the current vercel.app host.
-export const SITE_URL = import.meta.env.VITE_SITE_URL || 'https://hockey-league-pro.vercel.app'
+// derives from it. Falls back to the public branded domain, so the
+// hockey-league-pro.vercel.app deployment canonicalizes here too rather than
+// competing with it for the same content.
+export const SITE_URL = import.meta.env.VITE_SITE_URL || 'https://rinkhockeyil.com'
 export const SITE_NAME = 'ליגת הרולר הוקי הישראלית'
 export const DEFAULT_DESCRIPTION = 'ליגת רולר הוקי - טבלה, משחקים, סטטיסטיקות ועוד'
 const DEFAULT_IMAGE = `${SITE_URL}/logos/main-logo.png`

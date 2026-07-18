@@ -34,7 +34,7 @@ function loadEnv() {
 }
 
 const env = loadEnv()
-const SITE_URL = (env.VITE_SITE_URL || 'https://hockey-league-pro.vercel.app').replace(/\/$/, '')
+const SITE_URL = (env.VITE_SITE_URL || 'https://rinkhockeyil.com').replace(/\/$/, '')
 const SUPABASE_URL = env.VITE_SUPABASE_URL
 const ANON = env.VITE_SUPABASE_ANON_KEY
 
