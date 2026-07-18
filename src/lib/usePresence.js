@@ -15,7 +15,19 @@ import { supabase } from './supabase'
  * they appear in the breakdown here automatically.
  */
 
-const CHANNEL = 'online'
+// Presence is ENVIRONMENT-SCOPED so dev servers, preview panes and locally-served
+// builds never leak into the PUBLIC count. Only a real deployment (production build
+// on a non-localhost host) joins `online` — the channel the native iOS/Android apps
+// also track on. Everything local/dev joins `online-dev`, a fully isolated sandbox:
+// dev never sees prod and prod never sees dev, yet the badge still works locally for
+// testing. Prerender has no window → treat as dev so a build step never joins `online`.
+function channelName() {
+  if (typeof window === 'undefined') return 'online-dev'
+  const h = window.location.hostname
+  const isLocal =
+    h === 'localhost' || h === '127.0.0.1' || h === '0.0.0.0' || h === '[::1]' || h.endsWith('.local')
+  return import.meta.env.PROD && !isLocal ? 'online' : 'online-dev'
+}
 
 // One stable id per BROWSER (persisted in localStorage → survives tabs + reloads, so a
 // person counts once). Computed ONCE per page-load and cached in-memory: this is what
@@ -40,6 +52,7 @@ export function usePresence({ platform = 'web', track = true } = {}) {
   const [state, setState] = useState({ total: 0, web: 0, ios: 0, android: 0 })
 
   useEffect(() => {
+    const CHANNEL = channelName()
     const channel = supabase.channel(CHANNEL, { config: { presence: { key: clientId() } } })
 
     const sync = () => {
