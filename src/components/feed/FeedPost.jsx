@@ -114,6 +114,12 @@ function EventPhoto({ photo, itemKey, candidates = [], onRefreshed }) {
   const cx100 = beamLeft == null ? null : beamLeft * 100
   const beamId = `beam-${String(itemKey || current.photo_id || "x").replace(/[^a-zA-Z0-9_-]/g, "")}`
 
+  // Reserve the photo's box from its known pixel dims so the lazily-loaded image (which
+  // arrives seconds after the text) can't shove the whole feed down when it lands — the
+  // homepage's dominant layout shift. max-h-80 still caps the height and object-cover
+  // crops exactly as before; a 16/10 fallback covers any photo row missing width/height.
+  const hasDims = current.width > 0 && current.height > 0
+
   // Advance to the NEXT candidate (wrapping to 0 at the end; an unknown current → 0),
   // pin it for everyone, and update the displayed photo optimistically.
   const cycle = async () => {
@@ -138,7 +144,12 @@ function EventPhoto({ photo, itemKey, candidates = [], onRefreshed }) {
       <a href={current.detail_url} target="_blank" rel="noopener noreferrer"
          className="group block relative rounded-xl overflow-hidden bg-slate-900">
         <img ref={imgRef} src={sizedUrl(current.image_url)} alt="" loading="lazy"
-             style={objPosY != null ? { objectPosition: `50% ${objPosY}%` } : undefined}
+             width={hasDims ? current.width : undefined}
+             height={hasDims ? current.height : undefined}
+             style={{
+               ...(hasDims ? {} : { aspectRatio: "16 / 10" }),
+               ...(objPosY != null ? { objectPosition: `50% ${objPosY}%` } : {}),
+             }}
              className="w-full max-h-80 object-cover transition-transform duration-500 group-hover:scale-[1.02]" />
         {cx100 != null && (
           <svg className="pointer-events-none absolute inset-0 h-full w-full" viewBox="0 0 100 100"
