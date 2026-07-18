@@ -68,7 +68,7 @@ export default function MedicalReview({ coachTeamIds = null }) {
             <div key={item.id} className="card p-4 flex flex-col sm:flex-row sm:items-center gap-3">
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-bold text-slate-900 dark:text-white truncate">{p ? `${p.first_name} ${p.last_name}` : "שחקן"}</p>
-                <p className="text-[11px] text-slate-400 dark:text-slate-500">{p?.teams?.name || "—"} · {format(new Date(item.created_at), "d/M/yyyy HH:mm")}</p>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">{p?.teams?.name || "—"} · {format(new Date(item.created_at), "d/M/yyyy HH:mm")}</p>
               </div>
               <div className="flex items-center gap-2 shrink-0 flex-wrap">
                 <label className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-500 dark:text-slate-400" title="תאריך ביצוע הבדיקה הרפואית — האישור בתוקף לשנה מתאריך זה">

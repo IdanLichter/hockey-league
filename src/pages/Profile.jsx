@@ -174,7 +174,7 @@ export default function Profile() {
               </div>
               <div className="min-w-0">
                 <p className="text-sm font-bold text-slate-900 dark:text-white truncate">{player.first_name} {player.last_name}</p>
-                <p className="text-[11px] text-slate-400 dark:text-slate-500">הדף האישי שלך כשחקן — סטטיסטיקות ויומן משחקים</p>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">הדף האישי שלך כשחקן — סטטיסטיקות ויומן משחקים</p>
               </div>
             </div>
             <ChevronLeft className="w-5 h-5 text-slate-300 dark:text-slate-600 group-hover:text-brand transition-colors shrink-0" />
@@ -197,7 +197,7 @@ export default function Profile() {
               </div>
             ) : (
               <button onClick={() => setConfirmDisconnect(true)}
-                className="flex items-center gap-1.5 text-xs font-semibold text-slate-400 dark:text-slate-500 hover:text-red-600 dark:hover:text-red-400 transition-colors">
+                className="flex items-center gap-1.5 text-xs font-semibold text-slate-500 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 transition-colors">
                 <Unlink className="w-3.5 h-3.5" /> נתק שיוך לשחקן
               </button>
             )}
@@ -232,7 +232,7 @@ export default function Profile() {
               </div>
               <div className="min-w-0">
                 <p className="text-sm font-bold text-slate-900 dark:text-white">שיחקת בליגה?</p>
-                <p className="text-[11px] text-slate-400 dark:text-slate-500">שייכו את החשבון לפרופיל השחקן שלכם וקבלו גישה לסטטיסטיקות שלכם</p>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">שייכו את החשבון לפרופיל השחקן שלכם וקבלו גישה לסטטיסטיקות שלכם</p>
               </div>
             </div>
             <Link to="/players" className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg bg-brand text-white hover:bg-brand-hover transition-colors shrink-0">
@@ -240,7 +240,7 @@ export default function Profile() {
             </Link>
           </div>
           <div className="pt-3 border-t border-slate-100 dark:border-slate-700/50 flex items-center justify-between gap-3">
-            <p className="text-[11px] text-slate-400 dark:text-slate-500">עדיין אין לך כרטיס שחקן בליגה?</p>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400">עדיין אין לך כרטיס שחקן בליגה?</p>
             <button onClick={() => setShowCreateCard(true)} className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border border-brand/20 dark:border-brand/25 text-brand dark:text-brand-light hover:bg-brand/[0.06] dark:hover:bg-brand/10 transition-colors shrink-0">
               <UserPlus className="w-3.5 h-3.5" /> צור כרטיס שחקן
             </button>
@@ -258,7 +258,7 @@ export default function Profile() {
               <div className="w-10 h-10 rounded-xl bg-purple-500 text-white flex items-center justify-center shrink-0"><Gavel className="w-5 h-5" /></div>
               <div className="min-w-0">
                 <p className="text-sm font-bold text-slate-900 dark:text-white">שיפוט משחקים</p>
-                <p className="text-[11px] text-slate-400 dark:text-slate-500">ניהול תוצאות בזמן אמת</p>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">ניהול תוצאות בזמן אמת</p>
               </div>
             </Link>
           )}
@@ -267,7 +267,7 @@ export default function Profile() {
               <div className="w-10 h-10 rounded-xl bg-brand text-white flex items-center justify-center shrink-0"><Shield className="w-5 h-5" /></div>
               <div className="min-w-0">
                 <p className="text-sm font-bold text-slate-900 dark:text-white">ניהול הליגה</p>
-                <p className="text-[11px] text-slate-400 dark:text-slate-500">משחקים, שחקנים ובקשות בעלות</p>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">משחקים, שחקנים ובקשות בעלות</p>
               </div>
             </Link>
           )}
@@ -314,7 +314,7 @@ export default function Profile() {
           </div>
           {avatarErr && <p className="mt-1.5 text-xs text-red-600 dark:text-red-400">{avatarErr}</p>}
           <details className="mt-2">
-            <summary className="text-[11px] text-slate-400 dark:text-slate-500 cursor-pointer select-none">או הדבקת כתובת תמונה (URL)</summary>
+            <summary className="text-[11px] text-slate-500 dark:text-slate-400 cursor-pointer select-none">או הדבקת כתובת תמונה (URL)</summary>
             <input
               value={avatar}
               onChange={e => setAvatar(e.target.value)}
@@ -367,7 +367,7 @@ export default function Profile() {
               </a>
             ))}
           </div>
-          <p className="text-[11px] text-slate-400 dark:text-slate-500">
+          <p className="text-[11px] text-slate-500 dark:text-slate-400">
             תמונות שזוהו בהן הפנים שלך מאלבומי המשחקים · לחיצה פותחת את התמונה המקורית
           </p>
         </motion.div>

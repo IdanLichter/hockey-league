@@ -72,7 +72,7 @@ function LiveRow({ live, home, away }) {
         <span dir="ltr" className="text-lg sm:text-xl font-black tabular-nums text-slate-900 dark:text-white">
           {live.away_score ?? 0} : {live.home_score ?? 0}
         </span>
-        <span className={`mt-1 font-mono text-[11px] font-bold tabular-nums ${running ? "text-red-600 dark:text-red-400" : "text-slate-400 dark:text-slate-500"}`}>
+        <span className={`mt-1 font-mono text-[11px] font-bold tabular-nums ${running ? "text-red-600 dark:text-red-400" : "text-slate-500 dark:text-slate-400"}`}>
           {ended ? (live.period || "תוצאה סופית") : clockString(remaining)}
         </span>
       </div>

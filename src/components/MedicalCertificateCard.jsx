@@ -48,7 +48,7 @@ export default function MedicalCertificateCard({ playerId }) {
       <h3 className="flex items-center gap-2 text-sm font-bold text-slate-900 dark:text-white">
         <HeartPulse className="w-4 h-4 text-orange-500" /> אישור רפואי
       </h3>
-      <p className="text-[11px] text-slate-400 dark:text-slate-500">
+      <p className="text-[11px] text-slate-500 dark:text-slate-400">
         העלו צילום של הבדיקה הרפואית השנתית לאישור המאמן. הקובץ פרטי — נראה רק לך, למאמן ולמנהל.
       </p>
 

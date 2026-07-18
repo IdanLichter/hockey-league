@@ -123,7 +123,7 @@ export default function Players() {
                 <PlayerAvatar player={player} team={teamsMap[player.team_id]} size={12} />
                 <div className="min-w-0">
                   <h3 className="font-bold text-sm text-slate-900 dark:text-white truncate">{player.first_name} {player.last_name}</h3>
-                  <p className="text-[11px] text-slate-400 dark:text-slate-500 truncate">
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
                     {(() => {
                       const ids = [...(teamsByPlayer.get(player.id) || [])]
                       const names = ids.map(tid => teamsMap[tid]?.name).filter(Boolean)
@@ -150,7 +150,7 @@ export default function Players() {
               ].map(({ val, label, color }) => (
                 <div key={label} className="bg-slate-50 dark:bg-slate-800/50 rounded-lg py-2 text-center">
                   <p className={`text-base font-extrabold ${color}`}>{val}</p>
-                  <p className="text-[9px] text-slate-400 dark:text-slate-500 font-medium">{label}</p>
+                  <p className="text-[9px] text-slate-500 dark:text-slate-400 font-medium">{label}</p>
                 </div>
               ))}
             </div>

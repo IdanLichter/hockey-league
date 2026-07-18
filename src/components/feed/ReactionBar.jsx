@@ -165,7 +165,7 @@ export default function ReactionBar({ itemKey, liked: likedInit = false, likeCou
                       />
                     </div>
                   ))}
-                  {visibleComments.length === 0 && <p className="text-center text-xs text-slate-400 dark:text-slate-500 py-1">היו הראשונים להגיב</p>}
+                  {visibleComments.length === 0 && <p className="text-center text-xs text-slate-500 dark:text-slate-400 py-1">היו הראשונים להגיב</p>}
 
                   {user ? (
                     <form onSubmit={submitComment} className="flex items-center gap-2 pt-1">

@@ -36,7 +36,7 @@ export default function JudgeGate({ children }) {
     return (
       <div className="p-4 sm:p-6 lg:p-8 max-w-md mx-auto">
         <div className="card p-8 flex flex-col items-center text-center gap-3 min-h-[300px] justify-center">
-          <Lock className="w-10 h-10 text-slate-400 dark:text-slate-500" />
+          <Lock className="w-10 h-10 text-slate-500 dark:text-slate-400" />
           <h2 className="text-lg font-bold text-slate-900 dark:text-white">אזור שיפוט</h2>
           <p className="text-sm text-slate-500 dark:text-slate-400">אזור זה מיועד לשופטים בלבד. פנה/י למנהל הליגה כדי לקבל הרשאת שיפוט.</p>
         </div>

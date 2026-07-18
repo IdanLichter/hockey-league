@@ -116,7 +116,7 @@ export default function NotificationBell() {
               </button>
             )}
             {push === 'denied' && (
-              <p className="mt-2 text-[11px] text-slate-400 dark:text-slate-500 leading-snug">
+              <p className="mt-2 text-[11px] text-slate-500 dark:text-slate-400 leading-snug">
                 התראות חסומות בדפדפן. יש לאפשר אותן בהגדרות האתר כדי לקבל עדכונים.
               </p>
             )}
@@ -127,7 +127,7 @@ export default function NotificationBell() {
               <div className="animate-spin rounded-full h-5 w-5 border-2 border-brand border-t-transparent" />
             </div>
           ) : items.length === 0 ? (
-            <div className="p-8 text-center text-sm text-slate-400 dark:text-slate-500">אין התראות עדיין</div>
+            <div className="p-8 text-center text-sm text-slate-500 dark:text-slate-400">אין התראות עדיין</div>
           ) : (
             <ul className="divide-y divide-slate-100 dark:divide-slate-800">
               {items.map((n) => (
@@ -148,7 +148,7 @@ export default function NotificationBell() {
                     )}
                     <div className="min-w-0 flex-1">
                       <p className="text-sm text-slate-700 dark:text-slate-200 leading-snug">{notificationText(n)}</p>
-                      <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">{timeAgo(n.created_at)}</p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{timeAgo(n.created_at)}</p>
                     </div>
                     {!n.read_at && <span className="w-2 h-2 rounded-full bg-brand shrink-0 mt-1.5" />}
                   </Link>

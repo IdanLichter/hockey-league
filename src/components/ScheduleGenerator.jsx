@@ -99,7 +99,7 @@ export default function ScheduleGenerator({ tournament, teamIds = [], teamsMap =
           ))}
         </div>
       )}
-      <p className="text-[11px] text-slate-400 dark:text-slate-500">
+      <p className="text-[11px] text-slate-500 dark:text-slate-400">
         התאריכים נפרסים אוטומטית לאורך תאריכי הטורניר. אפשר לערוך כל משחק (תאריך, מגרש) בלשונית "משחקים" בניהול. בנוקאאוט/בתים — שלבי ההמשך נוספים ידנית לפי התוצאות.
       </p>
     </div>

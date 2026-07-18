@@ -18,7 +18,7 @@ export default function StatTile({ icon, value, label, sub, accent = 'default', 
         {icon && <span className="text-slate-300 dark:text-slate-600 shrink-0">{icon}</span>}
       </div>
       <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium mt-0.5">{label}</p>
-      {sub && <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5 truncate">{sub}</p>}
+      {sub && <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 truncate">{sub}</p>}
       {spark && spark.length > 0 && (
         <div className="h-6 mt-2 -mb-0.5" dir="ltr">
           <Sparkline values={spark} color={sparkColor} />

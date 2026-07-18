@@ -104,7 +104,7 @@ export default function GameChangeRequestModal({ game, home, away, onClose, onSu
 
         {error && <div className="rounded-lg px-3 py-2 text-sm bg-red-50 text-red-700 dark:bg-red-950/30 dark:text-red-400">{error}</div>}
 
-        <p className="text-[11px] text-slate-400 dark:text-slate-500 leading-snug">
+        <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-snug">
           הבקשה תישלח קודם למאמן הקבוצה היריבה לבחירת המועד המתאים, ולאחר מכן למנהל הליגה לאישור סופי.
         </p>
 

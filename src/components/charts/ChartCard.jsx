@@ -63,7 +63,7 @@ export default function ChartCard({
       {legend}
 
       {footnote && (
-        <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-3 leading-relaxed">{footnote}</p>
+        <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-3 leading-relaxed">{footnote}</p>
       )}
     </div>
   )

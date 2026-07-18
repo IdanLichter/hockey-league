@@ -108,13 +108,13 @@ export default function MedicalRosterAdmin() {
       {rows === null ? (
         <div className="flex justify-center py-10"><div className="animate-spin rounded-full h-7 w-7 border-2 border-orange-500 border-t-transparent" /></div>
       ) : shown.length === 0 ? (
-        <p className="text-center text-sm text-slate-400 dark:text-slate-500 py-10">אין שחקנים תואמים</p>
+        <p className="text-center text-sm text-slate-500 dark:text-slate-400 py-10">אין שחקנים תואמים</p>
       ) : (
         <div className="card overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="bg-slate-50 dark:bg-slate-800/60 text-[11px] uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                <tr className="bg-slate-50 dark:bg-slate-800/60 text-[11px] uppercase tracking-wider text-slate-500 dark:text-slate-400">
                   <th className="text-right font-bold px-4 py-2.5">שחקן</th>
                   <th className="text-right font-bold px-3 py-2.5">קבוצה</th>
                   <th className="text-right font-bold px-3 py-2.5">סטטוס רפואי</th>

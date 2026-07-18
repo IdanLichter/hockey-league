@@ -42,7 +42,7 @@ export function StandingsWidget({ teams = [] }) {
       <WidgetHeader icon={<Trophy className="w-4 h-4 text-amber-500" />} title="טבלה" />
       <div className="p-3 space-y-1.5">
         {top.length === 0 && (
-          <p className="text-center text-xs text-slate-400 dark:text-slate-500 py-4">אין נתונים</p>
+          <p className="text-center text-xs text-slate-500 dark:text-slate-400 py-4">אין נתונים</p>
         )}
         {top.map((team, i) => (
           <div key={team.id} className="px-1.5 py-1">
@@ -95,7 +95,7 @@ export function NextGameWidget({ games = [], teams = [] }) {
                   <span className="text-sm font-semibold text-slate-900 dark:text-white truncate">{home?.name}</span>
                 </div>
               )}
-              <span className="text-[11px] font-extrabold text-slate-400 dark:text-slate-500 shrink-0">VS</span>
+              <span className="text-[11px] font-extrabold text-slate-500 dark:text-slate-400 shrink-0">VS</span>
               {away ? (
                 <Link to={`/teams/${away.id}`} className="flex items-center gap-2 flex-1 min-w-0 flex-row-reverse group">
                   <TeamLogo team={away} size={8} />
@@ -134,7 +134,7 @@ export function LeadersWidget({ players = [], teams = [] }) {
       <WidgetHeader icon={<Flame className="w-4 h-4 text-red-500" />} title="מלכי השערים" />
       <div className="p-3 space-y-1.5">
         {top.length === 0 && (
-          <p className="text-center text-xs text-slate-400 dark:text-slate-500 py-4">אין נתונים</p>
+          <p className="text-center text-xs text-slate-500 dark:text-slate-400 py-4">אין נתונים</p>
         )}
         {top.map((p, i) => (
           <div key={p.id} className="flex items-center gap-2.5 px-1.5 py-1">
@@ -145,10 +145,10 @@ export function LeadersWidget({ players = [], teams = [] }) {
               </Link>
               {p.team_id ? (
                 <Link to={`/teams/${p.team_id}`} className="block group">
-                  <p className="text-[11px] text-slate-400 dark:text-slate-500 truncate group-hover:text-brand transition-colors">{teamsMap[p.team_id]?.name || '—'}</p>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate group-hover:text-brand transition-colors">{teamsMap[p.team_id]?.name || '—'}</p>
                 </Link>
               ) : (
-                <p className="text-[11px] text-slate-400 dark:text-slate-500 truncate">{teamsMap[p.team_id]?.name || '—'}</p>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">{teamsMap[p.team_id]?.name || '—'}</p>
               )}
             </div>
             <span className="bg-red-500 text-white text-[11px] font-bold px-2 py-0.5 rounded-md shrink-0">{p.goals || 0}</span>

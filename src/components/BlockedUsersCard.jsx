@@ -37,7 +37,7 @@ export default function BlockedUsersCard() {
       <h2 className="flex items-center gap-2 text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wide">
         <UserX className="w-4 h-4 text-brand" /> משתמשים חסומים
       </h2>
-      <p className="text-[11px] text-slate-400 dark:text-slate-500">התוכן של משתמשים חסומים מוסתר ממך. אפשר לבטל חסימה בכל עת.</p>
+      <p className="text-[11px] text-slate-500 dark:text-slate-400">התוכן של משתמשים חסומים מוסתר ממך. אפשר לבטל חסימה בכל עת.</p>
       <div className="space-y-2">
         {blocked.map(u => {
           const nm = u.display_name || "משתמש"

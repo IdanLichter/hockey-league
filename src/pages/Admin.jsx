@@ -1208,7 +1208,7 @@ function TeamsAdmin({ teams, reload, reviewOnly = false }) {
             <div key={t.id} className="flex items-center justify-between gap-3 bg-white dark:bg-slate-900 rounded-lg p-3">
               <div className="min-w-0">
                 <p className="text-sm font-bold text-slate-900 dark:text-white truncate">{t.name}</p>
-                <p className="text-[11px] text-slate-400 dark:text-slate-500">
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">
                   {(t.age_groups || [t.age_group]).map(g => AGE_LABEL[g] || g).join(' · ')}{t.city ? ` · ${t.city}` : ''}
                 </p>
               </div>

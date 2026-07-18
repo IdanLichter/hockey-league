@@ -175,7 +175,7 @@ function ReportRow({ report, busy, confirm, onAskConfirm, onCancel, onConfirm })
             <p className="text-sm text-slate-700 dark:text-slate-200 line-clamp-3 break-words whitespace-pre-wrap">
               {target.body?.trim() ? target.body : "(ללא טקסט)"}
             </p>
-            <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-1">
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
               מאת {author?.display_name || REPORTER_FALLBACK}
             </p>
           </>
@@ -183,7 +183,7 @@ function ReportRow({ report, busy, confirm, onAskConfirm, onCancel, onConfirm })
       </div>
 
       {/* Who reported */}
-      <p className="text-[11px] text-slate-400 dark:text-slate-500">
+      <p className="text-[11px] text-slate-500 dark:text-slate-400">
         דווח ע״י {reporter?.display_name || REPORTER_FALLBACK}
       </p>
 

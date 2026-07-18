@@ -37,7 +37,7 @@ export default function FeedFilters({ active, onChange, counts = {}, orientation
 
   return (
     <nav className="card p-2 space-y-0.5">
-      <p className="px-3 pt-1.5 pb-1 text-[11px] font-bold uppercase tracking-wide text-slate-400 dark:text-slate-500">
+      <p className="px-3 pt-1.5 pb-1 text-[11px] font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">
         סינון
       </p>
       {FEED_FILTERS.map((f) => {
@@ -52,10 +52,10 @@ export default function FeedFilters({ active, onChange, counts = {}, orientation
                 : "text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700/60 hover:text-slate-900 dark:hover:text-white"
             }`}
           >
-            <f.icon size={18} className={on ? "" : "text-slate-400 dark:text-slate-500"} />
+            <f.icon size={18} className={on ? "" : "text-slate-500 dark:text-slate-400"} />
             <span className="flex-1 text-right">{f.label}</span>
             {counts[f.key] != null && (
-              <span className={`text-[11px] font-bold ${on ? "text-brand-fg" : "text-slate-400 dark:text-slate-500"}`}>
+              <span className={`text-[11px] font-bold ${on ? "text-brand-fg" : "text-slate-500 dark:text-slate-400"}`}>
                 {counts[f.key]}
               </span>
             )}

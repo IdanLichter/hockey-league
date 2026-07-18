@@ -19,7 +19,7 @@ export default function RankBar({ data = [], color, empty = 'אין נתונים
   const bar = color || singleColor(dark)
 
   if (!data.length) {
-    return <p className="text-center text-slate-400 dark:text-slate-500 py-8 text-sm">{empty}</p>
+    return <p className="text-center text-slate-500 dark:text-slate-400 py-8 text-sm">{empty}</p>
   }
 
   const max = Math.max(1, ...data.map((d) => d.value))

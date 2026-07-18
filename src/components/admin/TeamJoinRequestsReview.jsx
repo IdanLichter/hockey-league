@@ -86,10 +86,10 @@ export default function TeamJoinRequestsReview({ teamsMap = {}, coachTeamIds = n
                   <div className="min-w-0">
                     <p className="text-sm text-slate-900 dark:text-white">
                       <span className="font-bold">{who}</span>
-                      <span className="text-slate-400 dark:text-slate-500"> מבקש/ת להצטרף ל־</span>
+                      <span className="text-slate-500 dark:text-slate-400"> מבקש/ת להצטרף ל־</span>
                       <span className="font-bold">{team?.name || "קבוצה"}</span>
                     </p>
-                    <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">{format(new Date(r.created_at), "d/M/yyyy HH:mm")}</p>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">{format(new Date(r.created_at), "d/M/yyyy HH:mm")}</p>
                     {r.note && <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 italic">"{r.note}"</p>}
                   </div>
                 </div>

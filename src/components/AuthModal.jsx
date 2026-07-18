@@ -101,7 +101,7 @@ export default function AuthModal() {
             <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">
               שלחנו קישור אימות ל־<span className="font-semibold text-slate-700 dark:text-slate-300">{email}</span>. לחצו עליו — ואתם בהרכב.
             </p>
-            <p className="text-xs text-slate-400 dark:text-slate-500 mt-2">
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
               לא הגיע? הציצו בתיקיית הספאם — לפעמים המייל נתקע ליד הבמה.
             </p>
             <button onClick={close} className="mt-5 w-full py-2.5 rounded-xl bg-brand text-white font-semibold hover:bg-brand-hover transition-colors">
@@ -117,7 +117,7 @@ export default function AuthModal() {
             <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">
               שלחנו כבר כמה מיילים בזמן קצר, והשרת ביקש חילוף. שבו על הספסל דקה־שתיים ונסו שוב.
             </p>
-            <p className="text-xs text-slate-400 dark:text-slate-500 mt-2">
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
               כבר קיבלתם מייל קודם? הקישור עדיין תקף — פשוט אשרו אותו.
             </p>
             <button onClick={close} className="mt-5 w-full py-2.5 rounded-xl bg-amber-500 text-white font-semibold hover:bg-amber-600 transition-colors">

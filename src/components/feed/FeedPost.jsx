@@ -40,7 +40,7 @@ function PostHeader({ icon, label, date, dateLabel }) {
     <div className="flex items-center gap-2 mb-3">
       {icon}
       <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">{label}</span>
-      <span className="text-[11px] text-slate-400 dark:text-slate-500 mr-auto">{dateLabel || fmtDate(date)}</span>
+      <span className="text-[11px] text-slate-500 dark:text-slate-400 mr-auto">{dateLabel || fmtDate(date)}</span>
     </div>
   )
 }
@@ -203,7 +203,7 @@ function ScoreBlock({ away, home, awayWin, homeWin }) {
   const decisive = awayWin || homeWin
   const cls = (win) => win
     ? "text-emerald-600 dark:text-emerald-400"
-    : decisive ? "text-slate-400 dark:text-slate-500" : "text-slate-900 dark:text-white"
+    : decisive ? "text-slate-500 dark:text-slate-400" : "text-slate-900 dark:text-white"
   return (
     <div className="text-4xl sm:text-5xl font-black tracking-tighter tabular-nums leading-none">
       <span className={cls(awayWin)}>{away}</span>
@@ -221,11 +221,11 @@ function ResultTeam({ team, side, isWin, isLoss, label }) {
     <TeamLink team={team} className={`group flex items-center gap-2.5 flex-1 min-w-0 rounded-xl px-2 py-1.5 transition-colors ${reverse ? "flex-row-reverse" : ""} ${isWin ? "bg-emerald-50 dark:bg-emerald-900/20" : ""}`}>
       <TeamLogo team={team} size={12} />
       <div className={`min-w-0 ${reverse ? "text-left" : ""}`}>
-        <p className={`text-sm sm:text-[15px] truncate flex items-center gap-1 group-hover:text-brand transition-colors ${reverse ? "flex-row-reverse" : ""} ${isWin ? "font-extrabold text-emerald-700 dark:text-emerald-300" : isLoss ? "font-semibold text-slate-400 dark:text-slate-500" : "font-bold text-slate-900 dark:text-white"}`}>
+        <p className={`text-sm sm:text-[15px] truncate flex items-center gap-1 group-hover:text-brand transition-colors ${reverse ? "flex-row-reverse" : ""} ${isWin ? "font-extrabold text-emerald-700 dark:text-emerald-300" : isLoss ? "font-semibold text-slate-500 dark:text-slate-400" : "font-bold text-slate-900 dark:text-white"}`}>
           {isWin && <Trophy className="w-3.5 h-3.5 text-amber-500 shrink-0" />}
           <span className="truncate">{team?.name}</span>
         </p>
-        <p className={`text-[11px] ${isWin ? "text-emerald-600 dark:text-emerald-400 font-semibold" : "text-slate-400"}`}>{label}</p>
+        <p className={`text-[11px] ${isWin ? "text-emerald-600 dark:text-emerald-400 font-semibold" : "text-slate-500 dark:text-slate-400"}`}>{label}</p>
       </div>
     </TeamLink>
   )
@@ -283,7 +283,7 @@ function TopScorerPost({ post, likedItems, itemLikeCounts, itemCommentCounts, bl
         </div>
         <div className="text-center shrink-0">
           <p className="text-2xl font-extrabold text-red-500 tabular-nums leading-none">{goals}</p>
-          <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-1">שערים</p>
+          <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">שערים</p>
         </div>
       </div>
       <EventPhoto photo={post.data.photo} itemKey={post.id} candidates={post.data.photoCandidates} onRefreshed={onPhotoRefreshed} />
@@ -312,7 +312,7 @@ function GameResultPost({ post, playersMap, teamsMap, likedItems, itemLikeCounts
             {game.game_type === 'פלייאוף' && <span className="stat-pill badge-warning !py-0.5">פלייאוף</span>}
             {game.game_type === FRIENDLY_GAME_TYPE && <span className="stat-pill badge-neutral !py-0.5">ידידותי</span>}
             {game.series_game && <span className="stat-pill badge-info !py-0.5">משחק {game.series_game}</span>}
-            <span className="text-[11px] text-slate-400 dark:text-slate-500 whitespace-nowrap">{fmtDate(post.date)}</span>
+            <span className="text-[11px] text-slate-500 dark:text-slate-400 whitespace-nowrap">{fmtDate(post.date)}</span>
           </div>
         </div>
 
@@ -359,7 +359,7 @@ function GameResultPost({ post, playersMap, teamsMap, likedItems, itemLikeCounts
               <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-700">
                 <h4 className="font-bold text-sm text-slate-900 dark:text-white mb-3">סטטיסטיקות שחקנים</h4>
                 {stats.length === 0 ? (
-                  <p className="text-center text-xs text-slate-400 dark:text-slate-500 py-4">לא הוזנו סטטיסטיקות למשחק זה</p>
+                  <p className="text-center text-xs text-slate-500 dark:text-slate-400 py-4">לא הוזנו סטטיסטיקות למשחק זה</p>
                 ) : (
                   <>
                     <div className="grid grid-cols-2 gap-6">
@@ -392,7 +392,7 @@ function GameResultPost({ post, playersMap, teamsMap, likedItems, itemLikeCounts
                             <div key={stat.id} className="flex items-center justify-between py-1 text-xs">
                               <span className="text-slate-700 dark:text-slate-300">
                                 {stat.guest_player_name}
-                                {stat.guest_player_original_team && <span className="text-slate-400"> ({stat.guest_player_original_team})</span>}
+                                {stat.guest_player_original_team && <span className="text-slate-500 dark:text-slate-400"> ({stat.guest_player_original_team})</span>}
                               </span>
                               <div className="flex gap-1.5">
                                 {stat.goals > 0 && <span className="stat-pill bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300 !py-0 !px-1.5">⚽ {stat.goals}</span>}
@@ -439,7 +439,7 @@ function MilestonePost({ post, likedItems, itemLikeCounts, itemCommentCounts, bl
       <p className="text-sm font-bold text-slate-900 dark:text-white">
         <PlayerLink playerId={playerId} className={`${accent} hover:underline`}>{name}</PlayerLink> כבש {goals} שערים
       </p>
-      <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-1">
+      <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
         {teamName ? `(${teamName}) • ` : ''}
         <TeamLink team={home} className="hover:text-brand transition-colors">{home?.name}</TeamLink>{' '}
         {/* dir="ltr" bidi-isolates the score so RTL doesn't split "away:home" and
@@ -584,11 +584,11 @@ function PostCard({ post, likedPostIds, blockedIds, roleBadges }) {
                 <BadgeCheck className="w-3 h-3" /> שחקן
               </span>
             ) : (
-              <span title="חשבון שאינו מקושר לשחקן" className="shrink-0 text-[10px] font-medium text-slate-400 dark:text-slate-500">אורח/ת</span>
+              <span title="חשבון שאינו מקושר לשחקן" className="shrink-0 text-[10px] font-medium text-slate-500 dark:text-slate-400">אורח/ת</span>
             )}
             {authorRoleItems.map(it => <RoleBadge key={it.role} role={it.role} size="sm" />)}
           </div>
-          <p className="text-[11px] text-slate-400 dark:text-slate-500 flex items-center gap-1">
+          <p className="text-[11px] text-slate-500 dark:text-slate-400 flex items-center gap-1">
             <span>{fmtDate(post.date)}</span>
             {team && <>·<TeamLink team={team} className="hover:text-brand transition-colors">{team.name}</TeamLink></>}
           </p>
@@ -691,7 +691,7 @@ function PostCard({ post, likedPostIds, blockedIds, roleBadges }) {
                       />
                     </div>
                   ))}
-                  {visibleComments.length === 0 && <p className="text-center text-xs text-slate-400 dark:text-slate-500 py-1">היו הראשונים להגיב</p>}
+                  {visibleComments.length === 0 && <p className="text-center text-xs text-slate-500 dark:text-slate-400 py-1">היו הראשונים להגיב</p>}
 
                   {user ? (
                     <form onSubmit={submitComment} className="flex items-center gap-2 pt-1">

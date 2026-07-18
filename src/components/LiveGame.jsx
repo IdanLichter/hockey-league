@@ -52,7 +52,7 @@ const EVENT_META = {
   red:     { icon: "🟥", label: "כרטיס אדום", accent: "text-red-600 dark:text-red-400" },
   foul:    { icon: "🚩", label: "עבירה", accent: "text-slate-500 dark:text-slate-400" },
   timeout: { icon: "⏱️", label: "פסק זמן", accent: "text-amber-600 dark:text-amber-400" },
-  break:   { icon: "⏸️", label: "מנוחה", accent: "text-slate-400 dark:text-slate-500" },
+  break:   { icon: "⏸️", label: "מנוחה", accent: "text-slate-500 dark:text-slate-400" },
 }
 
 // One row in the live play-by-play. Events arrive fully resolved (player name +
@@ -69,7 +69,7 @@ function LiveEventRow({ ev, homeName, awayName }) {
     return (
       <div className="flex items-center gap-2 py-0.5">
         <div className="flex-1 h-px bg-slate-100 dark:bg-slate-700/60" />
-        <span className="shrink-0 text-[11px] font-semibold text-slate-400 dark:text-slate-500">
+        <span className="shrink-0 text-[11px] font-semibold text-slate-500 dark:text-slate-400">
           {meta.icon} {meta.label}{ev.period ? ` · מחצית ${ev.period}` : ""}
         </span>
         <div className="flex-1 h-px bg-slate-100 dark:bg-slate-700/60" />
@@ -88,7 +88,7 @@ function LiveEventRow({ ev, homeName, awayName }) {
             <span className={`font-bold ${meta.accent}`}>{meta.label}</span>
             {ev.player && <span className="text-slate-700 dark:text-slate-200"> · {ev.player}</span>}
           </div>
-          <div className="text-[11px] text-slate-400 dark:text-slate-500">{teamName}{when ? ` · ${when}` : ""}</div>
+          <div className="text-[11px] text-slate-500 dark:text-slate-400">{teamName}{when ? ` · ${when}` : ""}</div>
         </div>
       </div>
     </div>
@@ -179,10 +179,10 @@ export default function LiveGame({ gameId, home, away, initial = null }) {
       <div className="flex items-center gap-2 sm:gap-4">
         <TeamPanel team={home} score={live.home_score} fallbackName="בית" />
         <div className="shrink-0 flex flex-col items-center gap-2">
-          <div className={`font-mono font-extrabold tabular-nums leading-none text-5xl sm:text-8xl ${running && !waiting ? "text-orange-500" : "text-slate-400 dark:text-slate-500"}`}>
+          <div className={`font-mono font-extrabold tabular-nums leading-none text-5xl sm:text-8xl ${running && !waiting ? "text-orange-500" : "text-slate-500 dark:text-slate-400"}`}>
             {clockString(remaining)}
           </div>
-          <span className={`text-xs font-semibold uppercase tracking-wide ${waiting ? "text-amber-600 dark:text-amber-400" : "text-slate-400 dark:text-slate-500"}`}>
+          <span className={`text-xs font-semibold uppercase tracking-wide ${waiting ? "text-amber-600 dark:text-amber-400" : "text-slate-500 dark:text-slate-400"}`}>
             {waiting ? "ממתין לשופט" : running ? "רץ" : ended ? "הסתיים" : "מושהה"}
           </span>
         </div>
@@ -192,7 +192,7 @@ export default function LiveGame({ gameId, home, away, initial = null }) {
       {/* Live play-by-play — goals, cards and fouls the judge broadcasts. */}
       {Array.isArray(live.state?.events) && live.state.events.length > 0 && (
         <div className="mt-5 pt-4 border-t border-slate-100 dark:border-slate-700/50">
-          <h3 className="text-[11px] font-bold uppercase tracking-wide text-slate-400 dark:text-slate-500 mb-2.5">מהלך המשחק</h3>
+          <h3 className="text-[11px] font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400 mb-2.5">מהלך המשחק</h3>
           <div className="space-y-1.5 max-h-64 overflow-y-auto">
             {[...live.state.events].reverse().map((ev, i) => (
               <LiveEventRow key={ev.id || i} ev={ev} homeName={home?.name || "בית"} awayName={away?.name || "חוץ"} />

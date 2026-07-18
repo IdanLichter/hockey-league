@@ -196,7 +196,7 @@ export default function Games() {
             <div className={`flex items-center gap-3 flex-1 min-w-0 rounded-xl px-2 py-1.5 transition-colors ${homeWin ? 'bg-emerald-50 dark:bg-emerald-900/20' : ''}`}>
               <TeamLogo team={home} size={10} />
               <div className="min-w-0">
-                <p className={`text-sm truncate flex items-center gap-1 ${homeWin ? 'font-extrabold text-emerald-700 dark:text-emerald-300' : awayWin ? 'font-semibold text-slate-400 dark:text-slate-500' : 'font-bold text-slate-900 dark:text-white'}`}>
+                <p className={`text-sm truncate flex items-center gap-1 ${homeWin ? 'font-extrabold text-emerald-700 dark:text-emerald-300' : awayWin ? 'font-semibold text-slate-500 dark:text-slate-400' : 'font-bold text-slate-900 dark:text-white'}`}>
                   {homeWin && <Trophy className="w-3.5 h-3.5 text-amber-500 shrink-0" />}
                   <span className="truncate">{home?.name}</span>
                 </p>
@@ -212,9 +212,9 @@ export default function Games() {
             <div className="px-3 text-center shrink-0">
               {done ? (
                 <div className="text-2xl font-extrabold tracking-tight tabular-nums">
-                  <span className={awayWin ? 'text-emerald-600 dark:text-emerald-400' : homeWin ? 'text-slate-400 dark:text-slate-500' : 'text-slate-900 dark:text-white'}>{game.away_score}</span>
+                  <span className={awayWin ? 'text-emerald-600 dark:text-emerald-400' : homeWin ? 'text-slate-500 dark:text-slate-400' : 'text-slate-900 dark:text-white'}>{game.away_score}</span>
                   <span className="text-slate-300 dark:text-slate-600 mx-1">:</span>
-                  <span className={homeWin ? 'text-emerald-600 dark:text-emerald-400' : awayWin ? 'text-slate-400 dark:text-slate-500' : 'text-slate-900 dark:text-white'}>{game.home_score}</span>
+                  <span className={homeWin ? 'text-emerald-600 dark:text-emerald-400' : awayWin ? 'text-slate-500 dark:text-slate-400' : 'text-slate-900 dark:text-white'}>{game.home_score}</span>
                 </div>
               ) : (
                 <div className="text-lg font-bold text-slate-300 dark:text-slate-600">
@@ -226,7 +226,7 @@ export default function Games() {
             <div className={`flex items-center gap-3 flex-1 min-w-0 flex-row-reverse rounded-xl px-2 py-1.5 transition-colors ${awayWin ? 'bg-emerald-50 dark:bg-emerald-900/20' : ''}`}>
               <TeamLogo team={away} size={10} />
               <div className="min-w-0 text-left">
-                <p className={`text-sm truncate flex items-center gap-1 flex-row-reverse ${awayWin ? 'font-extrabold text-emerald-700 dark:text-emerald-300' : homeWin ? 'font-semibold text-slate-400 dark:text-slate-500' : 'font-bold text-slate-900 dark:text-white'}`}>
+                <p className={`text-sm truncate flex items-center gap-1 flex-row-reverse ${awayWin ? 'font-extrabold text-emerald-700 dark:text-emerald-300' : homeWin ? 'font-semibold text-slate-500 dark:text-slate-400' : 'font-bold text-slate-900 dark:text-white'}`}>
                   {awayWin && <Trophy className="w-3.5 h-3.5 text-amber-500 shrink-0" />}
                   <span className="truncate">{away?.name}</span>
                 </p>
@@ -240,7 +240,7 @@ export default function Games() {
             <span className="flex items-center gap-1"><Calendar className="w-3.5 h-3.5" />{format(new Date(game.game_date), "d/M/yyyy")}</span>
             <span className="flex items-center gap-1"><MapPin className="w-3.5 h-3.5" />{game.venue || '—'}</span>
             {ref && <span className="flex items-center gap-1"><Shield className="w-3.5 h-3.5" />{ref}</span>}
-            <span className="mr-auto font-semibold text-slate-400 dark:text-slate-500">{open ? 'סגור' : 'פרטים'}</span>
+            <span className="mr-auto font-semibold text-slate-500 dark:text-slate-400">{open ? 'סגור' : 'פרטים'}</span>
           </div>
 
           {game.notes && (
@@ -263,7 +263,7 @@ export default function Games() {
                         <div className="animate-spin rounded-full h-5 w-5 border-2 border-brand border-t-transparent" />
                       </div>
                     ) : stats.length === 0 ? (
-                      <p className="text-center text-xs text-slate-400 dark:text-slate-500 py-4">לא הוזנו סטטיסטיקות למשחק זה</p>
+                      <p className="text-center text-xs text-slate-500 dark:text-slate-400 py-4">לא הוזנו סטטיסטיקות למשחק זה</p>
                     ) : (
                       <>
                         <div className="grid grid-cols-2 gap-6">
@@ -412,7 +412,7 @@ export default function Games() {
           <div className="text-center py-16">
             <Calendar className="w-12 h-12 mx-auto text-slate-300 dark:text-slate-600 mb-3" />
             <h3 className="text-lg font-semibold text-slate-500 dark:text-slate-400">אין משחקים תואמים</h3>
-            <p className="text-sm text-slate-400 dark:text-slate-500 mt-1">נסה לשנות את הסינונים</p>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">נסה לשנות את הסינונים</p>
           </div>
         )}
       </div>

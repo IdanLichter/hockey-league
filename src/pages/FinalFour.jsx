@@ -153,7 +153,7 @@ export default function FinalFour() {
             </div>
           </div>
           <p className="text-xs sm:text-sm font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider">אלופת ה-Final Four</p>
-          <p className="text-[11px] sm:text-xs text-slate-400 dark:text-slate-500 font-medium mt-0.5">עונת 2025-26</p>
+          <p className="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 font-medium mt-0.5">עונת 2025-26</p>
           <div className="flex items-center justify-center gap-3 mt-4">
             <TeamLogo team={champion} size={12} />
             <TeamLink team={champion} className="font-extrabold text-2xl sm:text-3xl text-slate-900 dark:text-white hover:text-orange-500 transition-colors">{champion.name}</TeamLink>
@@ -225,7 +225,7 @@ export default function FinalFour() {
       <div className={champion ? "hidden" : "lg:hidden space-y-4"}>
         {/* Playoffs */}
         <div className="card p-4">
-          <h2 className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-3 text-center">פלייאוף</h2>
+          <h2 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3 text-center">פלייאוף</h2>
           <div className="space-y-3">
             <PlayoffMatchup series={seriesA} games={seriesAGames} label="סדרה A" winner={winnerA} delay={0} />
             <PlayoffMatchup series={seriesB} games={seriesBGames} label="סדרה B" winner={winnerB} delay={0.05} />
@@ -238,7 +238,7 @@ export default function FinalFour() {
 
         {/* Semi-finals */}
         <div className="card p-4">
-          <h2 className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-3 text-center">חצי גמר</h2>
+          <h2 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3 text-center">חצי גמר</h2>
           <div className="space-y-3">
             <SemiMatchup semi={semi1} games={semi1Games} winner={semi1Winner} delay={0.2} />
             <SemiMatchup semi={semi2} games={semi2Games} winner={semi2Winner} delay={0.25} />
@@ -255,7 +255,7 @@ export default function FinalFour() {
       {/* First-round results — shown when the season is complete (champion set) */}
       {champion && (
         <div className="card p-4 sm:p-5">
-          <h2 className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-3">תוצאות שלב הראשון</h2>
+          <h2 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3">תוצאות שלב הראשון</h2>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             <PlayoffMatchup series={seriesA} games={seriesAGames} label="סדרה A" winner={winnerA} delay={0} onlyCompleted />
             <PlayoffMatchup series={seriesB} games={seriesBGames} label="סדרה B" winner={winnerB} delay={0.05} onlyCompleted />
@@ -325,7 +325,7 @@ function TeamSlot({ team, pos, isWinner, isLoser }) {
       ) : (
         <>
           <div className="w-7 h-7 rounded-full bg-slate-100 dark:bg-slate-700 border-2 border-dashed border-slate-300 dark:border-slate-600" />
-          <span className="text-xs text-slate-400 dark:text-slate-500 font-medium">ממתין</span>
+          <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">ממתין</span>
         </>
       )}
     </div>
@@ -337,7 +337,7 @@ function GameResult({ game }) {
   return (
     <div className="flex items-center justify-between text-[11px] px-2 py-1 bg-slate-50 dark:bg-slate-800/50 rounded-md">
       <span className="text-slate-500 dark:text-slate-400">מ׳ {game.series_game || '—'}</span>
-      <span className="text-slate-400 dark:text-slate-500">{format(new Date(game.game_date), "d/M")}</span>
+      <span className="text-slate-500 dark:text-slate-400">{format(new Date(game.game_date), "d/M")}</span>
       {game.status === 'completed'
         ? <span className="font-bold text-slate-900 dark:text-white tabular-nums">{game.away_score} - {game.home_score}</span>
         : <span className="text-blue-600 dark:text-blue-400 font-medium">מתוכנן</span>
@@ -416,7 +416,7 @@ function SemiMatchup({ semi, games, winner, delay }) {
         {winner && <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400">הוכרע</span>}
       </div>
       {semi.dateTime && (
-        <p className="text-[10px] text-slate-400 dark:text-slate-500 font-medium mb-2 flex items-center gap-1">
+        <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium mb-2 flex items-center gap-1">
           <Calendar className="w-3 h-3" /> {semi.dateTime}
         </p>
       )}
@@ -504,7 +504,7 @@ function FinalMatchup({ t1, t2, games, delay }) {
         )}
 
         {!champion && !t1 && !t2 && (
-          <p className="text-xs text-slate-400 dark:text-slate-500 font-medium text-center mt-2">טרם נקבע</p>
+          <p className="text-xs text-slate-500 dark:text-slate-400 font-medium text-center mt-2">טרם נקבע</p>
         )}
       </div>
     </motion.div>

@@ -43,7 +43,7 @@ export default function TournamentStandings({ teamIds = [], games = [], teamsMap
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="text-[11px] text-slate-400 dark:text-slate-500 border-b border-slate-100 dark:border-slate-700">
+              <tr className="text-[11px] text-slate-500 dark:text-slate-400 border-b border-slate-100 dark:border-slate-700">
                 <th className="text-right font-semibold py-2 pr-1">#</th>
                 <th className="text-right font-semibold py-2">קבוצה</th>
                 <th className="text-center font-semibold py-2 w-8">מש'</th>

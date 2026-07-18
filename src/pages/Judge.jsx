@@ -90,7 +90,7 @@ function JudgePicker() {
         <div className="card p-10 text-center">
           <Calendar className="w-10 h-10 mx-auto text-slate-300 dark:text-slate-600 mb-2" />
           <p className="text-sm font-medium text-slate-500 dark:text-slate-400">אין משחקים זמינים לשיפוט</p>
-          <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">משחקים מתוכננים או פעילים יופיעו כאן</p>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">משחקים מתוכננים או פעילים יופיעו כאן</p>
         </div>
       ) : (
         <div className="grid gap-3">
@@ -112,7 +112,7 @@ function JudgePicker() {
                       <TeamLogo team={home} size={10} />
                       <span className="font-bold text-sm text-slate-900 dark:text-white truncate">{home?.name || '—'}</span>
                     </div>
-                    <span className="text-xs font-bold text-slate-400 dark:text-slate-500 shrink-0">נגד</span>
+                    <span className="text-xs font-bold text-slate-500 dark:text-slate-400 shrink-0">נגד</span>
                     <div className="flex items-center gap-2.5 flex-1 min-w-0 flex-row-reverse">
                       <TeamLogo team={away} size={10} />
                       <span className="font-bold text-sm text-slate-900 dark:text-white truncate text-left">{away?.name || '—'}</span>
@@ -121,7 +121,7 @@ function JudgePicker() {
                   {game.status === "scheduled" && (
                     <div className="flex items-center justify-between gap-2 mt-2.5">
                       <AttChip att={teamAtt(game, game.home_team_id)} />
-                      <span className="text-[10px] text-slate-400 dark:text-slate-500">מגיעים</span>
+                      <span className="text-[10px] text-slate-500 dark:text-slate-400">מגיעים</span>
                       <AttChip att={teamAtt(game, game.away_team_id)} />
                     </div>
                   )}

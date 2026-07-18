@@ -72,14 +72,14 @@ export default function GameChangeRequestsReview({ teamsMap = {} }) {
                   <div className="min-w-0">
                     <p className="text-sm text-slate-900 dark:text-white">
                       <span className="font-bold">{who}</span>
-                      <span className="text-slate-400 dark:text-slate-500"> ({teamName(r.team_id)}) מבקש/ת לשנות</span>
+                      <span className="text-slate-500 dark:text-slate-400"> ({teamName(r.team_id)}) מבקש/ת לשנות</span>
                     </p>
                     <Link to={`/games/${r.game_id}`} className="inline-flex items-center gap-1 text-sm font-semibold text-slate-700 dark:text-slate-200 hover:text-brand transition-colors mt-0.5">
                       {teamName(g.home_team_id)} <span className="text-slate-400">נגד</span> {teamName(g.away_team_id)}
                       <ExternalLink className="w-3 h-3 opacity-60" />
                     </Link>
                   </div>
-                  <span className="text-[11px] text-slate-400 dark:text-slate-500 shrink-0">{fmt(r.created_at)}</span>
+                  <span className="text-[11px] text-slate-500 dark:text-slate-400 shrink-0">{fmt(r.created_at)}</span>
                 </div>
 
                 {r.reason && <p className="text-sm text-slate-600 dark:text-slate-300 italic">"{r.reason}"</p>}

@@ -29,7 +29,7 @@ export default function Composer({ onPosted }) {
           <div className="w-10 h-10 rounded-full shrink-0 flex items-center justify-center font-bold text-white bg-brand">
             <User className="w-5 h-5" />
           </div>
-          <div className="flex-1 min-w-0 rounded-full bg-slate-100 dark:bg-slate-700/60 px-4 py-2.5 text-sm text-slate-400 dark:text-slate-500 select-none truncate">
+          <div className="flex-1 min-w-0 rounded-full bg-slate-100 dark:bg-slate-700/60 px-4 py-2.5 text-sm text-slate-500 dark:text-slate-400 select-none truncate">
             התחברו כדי לשתף עדכון…
           </div>
           <button type="button" disabled className="shrink-0 px-4 py-2 rounded-full bg-brand text-white text-sm font-semibold opacity-60 cursor-not-allowed">
@@ -81,7 +81,7 @@ export default function Composer({ onPosted }) {
           />
           {error && <p className="mt-2 text-xs text-red-600 dark:text-red-400 font-medium">{error}</p>}
           <div className="mt-2 flex items-center justify-between">
-            <span className="text-[11px] text-slate-400 dark:text-slate-500">{body.length}/{MAX}</span>
+            <span className="text-[11px] text-slate-500 dark:text-slate-400">{body.length}/{MAX}</span>
             <button
               onClick={submit}
               disabled={busy || !body.trim()}

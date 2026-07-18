@@ -90,9 +90,9 @@ export default function SuggestionsReview({ players = [] }) {
                 )}
                 <div className="flex-1 min-w-0 flex flex-col gap-2">
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="text-xs text-slate-400 dark:text-slate-500">{c.size} תמונות</span>
+                    <span className="text-xs text-slate-500 dark:text-slate-400">{c.size} תמונות</span>
                     {Array.isArray(c.albums) && c.albums[0] && (
-                      <span className="text-xs text-slate-400 dark:text-slate-500">· {c.albums[0].title}</span>
+                      <span className="text-xs text-slate-500 dark:text-slate-400">· {c.albums[0].title}</span>
                     )}
                   </div>
                   {/* suggested names with vote counts */}

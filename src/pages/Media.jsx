@@ -149,7 +149,7 @@ function ClusterCard({ cluster, index, summary, onSubmitted }) {
 
       <div className="p-3 flex flex-col gap-2 flex-1">
         {Array.isArray(cluster.albums) && cluster.albums.length > 0 && (
-          <p className="flex items-center gap-1 text-[11px] text-slate-400 dark:text-slate-500">
+          <p className="flex items-center gap-1 text-[11px] text-slate-500 dark:text-slate-400">
             <CalendarDays className="w-3 h-3 shrink-0" />
             <span className="truncate">
               {cluster.albums[0].title}

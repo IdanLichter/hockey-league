@@ -256,7 +256,7 @@ function AlbumSubmissions() {
                   <span className="truncate">{s.url}</span>
                 </a>
                 {s.note && <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 break-words">{s.note}</p>}
-                <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
                   {new Date(s.created_at).toLocaleDateString("he-IL")}
                 </p>
               </div>

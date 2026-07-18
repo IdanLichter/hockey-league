@@ -141,7 +141,7 @@ export default function RolesAdmin({ teamsMap = {}, players = [] }) {
                     : <div className="w-9 h-9 rounded-full bg-brand text-white flex items-center justify-center text-sm font-bold shrink-0">{initial}</div>}
                   <div className="min-w-0 flex-1">
                     <p className="font-bold text-sm text-slate-900 dark:text-white truncate">{p.display_name || "משתמש"}</p>
-                    <p className="text-[11px] text-slate-400 dark:text-slate-500">{linked ? `משויך ל${linked.first_name} ${linked.last_name}` : "ללא שיוך שחקן"}</p>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400">{linked ? `משויך ל${linked.first_name} ${linked.last_name}` : "ללא שיוך שחקן"}</p>
                   </div>
                   {user?.id !== p.id && (
                     <button onClick={() => { setConfirmDelete(confirmDelete === p.id ? null : p.id); setError(null) }}
@@ -173,7 +173,7 @@ export default function RolesAdmin({ teamsMap = {}, players = [] }) {
                       <button onClick={() => doRevoke(r.id)} disabled={busy} className="text-slate-400 hover:text-red-500 disabled:opacity-40"><X className="w-3 h-3" /></button>
                     </span>
                   ))}
-                  {myRoles.length === 0 && <span className="text-[11px] text-slate-400 dark:text-slate-500">אין תפקידים</span>}
+                  {myRoles.length === 0 && <span className="text-[11px] text-slate-500 dark:text-slate-400">אין תפקידים</span>}
                   {form?.profileId !== p.id && (
                     <button onClick={() => openForm(p)} className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-1 rounded-lg border border-dashed border-slate-300 dark:border-slate-600 text-slate-500 dark:text-slate-400 hover:border-brand hover:text-brand transition-colors">
                       <Plus className="w-3 h-3" /> הוסף תפקיד

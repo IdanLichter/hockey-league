@@ -98,10 +98,10 @@ export default function ClaimsReview({ teamsMap = {}, coachTeamIds = null }) {
                   <div className="min-w-0">
                     <p className="text-sm text-slate-900 dark:text-white">
                       <span className="font-bold">{claimant}</span>
-                      <span className="text-slate-400 dark:text-slate-500"> מבקש/ת להיות </span>
+                      <span className="text-slate-500 dark:text-slate-400"> מבקש/ת להיות </span>
                       <span className="font-bold">{player ? `${player.first_name} ${player.last_name}` : "שחקן לא ידוע"}</span>
                     </p>
-                    <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
                       {team?.name || "—"} · {format(new Date(claim.created_at), "d/M/yyyy HH:mm")}
                     </p>
                     {claim.note && <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 italic">"{claim.note}"</p>}

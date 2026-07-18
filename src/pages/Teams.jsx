@@ -139,7 +139,7 @@ export default function Teams() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <h3 className="font-bold text-base text-slate-900 dark:text-white">{team.name}</h3>
-                        {isSenior && <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-slate-700 px-1.5 py-0.5 rounded">#{index + 1}</span>}
+                        {isSenior && <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-700 px-1.5 py-0.5 rounded">#{index + 1}</span>}
                         {!isSenior && <span className="text-[10px] font-bold text-brand dark:text-brand-light bg-brand/10 dark:bg-brand/20 px-1.5 py-0.5 rounded">{AGE_LABEL[ageTab]}</span>}
                       </div>
                       <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{team.city}{team.founded_year ? ` • ${team.founded_year}` : ''}</p>

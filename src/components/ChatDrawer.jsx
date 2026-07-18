@@ -162,7 +162,7 @@ export default function ChatDrawer() {
             convs.length === 0 ? (
               <div className="flex-1 flex flex-col items-center justify-center gap-3 p-8 text-center">
                 <MessageCircle className="w-10 h-10 text-slate-300 dark:text-slate-700" />
-                <p className="text-sm text-slate-400 dark:text-slate-500">אין שיחות עדיין</p>
+                <p className="text-sm text-slate-500 dark:text-slate-400">אין שיחות עדיין</p>
                 <button onClick={openNew} className="btn-primary btn-sm">התחל שיחה חדשה</button>
               </div>
             ) : (

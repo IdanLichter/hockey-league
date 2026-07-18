@@ -96,10 +96,10 @@ export default function PlayerSubmissionsReview({ teamsMap = {}, coachTeamIds = 
                   <div className="min-w-0">
                     <p className="text-sm text-slate-900 dark:text-white">
                       <span className="font-bold">{submitter}</span>
-                      <span className="text-slate-400 dark:text-slate-500"> מבקש/ת כרטיס עבור </span>
+                      <span className="text-slate-500 dark:text-slate-400"> מבקש/ת כרטיס עבור </span>
                       <span className="font-bold">{s.first_name} {s.last_name}</span>
                     </p>
-                    <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
                       {team?.name || "—"}{meta ? ` · ${meta}` : ""} · {format(new Date(s.created_at), "d/M/yyyy HH:mm")}
                     </p>
                     {s.note && <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 italic">"{s.note}"</p>}
