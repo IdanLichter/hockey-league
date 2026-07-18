@@ -50,16 +50,20 @@ export async function submitSuggestion(clusterKey, firstName, lastName) {
 }
 
 // Load the full photo index (photos + which recognized player is in each) for the
-// auto-illustrated feed. Paged so it survives the PostgREST row cap.
+// auto-illustrated feed. Paged so it survives the PostgREST 1000-row cap.
 async function fetchAll(table, select) {
-  const out = []; let from = 0; const size = 1000
-  while (true) {
-    const { data, error } = await supabase.from(table).select(select).range(from, from + size - 1)
-    if (error) throw error
-    out.push(...data)
-    if (data.length < size) break
-    from += size
-  }
+  const size = 1000
+  const page = (i) =>
+    supabase.from(table).select(select).range(i * size, i * size + size - 1)
+      .then(({ data, error }) => { if (error) throw error; return data || [] })
+
+  // The photo tables are ~2k rows. Fetch the first two pages in parallel — one round-trip
+  // instead of the old await-one-page-then-the-next loop, which serialized the feed's
+  // photo load and pushed out the LCP image by ~a second. Keep paging sequentially only
+  // in the rare case the table has grown past 2000 rows (every page so far came back full).
+  const [first, second] = await Promise.all([page(0), page(1)])
+  const out = [...first, ...second]
+  for (let i = 2; out.length === i * size; i++) out.push(...(await page(i)))
   return out
 }
 
