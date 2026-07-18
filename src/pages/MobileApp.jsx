@@ -6,7 +6,7 @@ import { Link } from "react-router-dom"
 // asset at this path (see vercel.json for the download headers). Bump the copy in
 // public/ + the VERSION label below whenever a new build ships.
 const APK_URL = "/rinkhockeyIL.apk"
-const APK_VERSION = "1.0 (10)"
+const APK_VERSION = "1.1 (11)"
 const APK_SIZE = "‎17MB"
 
 // iOS: LIVE on the App Store since 2026-07-16 (v1.0, build 15 — READY_FOR_SALE).
