@@ -113,6 +113,8 @@ export function notificationText(n) {
     case 'team_join_request':    return `${actorName(n)} מבקש/ת להצטרף לקבוצת ${d.team_name || ''}`
     case 'team_join_approved':   return `בקשתך להצטרף לקבוצת ${d.team_name || ''} אושרה 🎉`
     case 'team_join_rejected':   return `בקשתך להצטרף לקבוצת ${d.team_name || ''} נדחתה`
+    case 'coach_request':          return `${d.requester || actorName(n)} מבקש/ת להיות מאמן/ת של ${d.team_name || 'קבוצה'}`
+    case 'coach_request_rejected': return `בקשתך להיות מאמן/ת של ${d.team_name || 'קבוצה'} נדחתה`
     case 'player_submission_request':  return `${actorName(n)} הגיש/ה כרטיס שחקן חדש${d.candidate_name ? `: ${d.candidate_name}` : ''}${d.team_name ? ` — ${d.team_name}` : ''}`
     case 'player_submission_approved': return `כרטיס השחקן ${d.candidate_name || ''} שהגשת אושר 🎉`
     case 'player_submission_rejected': return `כרטיס השחקן ${d.candidate_name || ''} שהגשת נדחה`
@@ -149,6 +151,8 @@ export function notificationIcon(n) {
     case 'team_join_request':    return '🤝'
     case 'team_join_approved':   return '✅'
     case 'team_join_rejected':   return '⛔'
+    case 'coach_request':          return '🧑‍🏫'
+    case 'coach_request_rejected': return '⛔'
     case 'player_submission_request':  return '🆕'
     case 'player_submission_approved': return '✅'
     case 'player_submission_rejected': return '⛔'
@@ -187,6 +191,8 @@ export function notificationHref(n) {
     // the player / submitter lands where the outcome lives
     case 'team_join_approved':
     case 'team_join_rejected':     return n.entity_id ? `/teams/${n.entity_id}` : '/me'
+    case 'coach_request':          return '/admin'
+    case 'coach_request_rejected': return n.entity_id ? `/teams/${n.entity_id}` : '/me'
     case 'player_submission_approved': return n.data?.player_id ? `/players/${n.data.player_id}` : '/me'
     case 'player_submission_rejected':
     case 'medical_approved':

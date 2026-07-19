@@ -12,6 +12,7 @@ import { motion } from "framer-motion"
 import { format } from "date-fns"
 import TeamLogo from "@/components/TeamLogo"
 import TeamEditModal from "@/components/TeamEditModal"
+import TeamCoachRequest from "@/components/TeamCoachRequest"
 import { useSeo } from "@/lib/seo"
 import { getApprovedMedicalPlayerIds } from "@/lib/medical"
 
@@ -142,12 +143,14 @@ export default function TeamDetail() {
               <span><span className="font-bold text-red-500">{team.losses || 0}</span> <span className="text-[11px] text-slate-400">הפסדים</span></span>
             </div>
           </div>
-          {canEdit && (
+          {canEdit ? (
             <button onClick={() => setEditing(true)}
               className="ms-auto self-start inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-xs font-semibold hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors shrink-0">
               <Pencil className="w-3.5 h-3.5" /> עריכה
             </button>
-          )}
+          ) : isLinkedPlayer ? (
+            <TeamCoachRequest teamId={team.id} />
+          ) : null}
         </div>
       </motion.div>
 
