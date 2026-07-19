@@ -9,7 +9,7 @@ import {
   UserCircle,
   Swords
 } from "lucide-react"
-import { Rink, Standings, Crossed, Teams, Player, Whistle, Stats, Camera, Edit, Trophy, Clipboard } from "./components/icons/HockeyIcons"
+import { Rink, Standings, Crossed, Teams, Player, Whistle, Stats, Camera, Edit, Clipboard } from "./components/icons/HockeyIcons"
 import { useAuth } from "./lib/AuthContext"
 import AuthModal from "./components/AuthModal"
 import OnboardingModal from "./components/OnboardingModal"
@@ -27,7 +27,6 @@ const NavWhistle = (p) => <Whistle mono {...p} />
 const NavStats = (p) => <Stats mono {...p} />
 const NavCamera = (p) => <Camera mono {...p} />
 const NavEdit = (p) => <Edit mono {...p} />
-const NavTrophy = (p) => <Trophy mono {...p} />
 const NavClipboard = (p) => <Clipboard mono {...p} />
 
 /**
@@ -70,7 +69,6 @@ export default function Layout({ children }) {
     { title: "טבלה", url: "/standings", icon: NavStandings },
     { title: "משחקים", url: "/games", icon: NavGames },
     { title: "סטטיסטיקות", url: "/statistics", icon: NavStats },
-    { title: "פיינל פור", url: "/final-four", icon: NavTrophy },
     { title: "טורנירים", url: "/tournaments", icon: Swords },
     { title: "קבוצות", url: "/teams", icon: NavTeams },
     { title: "שחקנים", url: "/players", icon: NavPlayers },

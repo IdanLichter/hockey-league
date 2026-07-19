@@ -1,28 +1,32 @@
 import { useState, useEffect } from "react"
-import { getTeams } from "@/lib/api"
+import { getTeams, getGames, getLeagueSetting } from "@/lib/api"
 import { standingsComparator } from "@/lib/utils"
 import { ageOf, DEFAULT_AGE } from "@/lib/ageGroups"
-import { Trophy, Users, Crown, Swords, RefreshCw } from "lucide-react"
+import { Users, RefreshCw } from "lucide-react"
 import { Standings } from "@/components/icons/HockeyIcons"
 import { motion } from "framer-motion"
 import TeamLogo from "@/components/TeamLogo"
 import { TeamLink } from "@/components/EntityLinks"
+import FinalFourBracket from "@/components/FinalFourBracket"
 
 export default function Home() {
   const [teams, setTeams] = useState([])
+  const [games, setGames] = useState([])
+  const [championId, setChampionId] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
-  const [activeTab, setActiveTab] = useState("league")
 
   useEffect(() => { loadTeams() }, [])
 
   const loadTeams = async () => {
     try {
       setLoading(true); setError(null)
-      const data = await getTeams('points', false)
-      setTeams(data)
+      const [t, g] = await Promise.all([getTeams('points', false), getGames()])
+      setTeams(t); setGames(g)
     } catch { setError("שגיאה בטעינת נתוני קבוצות") }
     finally { setLoading(false) }
+    // The Final Four bracket is a nice-to-have; a failure here must not blank the page.
+    try { setChampionId(await getLeagueSetting('champion_team_id') || null) } catch { /* optional */ }
   }
 
   const diff = (t) => (t.goals_for || 0) - (t.goals_against || 0)
@@ -37,12 +41,6 @@ export default function Home() {
   const leaderPts = first?.points || 0
   const pointsBarPct = (pts) => leaderPts > 0 ? Math.max(0, Math.min(100, ((pts || 0) / leaderPts) * 100)) : 0
 
-  const matchups = sorted.length >= 7 ? [
-    { p1: 2, t1: sorted[1], p2: 7, t2: sorted[6], series: "A" },
-    { p1: 3, t1: sorted[2], p2: 6, t2: sorted[5], series: "B" },
-    { p1: 4, t1: sorted[3], p2: 5, t2: sorted[4], series: "C" },
-  ] : []
-
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -52,10 +50,9 @@ export default function Home() {
   }
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 max-w-5xl mx-auto space-y-5">
+    <div data-ff-connector-host className="relative p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto space-y-5">
       {/* Header */}
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
-        <span className="accent-bar mb-3" />
         <h1 className="page-title flex items-center gap-2.5">
           <Standings className="size-8 text-brand shrink-0" />
           טבלת הליגה
@@ -72,46 +69,11 @@ export default function Home() {
         </div>
       )}
 
-      {/* Leader spotlight — the page's focal point */}
-      {first && activeTab === "league" && (
-        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.04 }}
-          className="card overflow-hidden">
-          <div className="flex items-center gap-4 p-5">
-            <div className="relative shrink-0">
-              <TeamLogo team={first} size={16} />
-              <span className="absolute -top-1 -right-1 grid size-5 place-items-center rounded-full bg-brand text-white shadow">
-                <Crown className="size-3" />
-              </span>
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-[11px] font-extrabold uppercase tracking-wider text-brand-strong dark:text-brand-light">מובילת הליגה</p>
-              <h2 className="text-2xl font-black text-fg-strong tracking-tight truncate mt-0.5">
-                <TeamLink team={first} className="hover:text-brand transition-colors">{first.name}</TeamLink>
-              </h2>
-              <p className="muted text-sm mt-0.5">
-                {played(first)} משחקים · הפרש {diff(first) > 0 ? '+' : ''}{diff(first)}
-              </p>
-            </div>
-            <div className="text-center shrink-0 ps-2">
-              <div className="stat-num text-4xl leading-none text-brand">{first.points || 0}</div>
-              <div className="text-[10px] font-bold uppercase tracking-wide muted mt-1">נקודות</div>
-            </div>
-          </div>
-        </motion.div>
-      )}
-
-      {/* Tabs */}
-      <div className="tab-bar">
-        <button onClick={() => setActiveTab("league")} className={activeTab === "league" ? "tab-active" : "tab-inactive"}>
-          <Trophy className="w-4 h-4" /> טבלת הליגה
-        </button>
-        <button onClick={() => setActiveTab("playoff")} className={activeTab === "playoff" ? "tab-active" : "tab-inactive"}>
-          <Swords className="w-4 h-4" /> מצב הפלייאוף
-        </button>
-      </div>
+      {/* Final Four — the full bracket, above the table */}
+      <FinalFourBracket teams={teams} games={games} championId={championId} />
 
       {/* League Table */}
-      {activeTab === "league" && (
+      {sorted.length > 0 && (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="card overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -141,6 +103,7 @@ export default function Home() {
                   return (
                   <motion.tr
                     key={team.id}
+                    data-ff-anchor={i === 0 ? "table-first" : undefined}
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ delay: i * 0.03 }}
@@ -206,89 +169,57 @@ export default function Home() {
         </motion.div>
       )}
 
-      {/* Playoff Tab */}
-      {activeTab === "playoff" && (
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
-          {first && (
-            <div className="card p-5 border-amber-200 dark:border-amber-800 bg-gradient-to-l from-amber-50 to-white dark:from-amber-950/30 dark:to-slate-800">
-              <div className="flex items-center gap-4">
-                <TeamLogo team={first} size={14} />
-                <div className="flex-1">
-                  <p className="text-xs font-semibold text-amber-600 dark:text-amber-400 uppercase tracking-wide flex items-center gap-1"><Crown className="w-3.5 h-3.5" /> מעפילה ישירה ל-Final Four</p>
-                  <h3 className="text-xl font-extrabold text-slate-900 dark:text-white mt-0.5">
-                    <TeamLink team={first} className="hover:text-brand transition-colors">{first.name}</TeamLink>
-                  </h3>
-                  <p className="text-sm text-slate-500 dark:text-slate-400">{first.points} נקודות • מקום ראשון</p>
-                </div>
-              </div>
-            </div>
-          )}
-
-          <div className="card p-5">
-            <h3 className="font-bold text-slate-900 dark:text-white mb-1 flex items-center gap-2">
-              <Swords className="w-5 h-5 text-brand" /> זוגות הפלייאוף
-            </h3>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mb-5">כל זוג משחק סדרה של שני משחקים. המנצח עולה ל-Final Four.</p>
-
-            <div className="space-y-3">
-              {matchups.map((m, i) => (
-                <motion.div
-                  key={i}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.08 }}
-                  className="flex items-center gap-3 p-4 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-700"
-                >
-                  <span className="text-xs font-bold text-white bg-blue-500 w-6 h-6 rounded-lg flex items-center justify-center shrink-0">{m.series}</span>
-
-                  <div className="flex items-center gap-2.5 flex-1 min-w-0">
-                    <TeamLogo team={m.t1} size={10} />
-                    <div className="min-w-0">
-                      <p className="font-semibold text-sm text-slate-900 dark:text-white truncate"><TeamLink team={m.t1} className="hover:text-brand transition-colors">{m.t1?.name}</TeamLink></p>
-                      <p className="text-[11px] text-slate-400">מקום {m.p1} • {m.t1?.points} נק׳</p>
-                    </div>
-                  </div>
-
-                  <div className="px-3 py-1 rounded-lg bg-slate-200 dark:bg-slate-700 text-xs font-extrabold text-slate-500 dark:text-slate-400">VS</div>
-
-                  <div className="flex items-center gap-2.5 flex-1 min-w-0 flex-row-reverse">
-                    <TeamLogo team={m.t2} size={10} />
-                    <div className="min-w-0 text-left">
-                      <p className="font-semibold text-sm text-slate-900 dark:text-white truncate"><TeamLink team={m.t2} className="hover:text-brand transition-colors">{m.t2?.name}</TeamLink></p>
-                      <p className="text-[11px] text-slate-400">מקום {m.p2} • {m.t2?.points} נק׳</p>
-                    </div>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-          </div>
-
-          <div className="card p-4">
-            <h4 className="font-semibold text-sm text-slate-700 dark:text-slate-300 mb-2">איך זה עובד?</h4>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs text-slate-500 dark:text-slate-400">
-              <div className="flex items-start gap-2 p-2.5 rounded-lg bg-slate-50 dark:bg-slate-800/50">
-                <Crown className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
-                <span>מקום ראשון עולה ישירות ל-Final Four</span>
-              </div>
-              <div className="flex items-start gap-2 p-2.5 rounded-lg bg-slate-50 dark:bg-slate-800/50">
-                <Swords className="w-4 h-4 text-blue-500 shrink-0 mt-0.5" />
-                <span>כל זוג משחק סדרה של שני משחקים</span>
-              </div>
-              <div className="flex items-start gap-2 p-2.5 rounded-lg bg-slate-50 dark:bg-slate-800/50">
-                <Trophy className="w-4 h-4 text-brand shrink-0 mt-0.5" />
-                <span>4 קבוצות מגיעות ל-Final Four</span>
-              </div>
-            </div>
-          </div>
-        </motion.div>
-      )}
-
       {seniorTeams.length === 0 && !error && (
         <div className="text-center py-16">
           <Users className="w-12 h-12 mx-auto text-slate-300 dark:text-slate-600 mb-3" />
           <h3 className="text-lg font-semibold text-slate-500 dark:text-slate-400">אין קבוצות רשומות</h3>
         </div>
       )}
+
+      {/* Line linking the table-topper to its direct Final Four spot */}
+      <FinalFourLink dep={`${sorted.length}:${championId || ""}`} />
     </div>
+  )
+}
+
+// A gold connector drawn from the #1 team's row in the standings table up to its
+// direct-entry card in the Final Four bracket — topping the table earns the bye.
+// Desktop only (on mobile the bracket is a single stacked column, where the line
+// would just be noise). Positions are measured live so it survives layout changes.
+function FinalFourLink({ dep }) {
+  const [line, setLine] = useState(null)
+  useEffect(() => {
+    const compute = () => {
+      const host = document.querySelector('[data-ff-connector-host]')
+      const row = document.querySelector('[data-ff-anchor="table-first"]')
+      const dq = [...document.querySelectorAll('[data-ff-anchor="direct-qualifier"]')]
+        .find(el => el.getBoundingClientRect().width > 0)
+      if (!host || !row || !dq || window.innerWidth < 1024) { setLine(null); return }
+      const h = host.getBoundingClientRect()
+      const r = row.getBoundingClientRect()
+      const d = dq.getBoundingClientRect()
+      const start = { x: r.right - h.left - 26, y: r.top - h.top }          // #1 rank badge (right edge in RTL)
+      const end = { x: d.left + d.width / 2 - h.left, y: d.bottom - h.top } // direct-qualifier card, bottom-centre
+      const bend = Math.min(48, Math.max(16, (start.y - end.y) / 2))
+      setLine({
+        d: `M ${start.x} ${start.y} C ${start.x} ${start.y - bend}, ${end.x} ${end.y + bend}, ${end.x} ${end.y}`,
+        start,
+      })
+    }
+    compute()
+    const host = document.querySelector('[data-ff-connector-host]')
+    const ro = new ResizeObserver(compute)
+    if (host) ro.observe(host)
+    window.addEventListener("resize", compute)
+    const t = setTimeout(compute, 700) // let entrance animations settle first
+    return () => { ro.disconnect(); window.removeEventListener("resize", compute); clearTimeout(t) }
+  }, [dep])
+
+  if (!line) return null
+  return (
+    <svg className="pointer-events-none absolute inset-0 h-full w-full hidden lg:block text-gold" style={{ zIndex: 20 }} aria-hidden="true">
+      <circle cx={line.start.x} cy={line.start.y} r="3.5" fill="currentColor" />
+      <path d={line.d} fill="none" stroke="currentColor" strokeWidth="2" strokeDasharray="5 5" strokeLinecap="round" />
+    </svg>
   )
 }

@@ -15,7 +15,6 @@ const Teams = lazy(() => import('./pages/Teams'))
 const TeamDetail = lazy(() => import('./pages/TeamDetail'))
 const Players = lazy(() => import('./pages/Players'))
 const PlayerDetail = lazy(() => import('./pages/PlayerDetail'))
-const FinalFour = lazy(() => import('./pages/FinalFour'))
 const Tournaments = lazy(() => import('./pages/Tournaments'))
 const TournamentDetail = lazy(() => import('./pages/TournamentDetail'))
 const Judge = lazy(() => import('./pages/Judge'))
@@ -78,7 +77,6 @@ function App() {
             <Route path="/app" element={<MobileApp />} />
             <Route path="/media" element={<Media />} />
             <Route path="/creators" element={<ContentCreators />} />
-            <Route path="/final-four" element={<FinalFour />} />
             <Route path="/tournaments" element={<Tournaments />} />
             <Route path="/tournaments/:id" element={<TournamentDetail />} />
             <Route path="/judge" element={<Judge />} />

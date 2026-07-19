@@ -9,7 +9,7 @@ import { readFileSync, existsSync } from 'node:fs'
 // without ballooning build time.
 const STATIC_ROUTES = [
   '/', '/standings', '/games', '/statistics', '/teams',
-  '/players', '/media', '/final-four', '/archive', '/privacy',
+  '/players', '/media', '/archive', '/privacy',
 ]
 
 function sampledDetailRoutes(perKind = 3) {
