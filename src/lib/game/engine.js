@@ -102,7 +102,7 @@ export class GameEngine {
     }
   }
   get passiveSeconds() { return Math.ceil(this.passiveRemainingMS / 1000) }
-  get passiveIsWarning() { return this.passiveActive && this.passiveSeconds <= GameRules.passiveFlashAt }
+  get passiveIsWarning() { return this.settings.passivePlayEnabled && this.passiveSeconds <= GameRules.passiveFlashAt }
   get isRunning() { return this.phase === Phase.running }
   get homeDisplayScore() { return (this.phase === Phase.over && this.settings.format === GameFormat.threeThirds) ? this.home.thirds : this.home.score }
   get guestDisplayScore() { return (this.phase === Phase.over && this.settings.format === GameFormat.threeThirds) ? this.guest.thirds : this.guest.score }
@@ -357,7 +357,10 @@ export class GameEngine {
   tick() {
     this.clock.refresh()  // may fire onExpire → period/break transitions (which emit)
     if (this.phase === Phase.running) {
-      if (this.passiveActive) {
+      // Gate the passive-play countdown on the actual judge setting, not the internal
+      // `passiveActive` flag — that flag is seeded true and never cleared, so it kept
+      // decrementing passive state even when a league had passive play switched off.
+      if (this.settings.passivePlayEnabled) {
         this.passiveRemainingMS = Math.max(0, Math.round((this._passiveDeadline - this.now()) * 1000))
       }
       this._decrementCards()
