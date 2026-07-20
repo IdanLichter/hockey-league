@@ -37,6 +37,12 @@ export default function GameAvailability({ game, myPlayerId, officialTeamIds = [
       setRows(all)
       setMedOk(myPlayerId ? med.has(myPlayerId) : null)
       setLoading(false)
+    }).catch(() => {
+      // Without this the panel stays `loading` forever and silently disappears from the
+      // game page on any transient fetch failure.
+      if (!alive) return
+      setErr("שגיאה בטעינת הזמינות")
+      setLoading(false)
     })
     return () => { alive = false }
   }, [game.id, myPlayerId, canSeeAny])

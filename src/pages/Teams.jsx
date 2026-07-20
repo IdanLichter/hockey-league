@@ -133,7 +133,7 @@ export default function Teams() {
           return (
             <motion.div key={team.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.04 }}>
               <div className="card-hover overflow-hidden">
-                <button onClick={() => setExpandedTeam(open ? null : team.id)} className="w-full p-4 sm:p-5 text-right">
+                <button onClick={() => setExpandedTeam(open ? null : team.id)} className="w-full p-4 sm:p-5 text-right" aria-expanded={open}>
                   <div className="flex items-center gap-4">
                     <TeamLogo team={team} size={12} />
                     <div className="flex-1 min-w-0">
@@ -209,7 +209,7 @@ export default function Teams() {
                             {player.is_referee && <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400">REF</span>}
                           </div>
                           <div className="flex items-center gap-3 text-xs">
-                            {(player.goals || 0) > 0 && <span className="font-bold text-emerald-600 dark:text-emerald-400">{player.goals}⚽</span>}
+                            {(player.goals || 0) > 0 && <span dir="ltr" className="inline-flex items-center gap-0.5 font-bold text-emerald-600 dark:text-emerald-400"><span>{player.goals}</span><span>⚽</span></span>}
                             <span className="text-slate-400">{player.games_played || 0} מש׳</span>
                           </div>
                         </div>

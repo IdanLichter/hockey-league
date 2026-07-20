@@ -460,7 +460,7 @@ export default function GameDetail() {
                       {name}
                     </PlayerLink>
                   </div>
-                  <span className="font-bold text-emerald-600 dark:text-emerald-400 text-sm tabular-nums shrink-0">{stat.goals}⚽</span>
+                  <span dir="ltr" className="inline-flex items-center gap-0.5 font-bold text-emerald-600 dark:text-emerald-400 text-sm tabular-nums shrink-0"><span>{stat.goals}</span><span>⚽</span></span>
                 </div>
               )
             })}

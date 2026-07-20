@@ -170,9 +170,9 @@ function ClusterCard({ cluster, index, summary, onSubmitted }) {
         ) : (
           <form onSubmit={submit} className="flex flex-col gap-2">
             <div className="flex gap-2">
-              <input value={first} onChange={e => setFirst(e.target.value)} placeholder="שם פרטי"
+              <input value={first} onChange={e => setFirst(e.target.value)} placeholder="שם פרטי" aria-label="שם פרטי"
                 className="filter-input w-full text-sm" />
-              <input value={last} onChange={e => setLast(e.target.value)} placeholder="שם משפחה"
+              <input value={last} onChange={e => setLast(e.target.value)} placeholder="שם משפחה" aria-label="שם משפחה"
                 className="filter-input w-full text-sm" />
             </div>
             {msg && <span className="text-xs text-red-600 dark:text-red-400">{msg}</span>}

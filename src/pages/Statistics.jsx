@@ -22,9 +22,11 @@ import RadarChart from "@/components/charts/RadarChart"
 import StatTile from "@/components/charts/StatTile"
 import Legend from "@/components/charts/Legend"
 
-// game_stats only exists for 40 of the 45 completed games — anything derived
-// from it must carry this caveat (per the data contract for this page).
-const STATS_NOTE = "מבוסס על 40 מתוך 45 משחקים עם סטטיסטיקות שחקנים"
+// game_stats does not exist for every completed game — anything derived from it must
+// carry this caveat (per the data contract for this page). Derived live rather than
+// hardcoded, so it can't drift out of sync with the tiles on the same screen.
+const statsNote = (withStats, completed) =>
+  `מבוסס על ${withStats} מתוך ${completed} משחקים עם סטטיסטיקות שחקנים`
 
 export default function Statistics() {
   const { dark } = useTheme()
@@ -107,6 +109,10 @@ export default function Statistics() {
   const summary = useMemo(() => leagueSummary(statGames), [statGames])
   const monthly = useMemo(() => monthlyGoals(statGames), [statGames])
   const goalDiff = useMemo(() => teamGoalDiff(statGames, teams), [statGames, teams])
+  const STATS_NOTE = useMemo(
+    () => statsNote(new Set(statGameStats.map(s => s.game_id)).size, summary.completedGames),
+    [statGameStats, summary.completedGames],
+  )
   const achievements = useMemo(() => playerAchievements(statGameStats, players), [statGameStats, players])
   const teamAch = useMemo(() => teamAchievements(statGameStats, players, teams), [statGameStats, players, teams])
 

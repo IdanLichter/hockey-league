@@ -93,6 +93,7 @@ function CloudflarePlayer({ video, isLive }) {
   useEffect(() => {
     if (mode !== "whep" || !code) return
     let cancelled = false
+    let retryTimer = null
     let attempts = 0
     const maxAttempts = isLive ? 15 : 3 // live: ride out startup; VOD: fail fast to the recording
     setStatus("connecting")
@@ -110,12 +111,16 @@ function CloudflarePlayer({ video, isLive }) {
         // The broadcast may not be live yet (Cloudflare 409 "not started"), or a
         // transient hiccup — retry for ~35s before giving up to the recording.
         attempts += 1
-        if (attempts < maxAttempts) setTimeout(tryPlay, 3000)
+        if (attempts < maxAttempts) retryTimer = setTimeout(tryPlay, 3000)
         else setMode("iframe")
       }
     }
     tryPlay()
-    return () => { cancelled = true; sessionRef.current?.stop?.(); sessionRef.current = null }
+    return () => {
+      cancelled = true
+      clearTimeout(retryTimer) // else up to 15 retries keep firing ICE fetches after unmount
+      sessionRef.current?.stop?.(); sessionRef.current = null
+    }
   }, [mode, code, video.video_id, isLive])
 
   if (!code) {

@@ -36,7 +36,10 @@ export default function TeamDetail() {
     path: `/teams/${id}`,
   })
 
-  useEffect(() => { loadData() }, [id])
+  // Roles resolve asynchronously in AuthContext, usually *after* the first paint. Without
+  // them in the deps a coach landing directly on their own team page loads before
+  // coachTeamIds fills in, and the medical indicators silently never appear.
+  useEffect(() => { loadData() }, [id, isAdmin, coachTeamIds.join(',')])
 
   const loadData = async () => {
     try {
@@ -161,7 +164,7 @@ export default function TeamDetail() {
           {tiles.map(({ icon: Icon, val, label, color }) => (
             <div key={label} className="card p-4 text-center">
               <Icon className={`w-4 h-4 ${color} mx-auto mb-1`} />
-              <p className="text-2xl font-extrabold text-slate-900 dark:text-white">{val}</p>
+              <p dir="ltr" className="text-2xl font-extrabold text-slate-900 dark:text-white">{val}</p>
               <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium mt-0.5">{label}</p>
             </div>
           ))}
@@ -208,7 +211,7 @@ export default function TeamDetail() {
                 )}
               </div>
               <div className="flex items-center gap-3 text-xs shrink-0">
-                {(player.goals || 0) > 0 && <span className="font-bold text-emerald-600 dark:text-emerald-400">{player.goals}⚽</span>}
+                {(player.goals || 0) > 0 && <span dir="ltr" className="inline-flex items-center gap-0.5 font-bold text-emerald-600 dark:text-emerald-400"><span>{player.goals}</span><span>⚽</span></span>}
                 <span className="text-slate-400">{player.games_played || 0} מש׳</span>
               </div>
             </Link>

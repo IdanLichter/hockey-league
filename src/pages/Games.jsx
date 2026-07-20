@@ -15,10 +15,6 @@ import LiveGameBanner from "@/components/LiveGameBanner"
 import { useLiveGames } from "@/lib/useLiveGames"
 import { Radio } from "lucide-react"
 
-// The tournaments filter isn't a game_type — it's "any game tagged with a
-// tournament_id". Kept distinct from the 4 real game_type values.
-const TOURNAMENTS_TAB = "__tournaments__"
-
 export default function Games() {
   const { coachTeamIds } = useAuth()
   const [games, setGames] = useState([])
@@ -29,7 +25,7 @@ export default function Games() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [activeCompetition, setActiveCompetition] = useState("ליגה")
-  const [ageTab, setAgeTab] = useState(DEFAULT_AGE)
+  const ageTab = DEFAULT_AGE // this page is senior-only; youth games live on the tournament pages
   const [statusFilter, setStatusFilter] = useState("all")
   const [teamFilter, setTeamFilter] = useState("all")
   const [dateFilter, setDateFilter] = useState("")
@@ -108,10 +104,9 @@ export default function Games() {
     const h = teamsMap[g.home_team_id], a = teamsMap[g.away_team_id]
     return (h && ageGroupsOf(h).includes(age)) || (a && ageGroupsOf(a).includes(age))
   }
-  // League/playoff/friendly tabs show only non-tournament games; the טורנירים tab
-  // shows only tournament-tagged games. So tournament games never leak into the others.
-  const compMatch = (g) =>
-    activeCompetition === TOURNAMENTS_TAB ? !!g.tournament_id : (g.game_type === activeCompetition && !g.tournament_id)
+  // This page is senior league/playoff/friendly only; tournament games live on the
+  // tournament pages, so every tab here excludes tournament-tagged games.
+  const compMatch = (g) => g.game_type === activeCompetition && !g.tournament_id
 
   const filtered = games.filter(g => {
     if (!gameInAge(g, ageTab)) return false
@@ -376,8 +371,8 @@ export default function Games() {
             {teams.filter(t => ageGroupsOf(t).includes(ageTab)).map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
           </select>
           <div className="relative flex-1 min-w-[130px]">
-            <input type="date" value={dateFilter} onChange={e => setDateFilter(e.target.value)} className="filter-input w-full" />
-            {dateFilter && <button onClick={() => setDateFilter('')} className="absolute left-2 top-1/2 -translate-y-1/2"><X className="w-4 h-4 text-slate-400" /></button>}
+            <input type="date" value={dateFilter} onChange={e => setDateFilter(e.target.value)} aria-label="סינון לפי תאריך" className="filter-input w-full" />
+            {dateFilter && <button onClick={() => setDateFilter('')} aria-label="נקה תאריך" className="absolute left-2 top-1/2 -translate-y-1/2"><X className="w-4 h-4 text-slate-400" /></button>}
           </div>
         </div>
       </div>

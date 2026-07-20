@@ -182,6 +182,7 @@ export async function getPosts() {
     .from('posts')
     .select('*, author:profiles!posts_author_id_fkey(display_name, avatar_url, player_id), like_count:post_likes(count), comment_count:comments(count)')
     .is('deleted_at', null)
+    .is('comments.deleted_at', null) // count only live comments, matching getComments()
     .order('created_at', { ascending: false })
   if (error) throw error
   return (data || []).map(p => ({
@@ -449,8 +450,13 @@ export async function addAdminUser(email, name) {
   if (error) throw error
 }
 
+// Must go through the RPC, NOT a direct delete. Postgres applies SELECT policies
+// to a DELETE whose WHERE reads a column, and the own-row policy above hides every
+// admin but you — so `.delete().eq('id', id)` matched 0 rows and returned NO error,
+// i.e. it silently did nothing. remove_admin() is SECURITY DEFINER (bypasses RLS)
+// and raises if the row is missing or is your own. See supabase/remove-admin-rpc.sql.
 export async function removeAdminUser(id) {
-  const { error } = await supabase.from('admin_users').delete().eq('id', id)
+  const { error } = await supabase.rpc('remove_admin', { p_id: id })
   if (error) throw error
 }
 

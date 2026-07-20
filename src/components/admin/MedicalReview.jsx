@@ -14,7 +14,7 @@ export default function MedicalReview({ coachTeamIds = null }) {
   const [busyId, setBusyId] = useState(null)
   const [error, setError] = useState(null)
   const [examDates, setExamDates] = useState({}) // per-item exam date, required to approve
-  const todayStr = new Date().toISOString().slice(0, 10)
+  const todayStr = new Date().toLocaleDateString('en-CA') // local date, not UTC
 
   const load = async () => {
     try { setError(null); setItems(await getPendingMedical()) }

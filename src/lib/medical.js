@@ -52,7 +52,10 @@ export async function getMyMedical(playerId) {
 export async function getApprovedMedicalPlayerIds(playerIds) {
   const ids = (playerIds || []).filter(Boolean)
   if (!ids.length) return new Set()
-  const today = new Date().toISOString().slice(0, 10)
+  // Local calendar date, not UTC: the league runs at UTC+2/+3, so between midnight and
+  // 02:00/03:00 Israel time the UTC date is still *yesterday* and an expired certificate
+  // would slip through the expires_at >= today check below.
+  const today = new Date().toLocaleDateString('en-CA')
   const { data, error } = await supabase
     .from('medical_certificates')
     .select('player_id')

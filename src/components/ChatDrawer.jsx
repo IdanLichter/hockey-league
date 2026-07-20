@@ -220,10 +220,13 @@ export default function ChatDrawer() {
                   const mine = m.sender_id === user.id
                   return (
                     <div key={m.id} className={`max-w-[80%] ${mine ? 'self-start' : 'self-end'}`}>
-                      <div className={`px-3 py-2 rounded-2xl text-sm break-words ${mine ? 'bg-brand text-white rounded-bl-sm' : 'bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-100 rounded-br-sm'}`}>
+                      {/* Logical corners, not rounded-bl/br: alignment above uses self-start/end,
+                          which flip under RTL — physical corners don't, so the tail ended up
+                          pointing at the opposite speaker. */}
+                      <div className={`px-3 py-2 rounded-2xl text-sm break-words ${mine ? 'bg-brand text-white rounded-es-sm' : 'bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-100 rounded-ee-sm'}`}>
                         {m.body}
                       </div>
-                      <div className={`text-[10px] text-slate-400 mt-0.5 ${mine ? 'text-right' : 'text-left'}`}>{clockTime(m.created_at)}</div>
+                      <div className={`text-[10px] text-slate-400 mt-0.5 ${mine ? 'text-start' : 'text-end'}`}>{clockTime(m.created_at)}</div>
                     </div>
                   )
                 })}

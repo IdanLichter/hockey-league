@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import TeamLogo from "@/components/TeamLogo"
 import { BRAND_ORANGE } from "@/lib/brand"
 
@@ -23,6 +23,10 @@ export default function PlayerAvatar({ player, team, size = 12, className = "" }
   const rounded = size >= 16 ? "rounded-2xl" : "rounded-xl"
   const photo = player?.owner_avatar_url || player?.photo_url || null
   const initial = (player?.first_name || "?").trim().charAt(0) || "?"
+
+  // React reuses this instance when a list re-sorts or filters, so a sticky imgError would
+  // make the *next* player in that slot fall back to an initial despite a working photo.
+  useEffect(() => { setImgError(false) }, [photo])
 
   return (
     <div className={`relative shrink-0 ${box} ${className}`}>
