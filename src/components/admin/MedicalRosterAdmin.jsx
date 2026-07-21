@@ -138,6 +138,7 @@ export default function MedicalRosterAdmin() {
                   <th className="text-right font-bold px-4 py-2.5">שחקן</th>
                   <th className="text-right font-bold px-3 py-2.5">קבוצה</th>
                   <th className="text-right font-bold px-3 py-2.5">סטטוס רפואי</th>
+                  <th className="text-right font-bold px-3 py-2.5">תאריך בדיקה</th>
                   <th className="text-right font-bold px-3 py-2.5">מסמך</th>
                 </tr>
               </thead>
@@ -147,9 +148,13 @@ export default function MedicalRosterAdmin() {
                     <td className="px-4 py-2.5 font-semibold text-slate-900 dark:text-white whitespace-nowrap">{r.first_name} {r.last_name}</td>
                     <td className="px-3 py-2.5 text-slate-500 dark:text-slate-400 whitespace-nowrap">{r.team_name || "—"}</td>
                     <td className="px-3 py-2.5"><span className={`inline-block text-[11px] font-bold px-2 py-0.5 rounded ${r.st.cls}`}>{r.st.label}</span></td>
+                    <td className="px-3 py-2.5 text-slate-500 dark:text-slate-400 whitespace-nowrap tabular-nums">
+                      {r.exam_date ? format(new Date(r.exam_date), "d/M/yy") : <span className="text-slate-300 dark:text-slate-600">—</span>}
+                    </td>
                     <td className="px-3 py-2.5">
-                      {r.latest_file_path ? (
-                        <button onClick={() => view(r.latest_file_path)}
+                      {/* Only an APPROVED certificate's file is viewable (pending/rejected stay private). */}
+                      {r.approved_file_path ? (
+                        <button onClick={() => view(r.approved_file_path)}
                           className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
                           <Eye className="w-3.5 h-3.5" /> צפייה
                         </button>
