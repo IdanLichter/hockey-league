@@ -40,6 +40,7 @@ import ReportsReview from "@/components/admin/ReportsReview"
 import GameChangeRequestsReview from "@/components/admin/GameChangeRequestsReview"
 import WhatsNew from "@/components/admin/WhatsNew"
 import ClustersAdmin from "@/components/admin/ClustersAdmin"
+import { SortBar, sortItems } from "@/components/admin/SortBar"
 import { Award, Images, HeartPulse, Gavel, MapPin } from "lucide-react"
 import { BRAND_ORANGE } from '@/lib/brand'
 
@@ -303,8 +304,26 @@ function GamesAdmin({ games, teams, players, teamsMap, gameStats, tournaments = 
     referee_id: '', referee_type: 'player', tournament_id: ''
   })
   const [refFilter, setRefFilter] = useState('all')
+  const [sort, setSort] = useState({ key: 'date', dir: 'desc' })
 
   const refereeOptions = players.filter(p => p.is_referee)
+
+  const gameSortOptions = [
+    { key: 'date', label: 'תאריך', dir: 'desc' },
+    { key: 'home', label: 'קבוצת בית', dir: 'asc' },
+    { key: 'type', label: 'סוג', dir: 'asc' },
+    { key: 'status', label: 'סטטוס', dir: 'asc' },
+  ]
+  const gameAccessors = {
+    date: g => new Date(g.game_date).getTime(),
+    home: g => teamsMap[g.home_team_id]?.name || '',
+    type: g => g.game_type || '',
+    status: g => g.status || '',
+  }
+  const visibleGames = sortItems(
+    games.filter(g => refFilter === 'all' || (!g.referee_id && g.status === 'completed')),
+    sort, gameAccessors
+  )
 
   const resetForm = () => {
     setForm({
@@ -517,10 +536,13 @@ function GamesAdmin({ games, teams, players, teamsMap, gameStats, tournaments = 
         </button>
       </div>
 
+      {/* Sort */}
+      <SortBar options={gameSortOptions} sort={sort} onChange={setSort} />
+
       {/* Games List */}
       <div className="card overflow-hidden">
         <div className="divide-y divide-slate-100 dark:divide-slate-700/50">
-          {games.filter(g => refFilter === 'all' || (!g.referee_id && g.status === 'completed')).sort((a, b) => new Date(b.game_date) - new Date(a.game_date)).map(game => (
+          {visibleGames.map(game => (
             <div key={game.id}>
               <div className="flex items-center justify-between px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
                 <div className="flex items-center gap-3 flex-1 min-w-0">
@@ -777,8 +799,24 @@ function PlayersAdmin({ players, teams, teamsMap, membersByPlayer = new Map(), r
   const [editingPlayer, setEditingPlayer] = useState(null)
   const [saving, setSaving] = useState(false)
   const [searchTerm, setSearchTerm] = useState("")
+  const [sort, setSort] = useState({ key: 'name', dir: 'asc' })
   const [feedback, setFeedback] = useState(null) // { type: 'ok' | 'err', text } — makes save success/failure impossible to miss
   const [form, setForm] = useState(baseForm())
+
+  const playerSortOptions = [
+    { key: 'name', label: 'שם', dir: 'asc' },
+    { key: 'goals', label: 'שערים', dir: 'desc' },
+    { key: 'games', label: 'משחקים', dir: 'desc' },
+    { key: 'jersey', label: 'מספר', dir: 'asc' },
+    { key: 'team', label: 'קבוצה', dir: 'asc' },
+  ]
+  const playerAccessors = {
+    name: p => `${p.first_name} ${p.last_name}`.trim(),
+    goals: p => p.goals || 0,
+    games: p => p.games_played || 0,
+    jersey: p => (p.jersey_number ?? null),
+    team: p => teamsMap[p.team_id]?.name || '',
+  }
 
   const resetForm = () => {
     setForm(baseForm())
@@ -881,9 +919,12 @@ function PlayersAdmin({ players, teams, teamsMap, membersByPlayer = new Map(), r
     coachTeamIds.includes(p.team_id) ||
     (membersByPlayer.get(p.id) || []).some(m => coachTeamIds.includes(m.team_id))
   )
-  const filtered = players.filter(p =>
-    (!coachScoped || onCoachTeam(p)) &&
-    (!searchTerm || `${p.first_name} ${p.last_name}`.includes(searchTerm))
+  const filtered = sortItems(
+    players.filter(p =>
+      (!coachScoped || onCoachTeam(p)) &&
+      (!searchTerm || `${p.first_name} ${p.last_name}`.includes(searchTerm))
+    ),
+    sort, playerAccessors
   )
 
   return (
@@ -909,6 +950,8 @@ function PlayersAdmin({ players, teams, teamsMap, membersByPlayer = new Map(), r
           <Plus className="w-4 h-4" /> שחקן חדש
         </button>
       </div>
+
+      <SortBar options={playerSortOptions} sort={sort} onChange={setSort} />
 
       {showForm && (
         <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="card p-5 space-y-4">
@@ -1081,6 +1124,20 @@ function TeamsAdmin({ teams, reload, reviewOnly = false }) {
   const [showCreate, setShowCreate] = useState(false)
   const [creating, setCreating] = useState(false)
   const [createForm, setCreateForm] = useState(emptyCreate)
+  const [sort, setSort] = useState({ key: 'points', dir: 'desc' })
+
+  const teamSortOptions = [
+    { key: 'points', label: 'נקודות', dir: 'desc' },
+    { key: 'name', label: 'שם', dir: 'asc' },
+    { key: 'wins', label: 'נצחונות', dir: 'desc' },
+    { key: 'goals_for', label: 'שערי זכות', dir: 'desc' },
+  ]
+  const teamAccessors = {
+    points: t => t.points || 0,
+    name: t => t.name || '',
+    wins: t => t.wins || 0,
+    goals_for: t => t.goals_for || 0,
+  }
 
   const loadPending = async () => {
     try { setPending(await getPendingTeams()) } catch { /* ignore */ }
@@ -1154,13 +1211,16 @@ function TeamsAdmin({ teams, reload, reviewOnly = false }) {
   return (
     <div className="space-y-3">
       {!reviewOnly && (
-        <div className="flex items-center justify-between">
-          <h2 className="font-bold text-sm text-slate-900 dark:text-white">{teams.length} קבוצות</h2>
-          <button onClick={() => { setCreateForm(emptyCreate); setShowCreate(v => !v) }}
-            className="flex items-center gap-2 px-4 py-2 bg-brand text-white text-sm font-semibold rounded-xl hover:bg-brand-hover transition-colors">
-            <Plus className="w-4 h-4" /> קבוצה חדשה
-          </button>
-        </div>
+        <>
+          <div className="flex items-center justify-between">
+            <h2 className="font-bold text-sm text-slate-900 dark:text-white">{teams.length} קבוצות</h2>
+            <button onClick={() => { setCreateForm(emptyCreate); setShowCreate(v => !v) }}
+              className="flex items-center gap-2 px-4 py-2 bg-brand text-white text-sm font-semibold rounded-xl hover:bg-brand-hover transition-colors">
+              <Plus className="w-4 h-4" /> קבוצה חדשה
+            </button>
+          </div>
+          <SortBar options={teamSortOptions} sort={sort} onChange={setSort} />
+        </>
       )}
 
       {!reviewOnly && showCreate && (
@@ -1230,7 +1290,7 @@ function TeamsAdmin({ teams, reload, reviewOnly = false }) {
       {reviewOnly && pending.length === 0 && (
         <div className="card p-8 text-center text-sm text-slate-500 dark:text-slate-400">אין קבוצות חדשות ממתינות לאישור</div>
       )}
-      {!reviewOnly && teams.sort((a, b) => (b.points || 0) - (a.points || 0)).map(team => (
+      {!reviewOnly && sortItems(teams, sort, teamAccessors).map(team => (
         <div key={team.id} className="card overflow-hidden">
           <div className="flex items-center justify-between p-4">
             <div className="flex items-center gap-3">
@@ -1316,6 +1376,20 @@ function TournamentsAdmin({ tournaments, reload }) {
   const [saving, setSaving] = useState(false)
   const empty = { name: '', age_group: 'u17', start_date: '', end_date: '', status: 'active', notes: '' }
   const [form, setForm] = useState(empty)
+  const [sort, setSort] = useState({ key: 'date', dir: 'desc' })
+
+  const tournamentSortOptions = [
+    { key: 'date', label: 'תאריך', dir: 'desc' },
+    { key: 'name', label: 'שם', dir: 'asc' },
+    { key: 'age_group', label: 'קטגוריה', dir: 'asc' },
+    { key: 'status', label: 'סטטוס', dir: 'asc' },
+  ]
+  const tournamentAccessors = {
+    date: t => t.start_date || '',
+    name: t => t.name || '',
+    age_group: t => t.age_group || '',
+    status: t => t.status || '',
+  }
 
   const reset = () => { setForm(empty); setEditingId(null); setShowForm(false) }
 
@@ -1358,7 +1432,7 @@ function TournamentsAdmin({ tournaments, reload }) {
 
   // Coach-submitted requests awaiting review vs. the live/approved tournaments.
   const pending = tournaments.filter(t => t.status === 'pending')
-  const live = tournaments.filter(t => t.status !== 'pending')
+  const live = sortItems(tournaments.filter(t => t.status !== 'pending'), sort, tournamentAccessors)
   const review = async (id, approve) => {
     try { await reviewTournament(id, approve); await reload() }
     catch (err) { alert('שגיאה: ' + err.message) }
@@ -1447,6 +1521,8 @@ function TournamentsAdmin({ tournaments, reload }) {
           ))}
         </div>
       )}
+
+      {live.length > 1 && <SortBar options={tournamentSortOptions} sort={sort} onChange={setSort} />}
 
       {live.length === 0 ? (
         <div className="card p-8 text-center text-sm text-slate-400">אין טורנירים עדיין. צרו את הראשון עם "טורניר חדש".</div>

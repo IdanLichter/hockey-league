@@ -2,6 +2,23 @@ import { useState, useEffect, useMemo } from "react"
 import { getMedicalRoster, signMedical } from "@/lib/medical"
 import { HeartPulse, RefreshCw, Search, Eye } from "lucide-react"
 import { format } from "date-fns"
+import { SortBar, sortItems } from "@/components/admin/SortBar"
+
+// Problems-first severity ranking, so the default "חומרה" sort surfaces the
+// players who need attention (missing/expired) above those already covered.
+const MED_SEVERITY = { missing: 0, expired: 1, rejected: 1, pending: 2, expiring: 3, valid: 4 }
+const MED_SORT_OPTIONS = [
+  { key: "severity", label: "חומרה", dir: "asc" },
+  { key: "name", label: "שם", dir: "asc" },
+  { key: "team", label: "קבוצה", dir: "asc" },
+  { key: "expiry", label: "תפוגה", dir: "asc" },
+]
+const MED_ACCESSORS = {
+  severity: r => MED_SEVERITY[r.st.key] ?? 9,
+  name: r => `${r.first_name} ${r.last_name}`.trim(),
+  team: r => r.team_name || "",
+  expiry: r => (r.valid_until ? new Date(r.valid_until).getTime() : null),
+}
 
 /**
  * B4 — league-manager / admin medical roster. One row per player: who holds a valid
@@ -32,6 +49,7 @@ export default function MedicalRosterAdmin() {
   const [error, setError] = useState(null)
   const [filter, setFilter] = useState("issues") // all | issues | expiring
   const [q, setQ] = useState("")
+  const [sort, setSort] = useState({ key: "severity", dir: "asc" })
 
   const load = async () => {
     try { setError(null); setRows(await getMedicalRoster()) }
@@ -56,7 +74,7 @@ export default function MedicalRosterAdmin() {
     total: decorated.length,
   }), [decorated])
 
-  const shown = decorated.filter(r => {
+  const shown = sortItems(decorated.filter(r => {
     if (filter === "issues" && ["valid", "expiring"].includes(r.st.key)) return false
     if (filter === "expiring" && r.st.key !== "expiring") return false
     if (q.trim()) {
@@ -64,7 +82,7 @@ export default function MedicalRosterAdmin() {
       if (!hay.includes(q.trim().toLowerCase())) return false
     }
     return true
-  })
+  }), sort, MED_ACCESSORS)
 
   const FilterBtn = ({ id, label, n }) => (
     <button onClick={() => setFilter(id)}
@@ -104,6 +122,8 @@ export default function MedicalRosterAdmin() {
             className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg pr-8 pl-3 py-1.5 text-xs text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500/30" />
         </div>
       </div>
+
+      <SortBar options={MED_SORT_OPTIONS} sort={sort} onChange={setSort} />
 
       {rows === null ? (
         <div className="flex justify-center py-10"><div className="animate-spin rounded-full h-7 w-7 border-2 border-orange-500 border-t-transparent" /></div>

@@ -1,6 +1,18 @@
 import { useState, useEffect } from "react"
 import { MapPin, Plus, Trash2, RefreshCw, Check, X, Pencil } from "lucide-react"
 import { getAllVenues, createVenue, updateVenue, deleteVenue } from "@/lib/venues"
+import { SortBar, sortItems } from "@/components/admin/SortBar"
+
+const VENUE_SORT_OPTIONS = [
+  { key: "name", label: "שם", dir: "asc" },
+  { key: "city", label: "עיר", dir: "asc" },
+  { key: "active", label: "פעילים תחילה", dir: "desc" },
+]
+const VENUE_ACCESSORS = {
+  name: v => v.name || "",
+  city: v => v.city || "",
+  active: v => (v.is_active ? 1 : 0),
+}
 
 /**
  * Venues admin tab (#4) — league-manager / admin. Add courts, rename, toggle active
@@ -14,6 +26,7 @@ export default function VenuesAdmin() {
   const [busy, setBusy] = useState(null)
   const [editId, setEditId] = useState(null)
   const [editName, setEditName] = useState("")
+  const [sort, setSort] = useState({ key: "name", dir: "asc" })
 
   const load = async () => { try { setVenues(await getAllVenues()) } catch { setVenues([]) } }
   useEffect(() => { load() }, [])
@@ -68,8 +81,10 @@ export default function VenuesAdmin() {
       ) : venues.length === 0 ? (
         <p className="text-center text-sm text-slate-400 py-8">אין מגרשים עדיין</p>
       ) : (
+        <>
+        {venues.length > 1 && <SortBar options={VENUE_SORT_OPTIONS} sort={sort} onChange={setSort} className="mb-3" />}
         <div className="card divide-y divide-slate-100 dark:divide-slate-700/50">
-          {venues.map(v => (
+          {sortItems(venues, sort, VENUE_ACCESSORS).map(v => (
             <div key={v.id} className="flex items-center justify-between gap-3 p-3">
               {editId === v.id ? (
                 <input value={editName} onChange={e => setEditName(e.target.value)} autoFocus
@@ -99,6 +114,7 @@ export default function VenuesAdmin() {
             </div>
           ))}
         </div>
+        </>
       )}
     </div>
   )

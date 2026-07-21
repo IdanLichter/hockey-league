@@ -2,6 +2,12 @@ import { useState, useEffect, useMemo } from "react"
 import { getProfiles, getAllRoles, grantRole, revokeRole, deleteUser, GRANTABLE_ROLES, ROLE_LABEL, TEAM_SCOPED } from "@/lib/roles"
 import { Award, X, Plus, RefreshCw, Check, Loader2, Search, Trash2 } from "lucide-react"
 import { useAuth } from "@/lib/AuthContext"
+import { SortBar, sortItems } from "@/components/admin/SortBar"
+
+const ROLE_SORT_OPTIONS = [
+  { key: "name", label: "שם", dir: "asc" },
+  { key: "roles", label: "מספר תפקידים", dir: "desc" },
+]
 
 /**
  * Admin UI to grant/revoke user roles (player / coach / content_editor / judge),
@@ -18,6 +24,7 @@ export default function RolesAdmin({ teamsMap = {}, players = [] }) {
   const [busy, setBusy] = useState(false)
   const [form, setForm] = useState(null) // { profileId, role, teamId }
   const [search, setSearch] = useState("")
+  const [sort, setSort] = useState({ key: "name", dir: "asc" })
   const [confirmDelete, setConfirmDelete] = useState(null) // profile id pending deletion
 
   const playersMap = useMemo(() => Object.fromEntries(players.map(p => [p.id, p])), [players])
@@ -45,6 +52,11 @@ export default function RolesAdmin({ teamsMap = {}, players = [] }) {
   useEffect(() => { load() }, [])
 
   const rolesFor = (uid) => roles.filter(r => r.user_id === uid)
+
+  const sorted = sortItems(filtered, sort, {
+    name: p => p.display_name || "",
+    roles: p => rolesFor(p.id).length,
+  })
 
   const doGrant = async () => {
     if (!form?.role) return
@@ -125,11 +137,13 @@ export default function RolesAdmin({ teamsMap = {}, players = [] }) {
             />
           </div>
 
+          <SortBar options={ROLE_SORT_OPTIONS} sort={sort} onChange={setSort} />
+
           {filtered.length === 0 ? (
             <div className="card p-8 text-center text-sm text-slate-500 dark:text-slate-400">לא נמצאו משתמשים תואמים</div>
           ) : (
         <div className="space-y-2.5">
-          {filtered.map(p => {
+          {sorted.map(p => {
             const linked = p.player_id ? playersMap[p.player_id] : null
             const initial = (p.display_name || "?").charAt(0).toUpperCase()
             const myRoles = rolesFor(p.id)
