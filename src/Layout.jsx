@@ -7,7 +7,8 @@ import {
   X,
   LogOut,
   UserCircle,
-  Swords
+  Swords,
+  BookOpen
 } from "lucide-react"
 import { Rink, Standings, Crossed, Teams, Player, Whistle, Stats, Camera, Edit, Clipboard } from "./components/icons/HockeyIcons"
 import { useAuth } from "./lib/AuthContext"
@@ -72,6 +73,7 @@ export default function Layout({ children }) {
     { title: "טורנירים", url: "/tournaments", icon: Swords },
     { title: "קבוצות", url: "/teams", icon: NavTeams },
     { title: "שחקנים", url: "/players", icon: NavPlayers },
+    { title: "מדריך", url: "/guide", icon: BookOpen },
     // Media / content-editor entry: plain users & admins keep "מדיה"; content
     // editors get "יוצרי תוכן" instead; admins see BOTH.
     ...((!isContentEditor || isAdmin) ? [{ title: "מדיה", url: "/media", icon: NavCamera }] : []),

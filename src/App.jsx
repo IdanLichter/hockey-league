@@ -27,6 +27,7 @@ const Profile = lazy(() => import('./pages/Profile'))
 const ResetPassword = lazy(() => import('./pages/ResetPassword'))
 const Privacy = lazy(() => import('./pages/Privacy'))
 const MobileApp = lazy(() => import('./pages/MobileApp'))
+const Features = lazy(() => import('./pages/Features'))
 const NotFound = lazy(() => import('./pages/NotFound'))
 
 const SeasonModeContext = createContext()
@@ -75,6 +76,7 @@ function App() {
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/privacy" element={<Privacy />} />
             <Route path="/app" element={<MobileApp />} />
+            <Route path="/guide" element={<Features />} />
             <Route path="/media" element={<Media />} />
             <Route path="/creators" element={<ContentCreators />} />
             <Route path="/tournaments" element={<Tournaments />} />
