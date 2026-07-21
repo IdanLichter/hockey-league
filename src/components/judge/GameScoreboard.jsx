@@ -29,6 +29,26 @@ const cardMMSS = (s) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")
 const HOLD_MS = 400
 const TOUCH = { touchAction: "manipulation", userSelect: "none", WebkitUserSelect: "none", cursor: "pointer" }
 
+/* Fullscreen board type scale — sizes track the viewport on BOTH axes so the
+ * board fills a TV/monitor yet still fits a phone in landscape. `min(vw,vh)`
+ * caps each element by whichever dimension is tighter (the clock/score are
+ * width-bound in the 3-column layout); the rem clamp bounds the extremes. */
+const SB = {
+  name:     "clamp(1.2rem,min(3.8vw,7vh),4.5rem)",
+  score:    "clamp(3rem,min(17vw,34vh),20rem)",
+  foul:     "clamp(1.75rem,min(7vw,13vh),7.5rem)",
+  foulLabel:"clamp(0.7rem,1.5vw,1.6rem)",
+  cardBtn:  "clamp(2.5rem,4.5vw,4.5rem)",
+  timeout:  "clamp(0.85rem,1.7vw,1.7rem)",
+  period:   "clamp(1rem,min(3.6vw,7vh),3.25rem)",
+  clock:    "clamp(4rem,min(14vw,42vh),22rem)",
+  hint:     "clamp(0.9rem,1.7vw,1.7rem)",
+  passive:  "clamp(1rem,2.2vw,2.25rem)",
+  ctrlBtn:  "clamp(2.75rem,3.4vw,3.75rem)",
+  ctrlIcon: "clamp(1.4rem,2.2vw,2.4rem)",
+  minor:    "clamp(0.8rem,1.5vw,1.5rem)",
+}
+
 const HE = {
   fouls: "עבירות", timeout: "פסק זמן",
   tapToStart: "הקש על השעון כדי להתחיל", paused: "מושהה",
@@ -97,8 +117,8 @@ function useHold(onTap, onHold, ms = HOLD_MS) {
 function CardPill({ card, T, onRemove }) {
   const hold = useHold(undefined, onRemove)
   return (
-    <span {...hold} style={{ ...TOUCH, background: card.type === CardType.red ? T.cardRed : T.cardBlue }}
-      className="flex items-center gap-1 px-2 py-0.5 rounded-full text-white text-[12px] font-bold" title="החזק כדי לבטל">
+    <span {...hold} style={{ ...TOUCH, background: card.type === CardType.red ? T.cardRed : T.cardBlue, fontSize: SB.foulLabel }}
+      className="flex items-center gap-1 px-2 py-0.5 rounded-full text-white font-bold" title="החזק כדי לבטל">
       {card.player?.number != null && <span className="tabular-nums">#{card.player.number}</span>}
       <span className="tabular-nums">{cardMMSS(card.remainingS)}</span>
     </span>
@@ -116,43 +136,43 @@ function TeamColumn({ side, engine, T, teamName, setPicker }) {
   const cards = engine.activeCards(side)
 
   return (
-    <div className="flex flex-col items-center gap-2 sm:gap-3 w-[27%] shrink-0">
+    <div className="flex flex-col items-center justify-evenly w-[27%] shrink-0">
       {editing ? (
         <input value={s.name} onChange={(e) => { engine._side(side).name = e.target.value; engine._changed() }} placeholder={HE.namePlaceholder}
           className="w-full text-center rounded-lg px-2 py-1 text-lg font-bold bg-black/30 border outline-none"
           style={{ color: accent, borderColor: "rgba(255,255,255,0.2)" }} />
       ) : (
-        <div className="font-extrabold text-center leading-tight line-clamp-1 text-[clamp(1.1rem,2.4vw,2.25rem)]" style={{ color: accent }}>{teamName || s.name}</div>
+        <div className="font-extrabold text-center leading-tight line-clamp-1 max-w-full" style={{ color: accent, fontSize: SB.name }}>{teamName || s.name}</div>
       )}
 
       {/* score — tap to add (picker), hold to undo */}
-      <div {...scoreHold} style={{ ...TOUCH, color: T.score, textShadow: T.glowRadius ? `0 0 14px ${accent}aa` : "none" }}
-        className="font-black tabular-nums leading-none text-[clamp(3.5rem,12vw,9rem)]" aria-label={`${s.name} ${s.score}`}>
+      <div {...scoreHold} style={{ ...TOUCH, color: T.score, fontSize: SB.score, textShadow: T.glowRadius ? `0 0 24px ${accent}aa` : "none" }}
+        className="font-black tabular-nums leading-none" aria-label={`${s.name} ${s.score}`}>
         {displayScore}
       </div>
 
       {/* fouls — tap to add, hold to undo */}
       <div {...foulHold} style={TOUCH} className="flex flex-col items-center leading-none">
-        <span className="font-black tabular-nums text-[clamp(1.75rem,5vw,3.5rem)]" style={{ color: T.strike }}>{s.strikes}</span>
-        <span className="text-[11px] font-semibold tracking-widest" style={{ color: T.secondaryText }}>{HE.fouls}</span>
+        <span className="font-black tabular-nums" style={{ color: T.strike, fontSize: SB.foul }}>{s.strikes}</span>
+        <span className="font-semibold tracking-widest" style={{ color: T.secondaryText, fontSize: SB.foulLabel }}>{HE.fouls}</span>
       </div>
 
       {/* cards — blue/red add (picker) + active countdowns (hold to remove) */}
       <div className="flex items-center justify-center gap-2 flex-wrap min-h-[2.25rem]">
-        <button onClick={() => setPicker({ side, kind: "blue" })} className="w-10 h-10 flex items-center justify-center" aria-label="כרטיס כחול">
-          <RectangleVertical className="w-6 h-6" style={{ color: T.cardBlue }} fill="currentColor" />
+        <button onClick={() => setPicker({ side, kind: "blue" })} className="flex items-center justify-center" style={{ width: SB.cardBtn, height: SB.cardBtn, fontSize: SB.cardBtn }} aria-label="כרטיס כחול">
+          <RectangleVertical className="w-[0.6em] h-[0.8em]" style={{ color: T.cardBlue }} fill="currentColor" />
         </button>
-        <button onClick={() => setPicker({ side, kind: "red" })} className="w-10 h-10 flex items-center justify-center" aria-label="כרטיס אדום">
-          <RectangleVertical className="w-6 h-6" style={{ color: T.cardRed }} fill="currentColor" />
+        <button onClick={() => setPicker({ side, kind: "red" })} className="flex items-center justify-center" style={{ width: SB.cardBtn, height: SB.cardBtn, fontSize: SB.cardBtn }} aria-label="כרטיס אדום">
+          <RectangleVertical className="w-[0.6em] h-[0.8em]" style={{ color: T.cardRed }} fill="currentColor" />
         </button>
         {cards.map(c => <CardPill key={c.id} card={c} T={T} onRemove={() => engine.removeCard(c.id)} />)}
       </div>
 
       {/* timeout */}
       <button onClick={() => engine.requestTimeout(side)} disabled={!engine.canTimeout(side)}
-        className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-bold transition-opacity"
-        style={{ background: T.panel, color: accent, opacity: engine.canTimeout(side) ? 1 : 0.25 }}>
-        <Hand className="w-3.5 h-3.5" /> {HE.timeout}
+        className="flex items-center gap-1.5 px-3 py-1.5 rounded-full font-bold transition-opacity"
+        style={{ background: T.panel, color: accent, opacity: engine.canTimeout(side) ? 1 : 0.25, fontSize: SB.timeout }}>
+        <Hand className="w-[1.1em] h-[1.1em]" /> {HE.timeout}
       </button>
     </div>
   )
@@ -160,8 +180,8 @@ function TeamColumn({ side, engine, T, teamName, setPicker }) {
 
 function ControlBtn({ icon: Icon, onClick, tint, label, fill = false }) {
   return (
-    <button onClick={onClick} aria-label={label} className="w-11 h-11 flex items-center justify-center">
-      <Icon className="w-6 h-6" style={{ color: tint }} fill={fill ? "currentColor" : "none"} />
+    <button onClick={onClick} aria-label={label} className="flex items-center justify-center" style={{ width: SB.ctrlBtn, height: SB.ctrlBtn }}>
+      <Icon style={{ color: tint, width: SB.ctrlIcon, height: SB.ctrlIcon }} fill={fill ? "currentColor" : "none"} />
     </button>
   )
 }
@@ -191,9 +211,7 @@ export default function GameScoreboard({ game, home, guest, players }) {
   const [saved, setSaved] = useState(false)
   const [saveErr, setSaveErr] = useState(null)
   const [isFs, setIsFs] = useState(false)
-  const [immersive, setImmersive] = useState(true)
   const wrapRef = useRef(null)
-  const full = immersive || isFs
   const T = THEMES[themeKind]
 
   useEffect(() => {
@@ -268,9 +286,9 @@ export default function GameScoreboard({ game, home, guest, players }) {
       }
     } catch { /* ignore */ }
   }
-  const exitImmersive = async () => {
+  const closeBoard = async () => {
     if (document.fullscreenElement) { try { await document.exitFullscreen() } catch { /* ignore */ } }
-    setImmersive(false)
+    navigate("/judge")
   }
 
   const rosterFor = (side) => (side === TeamSide.home ? homeRoster : guestRoster)
@@ -332,35 +350,30 @@ export default function GameScoreboard({ game, home, guest, players }) {
 
   return (
     <div ref={wrapRef} dir="ltr"
-      className={full ? "fixed inset-0 z-50 flex flex-col overflow-hidden" : "rounded-2xl overflow-hidden"}
+      className="fixed inset-0 z-50 flex flex-col overflow-hidden"
       style={{ background: T.bg, color: T.primaryText }}>
 
-      {/* subtle web-only chrome: exit + kiosk fullscreen (top-left in LTR) */}
-      {full ? (
-        <div className="absolute top-3 left-3 z-10 flex items-center gap-1.5 opacity-40 hover:opacity-100 transition-opacity">
-          <button onClick={exitImmersive} aria-label="צא" className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: T.panel }}><X className="w-5 h-5" /></button>
-          <button onClick={toggleFs} aria-label="מסך מלא" className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: T.panel }}>{isFs ? <Minimize className="w-5 h-5" /> : <Maximize className="w-5 h-5" />}</button>
-        </div>
-      ) : (
-        <button onClick={() => setImmersive(true)} className="absolute top-3 left-3 z-10 flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-bold" style={{ background: T.panel, color: T.primaryText }}>
-          <Maximize className="w-4 h-4" /> מסך שיפוט
-        </button>
-      )}
+      {/* subtle web-only chrome: close (→ list) + kiosk fullscreen (top-left in LTR) */}
+      <div className="absolute top-3 left-3 z-10 flex items-center gap-1.5 opacity-40 hover:opacity-100 transition-opacity">
+        <button onClick={closeBoard} aria-label="סגור" className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: T.panel }}><X className="w-5 h-5" /></button>
+        <button onClick={toggleFs} aria-label="מסך מלא" className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: T.panel }}>{isFs ? <Minimize className="w-5 h-5" /> : <Maximize className="w-5 h-5" />}</button>
+      </div>
 
-      {/* board: HOME (left) · center · GUEST (right) */}
-      <div className={`flex-1 flex items-center justify-between gap-2 px-5 ${full ? "py-4" : "py-8"}`}>
+      {/* board: HOME (left) · center · GUEST (right) — items-stretch so each
+          column fills the full height and spreads its rows to use the space */}
+      <div className="flex-1 flex items-stretch justify-between gap-2" style={{ padding: "clamp(1rem,4vh,3.5rem) clamp(1rem,3vw,4rem)" }}>
         <TeamColumn side={TeamSide.home} engine={engine} T={T} teamName={home?.name} setPicker={setPicker} />
 
         {/* center stack */}
-        <div className="flex-1 flex flex-col items-center justify-center gap-2 sm:gap-3 min-w-0">
-          <div className="font-bold tracking-widest text-center line-clamp-1 text-[clamp(1rem,2vw,1.75rem)]"
-            style={{ color: over ? T.accent : T.secondaryText }}>{engine.periodLabel}</div>
+        <div className="flex-1 flex flex-col items-center justify-center min-w-0" style={{ gap: "clamp(0.5rem,1.6vh,1.75rem)" }}>
+          <div className="font-bold tracking-widest text-center line-clamp-1"
+            style={{ color: over ? T.accent : T.secondaryText, fontSize: SB.period }}>{engine.periodLabel}</div>
 
           {/* CLOCK — tap to start/pause (or skip a break) */}
           <div onClick={() => (inBreak ? engine.skipBreak() : engine.toggleClock())}
-            className="font-mono font-black tabular-nums leading-none text-[clamp(4rem,14vw,11rem)]"
+            className="font-mono font-black tabular-nums leading-none"
             style={{
-              ...TOUCH, color: showTenths ? T.strike : T.clock,
+              ...TOUCH, color: showTenths ? T.strike : T.clock, fontSize: SB.clock,
               textShadow: T.glowRadius ? `0 0 ${T.glowRadius}px ${T.clockGlow}, 0 0 ${T.glowRadius * 1.7}px ${T.clockGlow}99` : "none",
             }}
             aria-label={`שעון ${clockString(engine.clock.remainingMS, showTenths)}`}>
@@ -371,27 +384,27 @@ export default function GameScoreboard({ game, home, guest, players }) {
           {editing ? (
             <TimeStepper engine={engine} T={T} />
           ) : inBreak ? (
-            <button onClick={() => engine.skipBreak()} className="flex items-center gap-1.5 text-sm font-semibold" style={{ color: T.accent }}>
-              <SkipForward className="w-4 h-4" /> {HE.skipBreak}
+            <button onClick={() => engine.skipBreak()} className="flex items-center gap-1.5 font-semibold" style={{ color: T.accent, fontSize: SB.hint }}>
+              <SkipForward className="w-[1.1em] h-[1.1em]" /> {HE.skipBreak}
             </button>
           ) : (engine.phase === Phase.ready || engine.phase === Phase.readyOvertime) ? (
-            <span className="text-[13px] font-semibold" style={{ color: T.secondaryText }}>{HE.tapToStart}</span>
+            <span className="font-semibold" style={{ color: T.secondaryText, fontSize: SB.hint }}>{HE.tapToStart}</span>
           ) : engine.phase === Phase.paused ? (
-            <span className="text-[13px] font-bold" style={{ color: T.strike }}>{HE.paused}</span>
+            <span className="font-bold" style={{ color: T.strike, fontSize: SB.hint }}>{HE.paused}</span>
           ) : <div className="h-4" />}
 
           {/* passive-play pill — tap to reset */}
           {engine.settings.passivePlayEnabled && (
             <button onClick={() => engine.resetPassive()}
               className="flex items-center gap-1.5 px-3 py-1 rounded-full transition-transform"
-              style={{ background: T.panel, color: engine.passiveIsWarning ? T.passiveWarning : T.passive, transform: engine.passiveIsWarning ? "scale(1.1)" : "none" }}>
-              <StickBall mono className="w-3.5 h-3.5" />
-              <span className="text-[15px] font-black tabular-nums">{engine.passiveSeconds}</span>
+              style={{ background: T.panel, color: engine.passiveIsWarning ? T.passiveWarning : T.passive, transform: engine.passiveIsWarning ? "scale(1.1)" : "none", fontSize: SB.passive }}>
+              <StickBall mono className="w-[1.3em] h-[1.3em]" />
+              <span className="font-black tabular-nums">{engine.passiveSeconds}</span>
             </button>
           )}
 
           {/* control bar */}
-          <div className="flex items-center gap-3 sm:gap-4 pt-1">
+          <div className="flex items-center pt-1" style={{ gap: "clamp(0.75rem,2vw,2rem)" }}>
             <ControlBtn icon={RotateCcw} onClick={handleReset} tint={resetArmed ? "#fb923c" : T.controlTint} label="אפס" />
             <ControlBtn icon={editing ? CheckCircle2 : Pencil} onClick={() => (editing ? engine.endEditing() : engine.beginEditing())} tint={editing ? T.accent : T.controlTint} label="עריכה" fill={editing} />
             <ControlBtn icon={Megaphone} onClick={() => engine.buzz()} tint={T.controlTint} label="צפירה" fill />
@@ -403,22 +416,22 @@ export default function GameScoreboard({ game, home, guest, players }) {
           {game && over && (
             <div className="flex flex-col items-center gap-1 pt-1">
               {saving ? <Loader2 className="w-6 h-6 animate-spin" style={{ color: T.accent }} />
-                : <button onClick={doSave} className="flex items-center gap-2 px-4 py-2 rounded-full text-white text-sm font-bold" style={{ background: T.accent }}>
-                    <Save className="w-4 h-4" /> {HE.saveResult}
+                : <button onClick={doSave} className="flex items-center gap-2 px-4 py-2 rounded-full text-white font-bold" style={{ background: T.accent, fontSize: SB.minor }}>
+                    <Save className="w-[1.1em] h-[1.1em]" /> {HE.saveResult}
                   </button>}
-              {saveErr && <span className="text-[12px]" style={{ color: T.cardRed }}>{saveErr}</span>}
+              {saveErr && <span style={{ color: T.cardRed, fontSize: SB.minor }}>{saveErr}</span>}
             </div>
           )}
           {game && (
             confirmAbandon ? (
-              <div className="flex items-center gap-2 pt-1 text-[12px]" style={{ color: T.secondaryText }}>
+              <div className="flex items-center gap-2 pt-1" style={{ color: T.secondaryText, fontSize: SB.minor }}>
                 <span>{HE.abandonConfirm}</span>
                 <button onClick={doAbandon} disabled={abandoning} className="px-2.5 py-1 rounded-md font-bold text-white" style={{ background: "#f59e0b" }}>{abandoning ? "…" : HE.abandonYes}</button>
                 <button onClick={() => setConfirmAbandon(false)} className="px-2.5 py-1 rounded-md font-bold" style={{ background: T.panel }}>{HE.cancel}</button>
               </div>
             ) : (
-              <button onClick={() => { setSaveErr(null); setConfirmAbandon(true) }} className="flex items-center gap-1.5 text-[12px] font-semibold pt-1" style={{ color: T.secondaryText }}>
-                <Undo2 className="w-3.5 h-3.5" /> {HE.abandon}
+              <button onClick={() => { setSaveErr(null); setConfirmAbandon(true) }} className="flex items-center gap-1.5 font-semibold pt-1" style={{ color: T.secondaryText, fontSize: SB.minor }}>
+                <Undo2 className="w-[1.1em] h-[1.1em]" /> {HE.abandon}
               </button>
             )
           )}
