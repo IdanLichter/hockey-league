@@ -13,6 +13,7 @@ import { motion } from "framer-motion"
 import { format } from "date-fns"
 import TeamLogo from "@/components/TeamLogo"
 import { TeamLink } from "@/components/EntityLinks"
+import { useSeo } from "@/lib/seo"
 
 const statusLabel = {
   scheduled: "מתוכנן", in_progress: "משחק חי", waiting_result: "ממתין לתוצאה",
@@ -29,6 +30,16 @@ export default function TournamentDetail() {
   const [tteams, setTteams] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+
+  // Runs before the early returns below so the tab title / share preview names the
+  // tournament instead of falling back to the generic site title.
+  useSeo({
+    title: tournament?.name || 'טורניר',
+    description: tournament?.name
+      ? `לוח משחקים, טבלה ותוצאות של ${tournament.name} — טורניר הנוער של ליגת הוקי הגלגיליות הישראלית`
+      : undefined,
+    path: `/tournaments/${id}`,
+  })
 
   useEffect(() => { load() }, [id])
 

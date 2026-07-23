@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom'
+import { BrowserRouter as Router, Route, Routes, Navigate, useLocation, useNavigationType } from 'react-router-dom'
 import { useState, useEffect, createContext, useContext, lazy, Suspense } from 'react'
 import Layout from './Layout'
 import RouteSeo from './components/RouteSeo'
@@ -33,6 +33,40 @@ const NotFound = lazy(() => import('./pages/NotFound'))
 const SeasonModeContext = createContext()
 export const useSeasonMode = () => useContext(SeasonModeContext)
 
+/**
+ * A plain <a href> reload starts at the top; a client-side route change does not
+ * — React swaps the page under a scroll offset the user never asked to keep, so
+ * following a link from halfway down /guide dropped you halfway down /standings.
+ * Reset to the top on every PUSH/REPLACE, and let the browser restore its own
+ * position on POP (back/forward) instead of fighting it.
+ *
+ * A hash (/guide#coach) targets an element that may still be inside a lazy
+ * route chunk, so retry for a few frames before giving up.
+ */
+function ScrollToTop() {
+  const { pathname, hash } = useLocation()
+  const navType = useNavigationType()
+
+  useEffect(() => {
+    if (navType === 'POP') return
+
+    if (hash) {
+      let raf, frames = 0
+      const jump = () => {
+        const el = document.getElementById(decodeURIComponent(hash.slice(1)))
+        if (el) return el.scrollIntoView()
+        if (frames++ < 60) raf = requestAnimationFrame(jump)
+      }
+      jump()
+      return () => cancelAnimationFrame(raf)
+    }
+
+    window.scrollTo(0, 0)
+  }, [pathname, hash, navType])
+
+  return null
+}
+
 function App() {
   const [seasonMode, setSeasonMode] = useState(null) // 'regular' or 'final_four'
   const [loading, setLoading] = useState(true)
@@ -56,6 +90,7 @@ function App() {
     <SeasonModeContext.Provider value={{ seasonMode, setSeasonMode }}>
       <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <RouteSeo />
+        <ScrollToTop />
         <Layout>
           <Suspense fallback={
             <div className="flex items-center justify-center min-h-[60vh]">

@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { X, Mail, Lock, User, Loader2, Clock, KeyRound } from "lucide-react"
 import { useAuth } from "@/lib/AuthContext"
 
@@ -54,13 +54,28 @@ export default function AuthModal() {
   const [error, setError] = useState(null)
   const [sent, setSent] = useState(null) // null | 'confirm' | 'ratelimit' | 'reset'
 
-  if (!authOpen) return null
-
+  // Reset to sign-in too: the trigger in the header says "התחבר", so reopening
+  // after a close from the signup/forgot form must not show that other form.
   const close = () => {
     closeAuth()
-    setError(null); setSent(null); setPassword("")
+    setMode("signin"); setError(null); setSent(null); setPassword("")
   }
   const switchMode = (m) => { setMode(m); setError(null); setSent(null) }
+
+  // Dialog behaviour: Esc closes it, and the page behind it stops scrolling.
+  useEffect(() => {
+    if (!authOpen) return
+    const onKey = (e) => { if (e.key === "Escape") close() }
+    const prevOverflow = document.body.style.overflow
+    document.addEventListener("keydown", onKey)
+    document.body.style.overflow = "hidden"
+    return () => {
+      document.removeEventListener("keydown", onKey)
+      document.body.style.overflow = prevOverflow
+    }
+  }, [authOpen]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  if (!authOpen) return null
 
   // Supabase surfaces the built-in mailer's ~2/hr cap as an HTTP 429. Reframe it
   // as a calm "wait a moment" state instead of a scary red error.
@@ -92,7 +107,7 @@ export default function AuthModal() {
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4" dir="rtl">
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={close} />
-      <div className="relative card w-full max-w-sm p-6 shadow-2xl">
+      <div className="relative card w-full max-w-sm p-6 shadow-2xl" role="dialog" aria-modal="true" aria-labelledby="auth-modal-title">
         <button
           onClick={close}
           className="absolute top-4 left-4 p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
@@ -106,7 +121,7 @@ export default function AuthModal() {
             <div className="w-14 h-14 rounded-full bg-emerald-100 dark:bg-emerald-900/40 flex items-center justify-center mx-auto mb-4">
               <Mail className="w-7 h-7 text-emerald-600 dark:text-emerald-400" />
             </div>
-            <h3 className="text-lg font-extrabold text-slate-900 dark:text-white">כמעט על המגרש 🛼</h3>
+            <h3 id="auth-modal-title" className="text-lg font-extrabold text-slate-900 dark:text-white">כמעט על המגרש 🛼</h3>
             <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">
               שלחנו קישור אימות ל־<span className="font-semibold text-slate-700 dark:text-slate-300">{email}</span>. לחצו עליו — ואתם בהרכב.
             </p>
@@ -122,7 +137,7 @@ export default function AuthModal() {
             <div className="w-14 h-14 rounded-full bg-amber-100 dark:bg-amber-900/40 flex items-center justify-center mx-auto mb-4">
               <Clock className="w-7 h-7 text-amber-600 dark:text-amber-400" />
             </div>
-            <h3 className="text-lg font-extrabold text-slate-900 dark:text-white">רגע, טיים־אאוט ⏱️</h3>
+            <h3 id="auth-modal-title" className="text-lg font-extrabold text-slate-900 dark:text-white">רגע, טיים־אאוט ⏱️</h3>
             <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">
               שלחנו כבר כמה מיילים בזמן קצר, והשרת ביקש חילוף. שבו על הספסל דקה־שתיים ונסו שוב.
             </p>
@@ -138,7 +153,7 @@ export default function AuthModal() {
             <div className="w-14 h-14 rounded-full bg-brand/10 dark:bg-brand/20 flex items-center justify-center mx-auto mb-4">
               <KeyRound className="w-7 h-7 text-brand dark:text-brand-light" />
             </div>
-            <h3 className="text-lg font-extrabold text-slate-900 dark:text-white">בדקו את המייל 📩</h3>
+            <h3 id="auth-modal-title" className="text-lg font-extrabold text-slate-900 dark:text-white">בדקו את המייל 📩</h3>
             <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">
               אם קיים חשבון עבור <span className="font-semibold text-slate-700 dark:text-slate-300">{email}</span>, שלחנו אליו קישור לאיפוס הסיסמה. לחצו עליו ובחרו סיסמה חדשה.
             </p>
@@ -151,7 +166,7 @@ export default function AuthModal() {
           </div>
         ) : (
           <>
-            <h2 className="text-xl font-extrabold text-slate-900 dark:text-white text-center">
+            <h2 id="auth-modal-title" className="text-xl font-extrabold text-slate-900 dark:text-white text-center">
               {TITLES[mode].h}
             </h2>
             <p className="text-center text-sm text-slate-500 dark:text-slate-400 mt-1">
