@@ -40,26 +40,34 @@ export const useSeasonMode = () => useContext(SeasonModeContext)
  * Reset to the top on every PUSH/REPLACE, and let the browser restore its own
  * position on POP (back/forward) instead of fighting it.
  *
- * A hash (/guide#coach) targets an element that may still be inside a lazy
- * route chunk, so retry for a few frames before giving up.
+ * A hash (/guide#coach) is always honoured, whatever the navigation type: the
+ * browser can't do the fragment jump itself here, because on a cold load the
+ * target is still inside a lazy route chunk — and React Router reports that
+ * first load as POP, so gating the hash on the type skips exactly the case
+ * that needs us. Keep looking for the element until a deadline, budgeted in
+ * wall-clock time rather than frames; a slow chunk can take seconds, which a
+ * frame count silently under-waits.
  */
+const HASH_TARGET_TIMEOUT_MS = 8000
+
 function ScrollToTop() {
   const { pathname, hash } = useLocation()
   const navType = useNavigationType()
 
   useEffect(() => {
-    if (navType === 'POP') return
-
     if (hash) {
-      let raf, frames = 0
+      let raf
+      const deadline = performance.now() + HASH_TARGET_TIMEOUT_MS
       const jump = () => {
         const el = document.getElementById(decodeURIComponent(hash.slice(1)))
         if (el) return el.scrollIntoView()
-        if (frames++ < 60) raf = requestAnimationFrame(jump)
+        if (performance.now() < deadline) raf = requestAnimationFrame(jump)
       }
       jump()
       return () => cancelAnimationFrame(raf)
     }
+
+    if (navType === 'POP') return // back/forward: the browser restores the position
 
     window.scrollTo(0, 0)
   }, [pathname, hash, navType])
