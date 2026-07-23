@@ -47,8 +47,19 @@ export const useSeasonMode = () => useContext(SeasonModeContext)
  * that needs us. Keep looking for the element until a deadline, budgeted in
  * wall-clock time rather than frames; a slow chunk can take seconds, which a
  * frame count silently under-waits.
+ *
+ * Landing on it once isn't enough either: the browser restores its own scroll
+ * position after the document settles and would undo a single jump, so hold the
+ * target for a short window afterwards — releasing it the moment the user
+ * scrolls, so we never fight them for it.
+ *
+ * The poll is a timer, deliberately NOT requestAnimationFrame: rAF is paused
+ * outright in a background tab, so a shared #anchor link opened in one would
+ * never resolve.
  */
 const HASH_TARGET_TIMEOUT_MS = 8000
+const HASH_SETTLE_MS = 700
+const HASH_POLL_MS = 50
 
 function ScrollToTop() {
   const { pathname, hash } = useLocation()
@@ -56,15 +67,32 @@ function ScrollToTop() {
 
   useEffect(() => {
     if (hash) {
-      let raf
+      let timer, settleUntil = 0, released = false
+      const id = decodeURIComponent(hash.slice(1))
       const deadline = performance.now() + HASH_TARGET_TIMEOUT_MS
+      const release = () => { released = true }
+      const events = ['wheel', 'touchstart', 'keydown']
+
       const jump = () => {
-        const el = document.getElementById(decodeURIComponent(hash.slice(1)))
-        if (el) return el.scrollIntoView()
-        if (performance.now() < deadline) raf = requestAnimationFrame(jump)
+        if (released) return
+        const now = performance.now()
+        const el = document.getElementById(id)
+        if (el) {
+          el.scrollIntoView()
+          if (!settleUntil) settleUntil = now + HASH_SETTLE_MS
+          if (now >= settleUntil) return
+        } else if (now >= deadline) {
+          return
+        }
+        timer = setTimeout(jump, HASH_POLL_MS)
       }
+
+      events.forEach(e => window.addEventListener(e, release, { passive: true }))
       jump()
-      return () => cancelAnimationFrame(raf)
+      return () => {
+        clearTimeout(timer)
+        events.forEach(e => window.removeEventListener(e, release))
+      }
     }
 
     if (navType === 'POP') return // back/forward: the browser restores the position
