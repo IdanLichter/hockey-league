@@ -248,7 +248,7 @@ function ChampionPost({ post, likedItems, itemLikeCounts, itemCommentCounts, blo
             אלופת העונה {seasonName}
           </p>
           <TeamLink team={team} className="block w-fit">
-            <h3 className="text-xl font-extrabold text-slate-900 dark:text-white mt-0.5 truncate hover:text-brand transition-colors">{team?.name}</h3>
+            <h2 className="text-xl font-extrabold text-slate-900 dark:text-white mt-0.5 truncate hover:text-brand transition-colors">{team?.name}</h2>
           </TeamLink>
         </div>
         <Trophy className="w-8 h-8 text-amber-400 shrink-0" />
@@ -275,7 +275,7 @@ function TopScorerPost({ post, likedItems, itemLikeCounts, itemCommentCounts, bl
         </div>
         <div className="flex-1 min-w-0">
           <PlayerLink playerId={player?.id} className="block w-fit max-w-full">
-            <h3 className="text-lg font-extrabold text-slate-900 dark:text-white truncate hover:text-brand transition-colors">{player?.first_name} {player?.last_name}</h3>
+            <h2 className="text-lg font-extrabold text-slate-900 dark:text-white truncate hover:text-brand transition-colors">{player?.first_name} {player?.last_name}</h2>
           </PlayerLink>
           <TeamLink team={team} className="block w-fit max-w-full">
             <p className="text-sm text-slate-500 dark:text-slate-400 truncate hover:text-brand transition-colors">{team?.name || ''}</p>

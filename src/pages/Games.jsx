@@ -360,13 +360,13 @@ export default function Games() {
           </button>
         </div>
         <div className="flex gap-2 flex-1 flex-wrap">
-          <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className="filter-select flex-1 min-w-[120px]">
+          <select aria-label="סינון לפי סטטוס" value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className="filter-select flex-1 min-w-[120px]">
             <option value="all">כל הסטטוסים</option>
             <option value="scheduled">מתוכנן</option>
             <option value="completed">הסתיים</option>
             <option value="waiting_result">ממתין</option>
           </select>
-          <select value={teamFilter} onChange={e => setTeamFilter(e.target.value)} className="filter-select flex-1 min-w-[120px]">
+          <select aria-label="סינון לפי קבוצה" value={teamFilter} onChange={e => setTeamFilter(e.target.value)} className="filter-select flex-1 min-w-[120px]">
             <option value="all">כל הקבוצות</option>
             {teams.filter(t => ageGroupsOf(t).includes(ageTab)).map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
           </select>

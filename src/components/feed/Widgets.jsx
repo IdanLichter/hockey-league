@@ -15,7 +15,7 @@ function WidgetHeader({ icon, title }) {
   return (
     <div className="flex items-center gap-2 px-4 py-3 border-b border-slate-100 dark:border-slate-700">
       {icon}
-      <h3 className="font-bold text-sm text-slate-900 dark:text-white">{title}</h3>
+      <h2 className="font-bold text-sm text-slate-900 dark:text-white">{title}</h2>
     </div>
   )
 }

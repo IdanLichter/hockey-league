@@ -89,19 +89,21 @@ export default function Players() {
       <div className="flex flex-col sm:flex-row gap-2.5">
         <div className="relative flex-1">
           <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-          <input type="text" placeholder="חיפוש שחקן..." value={search} onChange={e => setSearch(e.target.value)}
+          <input type="text" placeholder="חיפוש שחקן..." aria-label="חיפוש שחקן" value={search} onChange={e => setSearch(e.target.value)}
             className="filter-input w-full pr-10" />
         </div>
-        <select value={teamFilter} onChange={e => setTeamFilter(e.target.value)} className="filter-select">
+        {/* aria-label on every filter: with none, a screen reader announces only the
+            selected option ("כל הקבוצות") and never what the control filters. */}
+        <select aria-label="סינון לפי קבוצה" value={teamFilter} onChange={e => setTeamFilter(e.target.value)} className="filter-select">
           <option value="all">כל הקבוצות</option>
           {seniorTeams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
         </select>
-        <select value={positionFilter} onChange={e => setPositionFilter(e.target.value)} className="filter-select">
+        <select aria-label="סינון לפי עמדה" value={positionFilter} onChange={e => setPositionFilter(e.target.value)} className="filter-select">
           <option value="all">כל העמדות</option>
           <option value="Field Player">שחקן שדה</option>
           <option value="Goalkeeper">שוער</option>
         </select>
-        <select value={sortBy} onChange={e => setSortBy(e.target.value)} className="filter-select">
+        <select aria-label="מיון השחקנים" value={sortBy} onChange={e => setSortBy(e.target.value)} className="filter-select">
           <option value="goals">שערים</option>
           <option value="games">משחקים</option>
           <option value="name">שם</option>
@@ -122,7 +124,7 @@ export default function Players() {
               <div className="flex items-center gap-3 min-w-0">
                 <PlayerAvatar player={player} team={teamsMap[player.team_id]} size={12} />
                 <div className="min-w-0">
-                  <h3 className="font-bold text-sm text-slate-900 dark:text-white truncate">{player.first_name} {player.last_name}</h3>
+                  <h2 className="font-bold text-sm text-slate-900 dark:text-white truncate">{player.first_name} {player.last_name}</h2>
                   <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
                     {(() => {
                       const ids = [...(teamsByPlayer.get(player.id) || [])]
@@ -162,7 +164,7 @@ export default function Players() {
       {filtered.length === 0 && (
         <div className="text-center py-16">
           <UserCheck className="w-12 h-12 mx-auto text-slate-300 dark:text-slate-600 mb-3" />
-          <h3 className="text-lg font-semibold text-slate-500 dark:text-slate-400">אין שחקנים תואמים</h3>
+          <h2 className="text-lg font-semibold text-slate-500 dark:text-slate-400">אין שחקנים תואמים</h2>
         </div>
       )}
     </div>

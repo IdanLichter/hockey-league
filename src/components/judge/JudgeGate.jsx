@@ -22,7 +22,7 @@ export default function JudgeGate({ children }) {
       <div className="p-4 sm:p-6 lg:p-8 max-w-md mx-auto">
         <div className="card p-8 flex flex-col items-center text-center gap-3 min-h-[300px] justify-center">
           <Gavel className="w-10 h-10 text-brand" />
-          <h2 className="text-lg font-bold text-slate-900 dark:text-white">אזור שיפוט</h2>
+          <h1 className="text-lg font-bold text-slate-900 dark:text-white">אזור שיפוט</h1>
           <p className="text-sm text-slate-500 dark:text-slate-400">התחבר/י כדי לנהל משחקים בזמן אמת</p>
           <button onClick={openAuth} className="mt-1 px-4 py-2 rounded-lg bg-brand text-white text-sm font-semibold hover:bg-brand-hover transition-colors">
             התחברות
@@ -37,7 +37,7 @@ export default function JudgeGate({ children }) {
       <div className="p-4 sm:p-6 lg:p-8 max-w-md mx-auto">
         <div className="card p-8 flex flex-col items-center text-center gap-3 min-h-[300px] justify-center">
           <Lock className="w-10 h-10 text-slate-500 dark:text-slate-400" />
-          <h2 className="text-lg font-bold text-slate-900 dark:text-white">אזור שיפוט</h2>
+          <h1 className="text-lg font-bold text-slate-900 dark:text-white">אזור שיפוט</h1>
           <p className="text-sm text-slate-500 dark:text-slate-400">אזור זה מיועד לשופטים בלבד. פנה/י למנהל הליגה כדי לקבל הרשאת שיפוט.</p>
         </div>
       </div>

@@ -98,7 +98,7 @@ function AccessDenied({ signedIn, email }) {
     <div className="flex items-center justify-center min-h-[60vh]">
       <div className="card p-8 sm:p-12 text-center max-w-md mx-4">
         <Images className="w-16 h-16 text-slate-300 dark:text-slate-600 mx-auto mb-4" />
-        <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-2">אזור יוצרי תוכן</h2>
+        <h1 className="text-xl font-bold text-slate-900 dark:text-white mb-2">אזור יוצרי תוכן</h1>
         {signedIn ? (
           <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">
             החשבון {email} אינו מורשה לאזור יוצרי התוכן.

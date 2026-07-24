@@ -25,6 +25,13 @@ const ROUTES = {
   '/creators': { title: 'אזור יוצרי תוכן', description: 'אזור יוצרי התוכן של ליגת הוקי הגלגיליות הישראלית' },
   '/archive': { title: 'ארכיון', description: 'עונות קודמות של ליגת הוקי הגלגיליות הישראלית' },
   '/privacy': { title: 'מדיניות פרטיות' },
+  // Private routes. They stay noindex (NOINDEX_PREFIXES) — these titles are for the
+  // browser tab, history and the screen-reader page announcement, which otherwise
+  // fell back to the bare site name on every one of them.
+  '/judge': { title: 'שולחן השופט' },
+  '/me': { title: 'האזור האישי' },
+  '/admin': { title: 'ניהול' },
+  '/reset-password': { title: 'איפוס סיסמה' },
 }
 
 // Single keyed <script type="application/ld+json"> managed per route.

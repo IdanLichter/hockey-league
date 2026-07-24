@@ -262,9 +262,9 @@ export default function Features() {
         <span className="flex-1 h-px bg-line" />
       </div>
       <div className="card p-5 sm:p-6 mb-4">
-        <h4 className="flex items-center gap-2 text-lg font-extrabold text-fg-strong mb-2">
+        <h3 className="flex items-center gap-2 text-lg font-extrabold text-fg-strong mb-2">
           <Wrench className="w-5 h-5 text-brand" /> תכונות שעדיין לא הושלמו במלואן
-        </h4>
+        </h3>
         <p className="text-sm text-fg-muted mb-4">
           אלה דברים שאנחנו כבר מודעים אליהם ועובדים עליהם — אין צורך לדווח עליהם שוב. אם נתקלתם בבעיה מעבר לאלה, נשמח שתספרו.
         </p>
@@ -288,9 +288,9 @@ export default function Features() {
       </div>
 
       <div className="card p-5 sm:p-6 mb-4">
-        <h4 className="flex items-center gap-2 text-lg font-extrabold text-fg-strong mb-3">
+        <h3 className="flex items-center gap-2 text-lg font-extrabold text-fg-strong mb-3">
           <Star className="w-5 h-5 text-brand" /> טיפים לבדיקה
-        </h4>
+        </h3>
         <ol className="list-decimal pr-5 space-y-2 text-fg-soft text-[15px]">
           <li><b className="text-fg-strong">מתחילים בלי חשבון</b> — כנסו לאתר או לאפליקציה ועברו על כל מה שב"פתוח לכולם".</li>
           <li><b className="text-fg-strong">נרשמים</b> (אימייל / Google / Apple) כדי לבדוק לייקים, תגובות, פוסטים והתראות.</li>
@@ -301,9 +301,9 @@ export default function Features() {
       </div>
 
       <div className="card p-5 sm:p-6 mb-4">
-        <h4 className="flex items-center gap-2 text-lg font-extrabold text-fg-strong mb-2">
+        <h3 className="flex items-center gap-2 text-lg font-extrabold text-fg-strong mb-2">
           <MessageSquareText className="w-5 h-5 text-brand" /> מצאתם באג, רעיון, או שמשהו יכול לעבוד טוב יותר?
-        </h4>
+        </h3>
         <p className="text-sm text-fg-muted mb-3">
           אנחנו רוצים לשמוע הכל — לא רק תקלות. אם משהו לא עובד, מרגיש מבלבל, או שנראה לכם שאפשר לשפר אותו — זה בדיוק מה שאנחנו מחפשים.
         </p>

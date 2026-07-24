@@ -97,7 +97,11 @@ export default function Layout({ children }) {
           <Link to="/" className="flex items-center gap-2.5 shrink-0">
             <img src="/logos/main-logo.png" alt="ליגת הוקי" className="size-10 rounded-xl object-cover ring-1 ring-line shadow-sm" />
             <div className="leading-none">
-              <h1 className="text-xl font-black text-fg-strong tracking-tight">ליגת הוקי</h1>
+              {/* Not an <h1>: the site wordmark repeats on every route, so tagging it
+                  as a heading gave each page two h1s and made "ליגת הוקי" — rather than
+                  the page's own title — its primary heading for crawlers and screen
+                  readers. `block` keeps the exact layout the <h1> had. */}
+              <span className="block text-xl font-black text-fg-strong tracking-tight">ליגת הוקי</span>
               <span className="mt-1 inline-flex items-center rounded-full bg-brand/10 px-2 py-0.5 text-[11px] font-bold text-brand-strong dark:text-brand-light">עונת 2025-26</span>
             </div>
           </Link>

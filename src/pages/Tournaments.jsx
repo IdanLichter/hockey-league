@@ -86,7 +86,7 @@ export default function Tournaments() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <h3 className="font-bold text-base text-slate-900 dark:text-white truncate">{t.name}</h3>
+                      <h2 className="font-bold text-base text-slate-900 dark:text-white truncate">{t.name}</h2>
                       <span className="stat-pill bg-brand/10 text-brand-strong dark:bg-brand/20 dark:text-brand-light">{AGE_LABEL[t.age_group] || t.age_group}</span>
                       <span className={`stat-pill ${st.cls}`}>{st.label}</span>
                     </div>

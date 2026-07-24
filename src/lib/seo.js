@@ -19,7 +19,9 @@ export const DEFAULT_DESCRIPTION = 'ליגת הוקי הגלגיליות היש�
 const DEFAULT_IMAGE = `${SITE_URL}/logos/main-logo.png`
 
 // Gated tooling: no public content, must never land in a search index.
-export const NOINDEX_PREFIXES = ['/admin', '/judge', '/me', '/creators']
+// `/reset-password` is a one-shot token landing page — indexing it only ever
+// surfaces a dead form in search results.
+export const NOINDEX_PREFIXES = ['/admin', '/judge', '/me', '/creators', '/reset-password']
 
 function upsertMeta(selector, attr, name, content) {
   let el = document.head.querySelector(selector)
