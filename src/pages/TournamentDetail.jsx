@@ -115,7 +115,7 @@ export default function TournamentDetail() {
             <div className="flex items-center gap-2 flex-wrap mt-2">
               <span className="stat-pill bg-brand/10 text-brand-strong dark:bg-brand/20 dark:text-brand-light">{AGE_LABEL[tournament.age_group] || tournament.age_group}</span>
               <span className={`stat-pill ${st.cls}`}>{st.label}</span>
-              {range && <span className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1"><Calendar className="w-3.5 h-3.5" /> {range}</span>}
+              {range && <span className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1"><Calendar className="w-3.5 h-3.5" /> <span dir="ltr">{range}</span></span>}
             </div>
             {tournament.notes && <p className="text-sm text-slate-500 dark:text-slate-400 mt-3">{tournament.notes}</p>}
           </div>
