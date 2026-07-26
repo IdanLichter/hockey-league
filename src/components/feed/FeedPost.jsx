@@ -61,12 +61,13 @@ function EventPhoto({ photo, itemKey, candidates = [], onRefreshed }) {
   const [current, setCurrent] = useState(photo)
   const [busy, setBusy] = useState(false)
   const [failed, setFailed] = useState(false)
+  const [imgError, setImgError] = useState(false)   // the current photo's URL 404'd (e.g. an expired Google Photos link)
   const imgRef = useRef(null)
   const [beamLeft, setBeamLeft] = useState(null)   // 0–1 horizontal center of the spotlight in the displayed image
   const [objPosY, setObjPosY] = useState(null)     // 0–100 % object-position-y that keeps the face in frame
 
   // Re-sync when the parent re-resolves this card (e.g. after the overrides map updates).
-  useEffect(() => { setCurrent(photo) }, [photo])
+  useEffect(() => { setCurrent(photo); setImgError(false) }, [photo])
 
   // Only single-player achievement photos get the spotlight, and only when we know where
   // the player's face is (faceCx/faceCy are 0–1 fractions of the original image w/h).
@@ -113,6 +114,7 @@ function EventPhoto({ photo, itemKey, candidates = [], onRefreshed }) {
   const canCycle = candidates.length >= 2
   const cx100 = beamLeft == null ? null : beamLeft * 100
   const beamId = `beam-${String(itemKey || current.photo_id || "x").replace(/[^a-zA-Z0-9_-]/g, "")}`
+  const canEdit = isAdmin || isContentEditor
 
   // Reserve the photo's box from its known pixel dims so the lazily-loaded image (which
   // arrives seconds after the text) can't shove the whole feed down when it lands — the
@@ -128,7 +130,7 @@ function EventPhoto({ photo, itemKey, candidates = [], onRefreshed }) {
     const next = candidates[(idx + 1) % candidates.length]
     if (!next || next.photo_id === current.photo_id) return
     const prev = current
-    setFailed(false); setBusy(true); setCurrent(next)
+    setFailed(false); setImgError(false); setBusy(true); setCurrent(next)
     try {
       await setPhotoOverride(itemKey, next.photo_id)
       onRefreshed?.(itemKey, next)
@@ -139,11 +141,33 @@ function EventPhoto({ photo, itemKey, candidates = [], onRefreshed }) {
     }
   }
 
+  // A dead image URL (expired share link) would otherwise render as a big broken-image box.
+  // Collapse it for everyone; admins/editors keep a compact swap control to pick a live photo.
+  if (imgError) {
+    if (!canEdit) return null
+    return (
+      <div className="relative mt-3 rounded-xl border border-dashed border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-900 px-3 py-4 flex items-center justify-between gap-3">
+        <span className="text-xs text-slate-500 dark:text-slate-400">התמונה אינה זמינה</span>
+        <button
+          type="button"
+          onClick={cycle}
+          disabled={!canCycle || busy}
+          title={canCycle ? "החלף תמונה" : "אין תמונה חלופית"}
+          aria-label="החלף תמונה"
+          className="w-8 h-8 rounded-full bg-black/55 text-white flex items-center justify-center hover:bg-black/75 transition-colors disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
+        >
+          <RefreshCw className={`w-4 h-4 ${busy ? "animate-spin" : ""}`} />
+        </button>
+      </div>
+    )
+  }
+
   return (
     <div className="relative mt-3">
       <a href={current.detail_url} target="_blank" rel="noopener noreferrer"
          className="group block relative rounded-xl overflow-hidden bg-slate-900">
         <img ref={imgRef} src={sizedUrl(current.image_url)} alt="" loading="lazy"
+             onError={() => setImgError(true)}
              width={hasDims ? current.width : undefined}
              height={hasDims ? current.height : undefined}
              style={{
@@ -175,7 +199,7 @@ function EventPhoto({ photo, itemKey, candidates = [], onRefreshed }) {
       </a>
 
       {/* Admins + content editors: swap the auto-matched photo for the next candidate. */}
-      {(isAdmin || isContentEditor) && (
+      {canEdit && (
         <div className="absolute top-2 left-2 flex items-center gap-2">
           <button
             type="button"
