@@ -111,6 +111,9 @@ function ClusterCard({ cluster, index, summary, onSubmitted }) {
   const [last, setLast] = useState("")
   const [state, setState] = useState("idle") // idle | sending | done | error
   const [msg, setMsg] = useState(null)
+  // Cover images are Google Photos links that expire; a dead one renders a broken-image
+  // box on this public page, so collapse it to the same placeholder as a missing cover.
+  const [coverError, setCoverError] = useState(false)
 
   const submit = async (e) => {
     e.preventDefault()
@@ -134,8 +137,8 @@ function ClusterCard({ cluster, index, summary, onSubmitted }) {
       transition={{ delay: Math.min(index, 12) * 0.02 }}
       className="card overflow-hidden flex flex-col">
       <div className="relative bg-slate-900">
-        {cluster.cover_url
-          ? <img src={cluster.cover_url} alt="פני שחקן לא מזוהה" className="w-full object-cover" loading="lazy" />
+        {cluster.cover_url && !coverError
+          ? <img src={cluster.cover_url} alt="פני שחקן לא מזוהה" onError={() => setCoverError(true)} className="w-full object-cover" loading="lazy" />
           : <div className="aspect-video flex items-center justify-center text-slate-500"><HelpCircle className="w-8 h-8" /></div>}
         <div className="absolute top-2 right-2 flex items-center gap-1 px-2 py-0.5 rounded-full bg-black/60 text-white text-[11px] font-medium backdrop-blur-sm">
           <HelpCircle className="w-3 h-3" /> {cluster.size} תמונות
