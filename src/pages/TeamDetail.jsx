@@ -3,7 +3,7 @@ import { useParams, Link } from "react-router-dom"
 import { getTeams, getPlayers, getGames } from "@/lib/api"
 import { getPlayerTeams, buildMemberMaps } from "@/lib/playerTeams"
 import { useAuth } from "@/lib/AuthContext"
-import { requestTeamJoin } from "@/lib/teamMembership"
+import { requestTeamJoin, joinErrorText } from "@/lib/teamMembership"
 import { standingsComparator } from "@/lib/utils"
 import { ageOf, DEFAULT_AGE, AGE_LABEL } from "@/lib/ageGroups"
 import { FRIENDLY_GAME_TYPE } from "@/lib/leagueStats"
@@ -22,6 +22,7 @@ export default function TeamDetail() {
   const { id } = useParams()
   const { profile, isAdmin, coachTeamIds } = useAuth()
   const [joinState, setJoinState] = useState(null)
+  const [joinError, setJoinError] = useState(null)
   const [editing, setEditing] = useState(false)
   const [teams, setTeams] = useState([])
   const [players, setPlayers] = useState([])
@@ -64,7 +65,12 @@ export default function TeamDetail() {
   const doJoin = async () => {
     setJoinState('sending')
     try { await requestTeamJoin(id); setJoinState('sent') }
-    catch (e) { setJoinState(e?.message === 'join-already-pending' ? 'pending' : 'error') }
+    // Show WHY it was refused. "already in age group" is the common one now that a
+    // player may hold only one team per age group — a generic failure would read as a bug.
+    catch (e) {
+      if (e?.message === 'join-already-pending') setJoinState('pending')
+      else { setJoinError(joinErrorText(e)); setJoinState('error') }
+    }
   }
 
   if (loading) {
@@ -191,10 +197,13 @@ export default function TeamDetail() {
                 ? <span className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">הבקשה נשלחה ✓</span>
                 : joinState === 'pending'
                   ? <span className="text-[11px] font-semibold text-amber-600 dark:text-amber-400">בקשה ממתינה</span>
-                  : <button onClick={doJoin} disabled={joinState === 'sending'}
-                      className="text-[11px] font-semibold px-2.5 py-1 rounded-lg bg-brand text-white hover:bg-brand-hover transition-colors disabled:opacity-50">
-                      {joinState === 'sending' ? 'שולח…' : 'בקש להצטרף'}
-                    </button>
+                  : <div className="flex flex-col items-end gap-1">
+                      <button onClick={doJoin} disabled={joinState === 'sending'}
+                        className="text-[11px] font-semibold px-2.5 py-1 rounded-lg bg-brand text-white hover:bg-brand-hover transition-colors disabled:opacity-50">
+                        {joinState === 'sending' ? 'שולח…' : 'בקש להצטרף'}
+                      </button>
+                      {joinError && <span className="text-[10px] text-red-600 dark:text-red-400 max-w-[200px] text-left">{joinError}</span>}
+                    </div>
             )}
             <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">{roster.length} שחקנים</span>
           </div>

@@ -34,11 +34,27 @@ export async function getMyMemberships(playerId) {
   return data || []
 }
 
+/** Hebrew for every way a join request can be refused. */
+export const JOIN_ERRORS = {
+  'join-already-pending': 'כבר יש לך בקשת הצטרפות ממתינה',
+  'pending-in-age-group': 'כבר יש לך בקשה ממתינה לקבוצה בקבוצת הגיל הזו',
+  'already-on-team':      'את/ה כבר בקבוצה הזו',
+  'already-in-age-group': 'את/ה כבר משוייך/ת לקבוצה בקבוצת הגיל הזו — יש לעזוב אותה תחילה',
+  'not-linked-player':    'רק שחקן/ית מקושר/ת לכרטיס שחקן יכול/ה לבקש הצטרפות',
+}
+export const joinErrorText = (e) => JOIN_ERRORS[e?.message] || 'שגיאה בשליחת הבקשה'
+
 export async function requestTeamJoin(teamId, note = null) {
   const { data, error } = await supabase.rpc('request_team_join', { p_team_id: teamId, p_note: note || null })
   if (error) {
+    const msg = error.message || ''
     if (error.code === '23505') throw new Error('join-already-pending')
-    if (/not a linked player/i.test(error.message || '')) throw new Error('not-linked-player')
+    if (/not a linked player/i.test(msg)) throw new Error('not-linked-player')
+    // One team per age group. Enforced at request time now — asking to join a second
+    // senior team used to queue fine and then silently TRANSFER the player on approval.
+    if (/already on this team/i.test(msg)) throw new Error('already-on-team')
+    if (/already in age group/i.test(msg)) throw new Error('already-in-age-group')
+    if (/pending in age group/i.test(msg)) throw new Error('pending-in-age-group')
     throw error
   }
   return data

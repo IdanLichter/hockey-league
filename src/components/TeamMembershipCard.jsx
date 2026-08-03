@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react"
 import { Users, Loader2, Clock, LogOut, Plus, Check } from "lucide-react"
 import { getTeams } from "@/lib/api"
-import { getMyJoinRequest, requestTeamJoin, cancelTeamJoin, leaveTeamById, getMyMemberships } from "@/lib/teamMembership"
+import { getMyJoinRequest, requestTeamJoin, cancelTeamJoin, leaveTeamById, getMyMemberships, joinErrorText } from "@/lib/teamMembership"
 import { AGE_LABEL, DEFAULT_AGE, ageOf } from "@/lib/ageGroups"
 import TeamLogo from "@/components/TeamLogo"
 
@@ -42,7 +42,7 @@ export default function TeamMembershipCard({ player, onChange }) {
     if (!teamId) return
     setBusy(true); setError(null)
     try { await requestTeamJoin(teamId); setPicking(false); setTeamId(""); await load() }
-    catch (e) { setError(e?.message === "join-already-pending" ? "כבר יש לך בקשת הצטרפות ממתינה" : "שגיאה בשליחת הבקשה") }
+    catch (e) { setError(joinErrorText(e)) }
     finally { setBusy(false) }
   }
   const doCancel = async () => {
