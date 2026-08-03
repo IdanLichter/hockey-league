@@ -15,6 +15,7 @@ import TeamEditModal from "@/components/TeamEditModal"
 import TeamCoachRequest from "@/components/TeamCoachRequest"
 import { useSeo } from "@/lib/seo"
 import { getApprovedMedicalPlayerIds } from "@/lib/medical"
+import { getTeamSubmissions } from "@/lib/playerSubmissions"
 import FollowButton from "@/components/FollowButton"
 
 export default function TeamDetail() {
@@ -27,6 +28,7 @@ export default function TeamDetail() {
   const [games, setGames] = useState([])
   const [playerTeams, setPlayerTeams] = useState([])
   const [medicalApproved, setMedicalApproved] = useState(new Set())
+  const [submissions, setSubmissions] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
@@ -45,9 +47,9 @@ export default function TeamDetail() {
   const loadData = async () => {
     try {
       setLoading(true); setError(null)
-      const [t, p, g, pt] = await Promise.all([getTeams(), getPlayers(), getGames(), getPlayerTeams().catch(() => [])])
+      const [t, p, g, pt, subs] = await Promise.all([getTeams(), getPlayers(), getGames(), getPlayerTeams().catch(() => []), getTeamSubmissions(id)])
       if (!t.find(tm => tm.id === id)) { setError("הקבוצה לא נמצאה"); return }
-      setTeams(t); setPlayers(p); setGames(g); setPlayerTeams(pt)
+      setTeams(t); setPlayers(p); setGames(g); setPlayerTeams(pt); setSubmissions(subs)
       // Medical status is private — only fetch (and later render) it for this team's
       // coach or an admin; RLS returns nothing for anyone else regardless.
       if (isAdmin || coachTeamIds.includes(id)) {
@@ -222,6 +224,36 @@ export default function TeamDetail() {
               </div>
             </Link>
           ))}
+
+          {/* Row 29 — a submitted player card, before it becomes a real player.
+              RLS returns these only to the team's coach, the submitter, an admin or a
+              league manager, so an unapproved card never shows on the public page.
+              Not a Link: there is no player page to go to yet. */}
+          {submissions.map(s => {
+            const rejected = s.status === "rejected"
+            return (
+              <div key={s.id}
+                className="flex items-center justify-between py-2 px-3 rounded-lg text-sm opacity-75">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="text-slate-500 dark:text-slate-400 truncate">
+                    {s.first_name} {s.last_name}
+                  </span>
+                  {s.jersey_number != null && (
+                    <span className="text-[11px] text-slate-400 tabular-nums">#{s.jersey_number}</span>
+                  )}
+                </div>
+                <span
+                  title={rejected && s.decision_note ? s.decision_note : undefined}
+                  className={`text-[10px] font-bold px-2 py-0.5 rounded shrink-0 ${
+                    rejected
+                      ? "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300"
+                      : "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300"
+                  }`}>
+                  {rejected ? "נדחה" : "ממתין לאישור"}
+                </span>
+              </div>
+            )
+          })}
         </div>
       </motion.div>
 

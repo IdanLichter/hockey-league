@@ -75,7 +75,9 @@ export default function Admin() {
   const scopedTabIds = new Set([
     ...(isCoach ? ["players", "claims", "tournaments", "games"] : []),
     ...(isJudgeRole ? ["games"] : []),
-    ...(isLeagueManager ? ["tournaments", "teams", "game_requests", "medical", "readiness", "officials", "venues"] : []),
+    // "claims" holds the player-card review queue — row 29 requires the league manager
+    // to approve players, and approve_player_submission already permits him.
+    ...(isLeagueManager ? ["tournaments", "teams", "claims", "game_requests", "medical", "readiness", "officials", "venues"] : []),
   ])
   // Full tournament management (create/edit/delete + approve requests) vs. the
   // coach's request-only view of the same tab.

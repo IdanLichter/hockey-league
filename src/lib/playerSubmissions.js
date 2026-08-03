@@ -51,6 +51,26 @@ export async function createPlayerSubmission({ teamId, firstName, lastName, jers
   return data
 }
 
+/**
+ * Row 29 — "סטטוס מחכה מוצג בכרטיס שחקן". Submissions for one team, so the roster can
+ * show a proposed player as pending instead of him simply not existing until approved.
+ *
+ * RLS decides who sees anything: the team's coach, the submitter, an admin or a league
+ * manager. For everyone else this returns [] — an unapproved card must never surface on
+ * the public team page.
+ */
+export async function getTeamSubmissions(teamId) {
+  if (!teamId) return []
+  const { data, error } = await supabase
+    .from('player_submissions')
+    .select('id,first_name,last_name,jersey_number,position,status,decision_note,created_at')
+    .eq('team_id', teamId)
+    .in('status', ['pending', 'rejected'])
+    .order('created_at', { ascending: false })
+  if (error) return []
+  return data || []
+}
+
 export async function cancelPlayerSubmission(id) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error('not-authenticated')
