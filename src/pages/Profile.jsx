@@ -12,6 +12,7 @@ import { getMyPlayerSubmission } from "@/lib/playerSubmissions"
 import PlayerCardSubmission from "@/components/PlayerCardSubmission"
 import TeamMembershipCard from "@/components/TeamMembershipCard"
 import MedicalCertificateCard from "@/components/MedicalCertificateCard"
+import BirthDateCard from "@/components/BirthDateCard"
 import BlockedUsersCard from "@/components/BlockedUsersCard"
 import { RoleBadges, deriveRoleItems } from "@/components/RoleBadges"
 
@@ -286,6 +287,7 @@ export default function Profile() {
         </div>
       )}
 
+      {isPlayer && player && <BirthDateCard playerId={player.id} />}
       {isPlayer && player && <MedicalCertificateCard playerId={player.id} />}
 
       {/* Role quick-links */}

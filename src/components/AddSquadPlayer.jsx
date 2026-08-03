@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react"
 import { addPlayerToSquad } from "@/lib/squad"
+import { canBeBorrowed } from "@/lib/birthDate"
 import { UserPlus, Loader2, X } from "lucide-react"
 
 /**
@@ -10,9 +11,11 @@ import { UserPlus, Loader2, X } from "lucide-react"
  * loan from another club is picked the same way as a teammate — the server records
  * which side he is turning out for. Players already in the squad are filtered out.
  *
- * The age confirmation is mandatory and deliberate: there is no birth date in the
- * schema, so "14 או כיתה ח, המוקדם מביניהם" cannot be computed. The coach vouches for
- * it and the confirmation is stored against the row.
+ * The age rule applies only to a LOAN — someone who isn't one of this team's own players.
+ * A borrowed player must be under 18, or a goalkeeper of any age. It is computed from the
+ * date of birth on the player card, so there is normally nothing to confirm; the coach's
+ * checkbox appears only where no DOB is on file, which would otherwise make every loan of
+ * an unregistered player impossible. The server re-checks all of it.
  */
 export default function AddSquadPlayer({ gameId, teamId, teamName, players = [], excludeIds, onAdded }) {
   const [open, setOpen] = useState(false)
@@ -40,6 +43,14 @@ export default function AddSquadPlayer({ gameId, teamId, teamName, players = [],
       a === teamName ? -1 : b === teamName ? 1 : a.localeCompare(b, "he"))
   }, [players, excludeIds, teamName])
 
+  const picked = players.find(p => p.id === playerId) || null
+  // Borrowing = the player isn't one of this team's own. Only then does the age rule bite.
+  const isLoan = !!picked && picked.team_id !== teamId
+  const borrow = isLoan ? canBeBorrowed(picked) : { ok: true, reason: "own" }
+  // The checkbox is a FALLBACK, needed only when we have no DOB to judge by.
+  const needsTick = isLoan && borrow.reason === "no-dob"
+  const blocked = isLoan && !borrow.ok && borrow.reason !== "no-dob"
+
   const reset = () => { setPlayerId(""); setNote(""); setAgeOk(false); setErr(null) }
 
   const submit = async (e) => {
@@ -47,7 +58,7 @@ export default function AddSquadPlayer({ gameId, teamId, teamName, players = [],
     if (!playerId) { setErr("יש לבחור שחקן"); return }
     setSaving(true); setErr(null)
     try {
-      await addPlayerToSquad(gameId, playerId, teamId, { note: note.trim() || null, ageConfirmed: ageOk })
+      await addPlayerToSquad(gameId, playerId, teamId, { note: note.trim() || null, ageConfirmed: needsTick ? ageOk : true })
       reset(); setOpen(false)
       onAdded?.()
     } catch (e2) {
@@ -92,15 +103,31 @@ export default function AddSquadPlayer({ gameId, teamId, teamName, players = [],
         placeholder="הערה (למשל: שוער בהשאלה)" aria-label="הערה"
         className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand/30" />
 
-      <label className="flex items-start gap-2 text-[11px] text-slate-600 dark:text-slate-300 cursor-pointer">
-        <input type="checkbox" checked={ageOk} onChange={e => setAgeOk(e.target.checked)}
-          className="mt-0.5 accent-brand" />
-        <span>אני מאשר/ת שהשחקן עומד בדרישת הגיל (14 או כיתה ח׳ — המוקדם מביניהם)</span>
-      </label>
+      {/* The age rule applies only to a LOAN, and only when we can't work it out
+          ourselves. With a date of birth on the card there is nothing to confirm. */}
+      {isLoan && (
+        <p className={`text-[11px] leading-relaxed ${blocked ? "text-red-600 dark:text-red-400" : "text-slate-500 dark:text-slate-400"}`}>
+          {borrow.reason === "goalkeeper"
+            ? "שוער/ת — מותר להשאיל בכל גיל"
+            : borrow.reason === "youth"
+              ? `בן/בת ${borrow.age} — מותר להשאיל (עד גיל 18)`
+              : borrow.reason === "too-old"
+                ? `בן/בת ${borrow.age} — אי אפשר להשאיל שחקן/ית מעל גיל 18 שאינו/ה שוער/ת`
+                : "אין תאריך לידה בכרטיס השחקן — יש לאשר ידנית"}
+        </p>
+      )}
+
+      {needsTick && (
+        <label className="flex items-start gap-2 text-[11px] text-slate-600 dark:text-slate-300 cursor-pointer">
+          <input type="checkbox" checked={ageOk} onChange={e => setAgeOk(e.target.checked)}
+            className="mt-0.5 accent-brand" />
+          <span>אני מאשר/ת שהשחקן/ית עומד/ת בדרישת הגיל להשאלה (עד גיל 18, או שוער/ת)</span>
+        </label>
+      )}
 
       {err && <p className="text-[11px] text-red-600 dark:text-red-400">{err}</p>}
 
-      <button type="submit" disabled={saving || !playerId || !ageOk}
+      <button type="submit" disabled={saving || !playerId || blocked || (needsTick && !ageOk)}
         className="w-full flex items-center justify-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg bg-brand text-white hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed">
         {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <UserPlus className="w-3.5 h-3.5" />}
         הוספה לסגל
