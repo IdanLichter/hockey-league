@@ -94,6 +94,29 @@ export function subscribeToNotifications(userId, cb) {
 
 const actorName = (n) => n.actor?.display_name?.trim() || 'מישהו'
 
+// "בית נגד חוץ" for the scheduled game reminders.
+const vs = (d) => `${d.home_team || ''} נגד ${d.away_team || ''}`.trim()
+
+// The officials digest is only useful if it leads with what's MISSING — that is the
+// whole point of sending it on Tuesday and again on Thursday.
+// What actually changed about the fixture. Leads with the NEW value — that is the thing
+// the reader has to act on; the old one is only there to make the change legible.
+function movedSummary(d) {
+  const when = d.game_date
+    ? new Date(d.game_date).toLocaleString('he-IL', { day: 'numeric', month: 'numeric', hour: '2-digit', minute: '2-digit' })
+    : ''
+  if (d.what === 'venue') return `המשחק עבר ל${d.venue || 'מגרש אחר'}`
+  if (d.what === 'time')  return `המשחק נדחה ל־${when}`
+  return `המשחק עבר ל${d.venue || 'מגרש אחר'} ונדחה ל־${when}`
+}
+
+function officialsSummary(d) {
+  const missing = []
+  if (!(d.judges > 0)) missing.push('שופט')
+  if (!(d.medics > 0)) missing.push('חובש')
+  return missing.length ? `חסר ${missing.join(' ו')}` : 'שופט וחובש משובצים ✅'
+}
+
 // Hebrew one-liner for a notification row.
 export function notificationText(n) {
   const d = n.data || {}
@@ -125,6 +148,16 @@ export function notificationText(n) {
     case 'tournament_invite':          return `קבוצת ${d.team_name || ''} הוזמנה לטורניר ${d.tournament_name || ''}`
     case 'tournament_invite_accepted': return `קבוצת ${d.team_name || ''} אישרה השתתפות בטורניר ${d.tournament_name || ''} 🎉`
     case 'tournament_invite_declined': return `קבוצת ${d.team_name || ''} דחתה את ההזמנה לטורניר ${d.tournament_name || ''}`
+    // Scheduled game reminders (P2). `vs` keeps the two team names in a fixed order so
+    // the sentence reads the same regardless of which side is home.
+    case 'game_register_reminder': return `משחק מתקרב: ${vs(d)} — נא לסמן הגעה`
+    case 'game_register_nudge':    return `עדיין לא סימנת הגעה למשחק ${vs(d)}`
+    case 'coach_squad_digest':     return `סגל למשחק ${vs(d)}: ${d.yes ?? 0} מגיעים, ${d.no ?? 0} לא מגיעים, ${d.pending ?? 0} טרם הגיבו`
+    case 'lm_squad_digest':        return `סגלים למשחק ${vs(d)}: ${d.home_team || 'בית'} ${d.home_count ?? 0}, ${d.away_team || 'חוץ'} ${d.away_count ?? 0}`
+    case 'lm_officials_digest':    return `${vs(d)} — ${officialsSummary(d)}`
+    // P4 — the league manager's own words come first; the fixture is context
+    case 'lm_broadcast':           return `הודעת מנהל הליגה (${vs(d)}): ${d.message || ''}`
+    case 'game_moved':             return `${vs(d)} — ${movedSummary(d)}`
     case 'official_assigned':              return `שובצת כ${ROLE_LABEL[d.role] || 'בעל תפקיד'} למשחק`
     case 'official_application':           return `${actorName(n)} הגיש/ה מועמדות כ${ROLE_LABEL[d.role] || 'בעל תפקיד'}`
     case 'official_application_approved':  return `מועמדותך לשיבוץ כ${ROLE_LABEL[d.role] || 'בעל תפקיד'} אושרה 🎉`
@@ -163,6 +196,13 @@ export function notificationIcon(n) {
     case 'tournament_invite':          return '🏆'
     case 'tournament_invite_accepted': return '✅'
     case 'tournament_invite_declined': return '⛔'
+    case 'game_register_reminder': return '📣'
+    case 'game_register_nudge':    return '⏰'
+    case 'coach_squad_digest':     return '📋'
+    case 'lm_squad_digest':        return '📋'
+    case 'lm_officials_digest':    return '⚖️'
+    case 'lm_broadcast':           return '📢'
+    case 'game_moved':             return '🌧️'
     case 'official_assigned':              return '⚖️'
     case 'official_application':           return '📝'
     case 'official_application_approved':  return '✅'
@@ -183,7 +223,16 @@ export function notificationHref(n) {
     case 'game_change_opponent':
     case 'game_result':
     case 'game_change_approved':
-    case 'game_change_rejected':  return n.entity_id ? `/games/${n.entity_id}` : '/games'
+    case 'game_change_rejected':
+    // every scheduled reminder is about one game, and the action (סימון הגעה,
+    // reviewing the squad) lives on that game's page
+    case 'game_register_reminder':
+    case 'game_register_nudge':
+    case 'coach_squad_digest':
+    case 'lm_squad_digest':
+    case 'lm_officials_digest':
+    case 'lm_broadcast':
+    case 'game_moved':            return n.entity_id ? `/games/${n.entity_id}` : '/games'
     // reviewers land on the /admin review tabs
     case 'team_join_request':
     case 'player_submission_request':

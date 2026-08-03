@@ -22,21 +22,30 @@ export async function getMyAvailability(gameId, playerId) {
 }
 
 /** Set the current user's availability via the self-scoped RPC. Signing up as
- *  "available" requires a valid approved medical certificate (enforced server-side). */
+ *  "available" requires a valid approved medical certificate AND no active red-card
+ *  block; registering at all requires the player to be on one of the two teams in the
+ *  game. All three are enforced server-side (supabase/squad-rules.sql) — the UI hides
+ *  the button, but the RPC is reachable directly. */
 export async function setMyAvailability(gameId, status) {
   const { error } = await supabase.rpc('set_game_availability', { p_game_id: gameId, p_status: status })
   if (error) {
-    if (/no valid medical/i.test(error.message || '')) throw new Error('no-valid-medical')
+    const msg = error.message || ''
+    if (/no valid medical/i.test(msg)) throw new Error('no-valid-medical')
+    if (/suspended/i.test(msg)) throw new Error('suspended')
+    if (/not in this game/i.test(msg)) throw new Error('not-in-game')
     throw error
   }
 }
 
-/** All availability rows for a game the caller may read (coach → their team; admin → all). */
+/** All availability rows for a game the caller may read (coach → their team; admin → all).
+ *  `team_id` / `added_by` are set only on manually added players (a loaned goalkeeper or
+ *  a one-time youth call-up); they are on neither roster, so the caller must merge them
+ *  in rather than deriving the squad from players-by-team alone. */
 export async function getGameAvailability(gameId) {
   if (!gameId) return []
   const { data, error } = await supabase
     .from('game_availability')
-    .select('player_id,status')
+    .select('player_id,status,team_id,added_by,note')
     .eq('game_id', gameId)
   if (error) return []
   return data || []

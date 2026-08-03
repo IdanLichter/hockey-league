@@ -2,9 +2,12 @@ import { useState, useEffect } from "react"
 import { Link } from "react-router-dom"
 import { getMyAvailability, setMyAvailability, getGameAvailability } from "@/lib/availability"
 import { getApprovedMedicalPlayerIds } from "@/lib/medical"
-import { Check, X, Loader2, CalendarCheck, AlertTriangle } from "lucide-react"
+import { getActiveSuspension, removePlayerFromSquad } from "@/lib/squad"
+import AddSquadPlayer from "@/components/AddSquadPlayer"
+import { Check, X, Loader2, CalendarCheck, AlertTriangle, Ban, UserMinus } from "lucide-react"
 
 const MED_MSG = "כדי לאשר הגעה יש להעלות בדיקה רפואית ולקבל אישור בתוקף"
+const SUSPENDED_MSG = "אינך יכול להירשם: הרחקה בעקבות כרטיס אדום"
 const MIN_PLAYERS = 4 // a team wants at least this many outfield + a goalkeeper
 
 /**
@@ -21,9 +24,16 @@ export default function GameAvailability({ game, myPlayerId, officialTeamIds = [
   const [saving, setSaving] = useState(false)
   const [loading, setLoading] = useState(true)
   const [medOk, setMedOk] = useState(null)
+  const [suspension, setSuspension] = useState(null)
   const [err, setErr] = useState(null)
 
   const canSeeAny = officialTeamIds.length > 0 || !!playerTeamId
+
+  // Re-read the squad after a manual add/remove without reloading the page.
+  const refreshRows = () => {
+    if (!canSeeAny) return
+    getGameAvailability(game.id).then(setRows).catch(() => {})
+  }
 
   useEffect(() => {
     let alive = true
@@ -31,11 +41,13 @@ export default function GameAvailability({ game, myPlayerId, officialTeamIds = [
       myPlayerId ? getMyAvailability(game.id, myPlayerId) : Promise.resolve(null),
       canSeeAny ? getGameAvailability(game.id) : Promise.resolve([]),
       myPlayerId ? getApprovedMedicalPlayerIds([myPlayerId]) : Promise.resolve(new Set()),
-    ]).then(([mine, all, med]) => {
+      myPlayerId ? getActiveSuspension(myPlayerId) : Promise.resolve(null),
+    ]).then(([mine, all, med, susp]) => {
       if (!alive) return
       setMyStatus(mine)
       setRows(all)
       setMedOk(myPlayerId ? med.has(myPlayerId) : null)
+      setSuspension(susp)
       setLoading(false)
     }).catch(() => {
       // Without this the panel stays `loading` forever and silently disappears from the
@@ -50,6 +62,7 @@ export default function GameAvailability({ game, myPlayerId, officialTeamIds = [
   const choose = async (status) => {
     setErr(null)
     if (status === "available" && medOk === false) { setErr(MED_MSG); return }
+    if (status === "available" && suspension) { setErr(SUSPENDED_MSG); return }
     setSaving(true)
     try {
       await setMyAvailability(game.id, status)
@@ -57,31 +70,83 @@ export default function GameAvailability({ game, myPlayerId, officialTeamIds = [
       if (status === "available") setMedOk(true)
       if (canSeeAny) setRows(await getGameAvailability(game.id))
     } catch (e) {
-      setErr(e?.message === "no-valid-medical" ? MED_MSG : "הפעולה נכשלה, נסו שוב")
+      const code = e?.message
+      setErr(
+        code === "no-valid-medical" ? MED_MSG
+        : code === "suspended" ? SUSPENDED_MSG
+        : code === "not-in-game" ? "אינך שייך לאחת מהקבוצות במשחק זה"
+        : "הפעולה נכשלה, נסו שוב"
+      )
     } finally { setSaving(false) }
+  }
+
+  const removeManual = async (playerId) => {
+    setErr(null)
+    try { await removePlayerFromSquad(game.id, playerId); refreshRows() }
+    catch (e) { setErr(e.message) }
   }
 
   if ((!myPlayerId && !canSeeAny) || loading) return null
 
+  const rowByPlayer = Object.fromEntries(rows.map(r => [r.player_id, r]))
   const statusByPlayer = Object.fromEntries(rows.map(r => [r.player_id, r.status]))
-  const rosterOf = (teamId) => Object.values(playersMap).filter(p => p.team_id === teamId)
   const nameOf = (p) => `${p.first_name} ${p.last_name}`.trim()
+
+  // A team's squad is its roster PLUS anyone manually added for it — a loaned
+  // goalkeeper or a one-time youth call-up is on neither roster, so filtering
+  // players-by-team alone would silently drop him — MINUS anyone lent the other way
+  // for this game.
+  const rosterOf = (teamId) => {
+    const base = Object.values(playersMap).filter(p => {
+      if (p.team_id !== teamId) return false
+      const row = rowByPlayer[p.id]
+      return !(row?.added_by && row.team_id && row.team_id !== teamId)
+    })
+    const seen = new Set(base.map(p => p.id))
+    const manual = rows
+      .filter(r => r.added_by && r.team_id === teamId && !seen.has(r.player_id))
+      .map(r => playersMap[r.player_id])
+      .filter(Boolean)
+    return [...base, ...manual]
+  }
+
+  // Everyone already answered or added for this game — never offer them again.
+  const inSquadIds = new Set(rows.map(r => r.player_id))
+  const pickerPlayers = Object.values(playersMap).map(p => ({
+    ...p, teamName: teamsMap[p.team_id]?.name || "",
+  }))
 
   const teamsToShow = [
     ...officialTeamIds.map(tid => ({ tid, full: true })),
     ...(playerTeamId && !officialTeamIds.includes(playerTeamId) ? [{ tid: playerTeamId, full: false }] : []),
   ]
 
-  const Col = ({ label, cls, list }) => (
+  const Col = ({ label, cls, list, canEdit = false }) => (
     <div className="min-w-0">
       <p className={`text-[11px] font-semibold mb-1 ${cls}`}>{label} ({list.length})</p>
       {list.length === 0
         ? <p className="text-[11px] text-slate-400">—</p>
-        : list.map(p => (
-          <p key={p.id} className="text-xs text-slate-700 dark:text-slate-300 truncate">
-            {nameOf(p)}{p.position === "Goalkeeper" ? " 🧤" : ""}
-          </p>
-        ))}
+        : list.map(p => {
+          const row = rowByPlayer[p.id]
+          const manual = !!row?.added_by
+          return (
+            <p key={p.id} className="flex items-center gap-1 text-xs text-slate-700 dark:text-slate-300">
+              <span className="truncate">{nameOf(p)}{p.position === "Goalkeeper" ? " 🧤" : ""}</span>
+              {manual && (
+                <span title={row.note || "נוסף ידנית"}
+                  className="shrink-0 text-[9px] font-bold px-1 py-0.5 rounded bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">
+                  ידני
+                </span>
+              )}
+              {manual && canEdit && (
+                <button onClick={() => removeManual(p.id)} aria-label={`הסרת ${nameOf(p)} מהסגל`}
+                  className="shrink-0 text-slate-300 hover:text-red-500 dark:text-slate-600 dark:hover:text-red-400 transition-colors">
+                  <UserMinus className="w-3 h-3" />
+                </button>
+              )}
+            </p>
+          )
+        })}
     </div>
   )
 
@@ -95,7 +160,7 @@ export default function GameAvailability({ game, myPlayerId, officialTeamIds = [
         <div className="space-y-2">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-xs text-slate-500 dark:text-slate-400">מגיע/ה למשחק?</span>
-            <button onClick={() => choose("available")} disabled={saving || medOk === false}
+            <button onClick={() => choose("available")} disabled={saving || medOk === false || !!suspension}
               className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${myStatus === "available" ? "bg-emerald-500 text-white" : "border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700"}`}>
               <Check className="w-3.5 h-3.5" /> מגיע/ה
             </button>
@@ -105,6 +170,13 @@ export default function GameAvailability({ game, myPlayerId, officialTeamIds = [
             </button>
             {saving && <Loader2 className="w-3.5 h-3.5 animate-spin text-slate-400" />}
           </div>
+          {/* A refusal has to say WHY — a disabled button with no reason reads as a bug. */}
+          {suspension && (
+            <p className="flex items-center gap-1.5 text-[11px] text-red-600 dark:text-red-400">
+              <Ban className="w-3.5 h-3.5 shrink-0" />
+              <span>{SUSPENDED_MSG}{suspension.reason ? ` — ${suspension.reason}` : ""}</span>
+            </p>
+          )}
           {medOk === false && (
             <p className="flex items-center gap-1.5 text-[11px] text-amber-600 dark:text-amber-400">
               <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
@@ -135,10 +207,21 @@ export default function GameAvailability({ game, myPlayerId, officialTeamIds = [
               )}
             </div>
             <div className={`grid gap-3 ${full ? "grid-cols-3" : "grid-cols-2"}`}>
-              <Col label="מגיעים" cls="text-emerald-600 dark:text-emerald-400" list={coming} />
-              <Col label="לא מגיעים" cls="text-red-600 dark:text-red-400" list={notComing} />
+              <Col label="מגיעים" cls="text-emerald-600 dark:text-emerald-400" list={coming} canEdit={full} />
+              <Col label="לא מגיעים" cls="text-red-600 dark:text-red-400" list={notComing} canEdit={full} />
               {full && <Col label="לא הגיבו" cls="text-slate-500 dark:text-slate-400" list={noReply} />}
             </div>
+            {/* Only a coach of this team (or an admin) builds the squad. */}
+            {full && (
+              <AddSquadPlayer
+                gameId={game.id}
+                teamId={tid}
+                teamName={teamsMap[tid]?.name || "הקבוצה"}
+                players={pickerPlayers}
+                excludeIds={inSquadIds}
+                onAdded={refreshRows}
+              />
+            )}
           </div>
         )
       })}

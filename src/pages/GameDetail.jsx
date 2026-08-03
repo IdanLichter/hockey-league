@@ -10,6 +10,7 @@ import TeamLogo from "@/components/TeamLogo"
 import LiveGame from "@/components/LiveGame"
 import GameVideo from "@/components/GameVideo"
 import GameAvailability from "@/components/GameAvailability"
+import GameBroadcast from "@/components/GameBroadcast"
 import { TeamLink, PlayerLink } from "@/components/EntityLinks"
 import { useSeo } from "@/lib/seo"
 import { countsForStats, FRIENDLY_GAME_TYPE } from "@/lib/leagueStats"
@@ -357,6 +358,9 @@ export default function GameDetail() {
       {showAvailability && (
         <GameAvailability game={game} myPlayerId={myAvailPlayerId} officialTeamIds={officialTeamIds} playerTeamId={playerTeamId} teamsMap={teamsMap} playersMap={playersMap} />
       )}
+
+      {/* ===== LM broadcast (row 25) — renders only for admin / league manager ===== */}
+      <GameBroadcast game={game} />
 
       {/* ============ STAT TILES ============ */}
       {tiles.length > 0 && (

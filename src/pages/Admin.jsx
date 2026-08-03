@@ -32,6 +32,7 @@ import TeamJoinRequestsReview from "@/components/admin/TeamJoinRequestsReview"
 import CoachRequestsReview from "@/components/admin/CoachRequestsReview"
 import MedicalReview from "@/components/admin/MedicalReview"
 import MedicalRosterAdmin from "@/components/admin/MedicalRosterAdmin"
+import ReadinessAdmin from "@/components/admin/ReadinessAdmin"
 import OfficialsAdmin from "@/components/admin/OfficialsAdmin"
 import VenuesAdmin from "@/components/admin/VenuesAdmin"
 import SuggestionsReview from "@/components/admin/SuggestionsReview"
@@ -41,7 +42,7 @@ import GameChangeRequestsReview from "@/components/admin/GameChangeRequestsRevie
 import WhatsNew from "@/components/admin/WhatsNew"
 import ClustersAdmin from "@/components/admin/ClustersAdmin"
 import { SortBar, sortItems } from "@/components/admin/SortBar"
-import { Award, Images, HeartPulse, Gavel, MapPin } from "lucide-react"
+import { Award, Images, HeartPulse, Gavel, MapPin, BellRing } from "lucide-react"
 import { BRAND_ORANGE } from '@/lib/brand'
 
 const tabs = [
@@ -53,6 +54,7 @@ const tabs = [
   { id: "claims", label: "בקשות", icon: UserPlus },
   { id: "game_requests", label: "בקשות משחקים", icon: CalendarClock },
   { id: "medical", label: "מעקב רפואי", icon: HeartPulse },
+  { id: "readiness", label: "מוכנות להתראות", icon: BellRing },
   { id: "officials", label: "בעלי תפקיד", icon: Gavel },
   { id: "venues", label: "מגרשים", icon: MapPin },
   { id: "reports", label: "דיווחים", icon: Flag },
@@ -73,7 +75,7 @@ export default function Admin() {
   const scopedTabIds = new Set([
     ...(isCoach ? ["players", "claims", "tournaments", "games"] : []),
     ...(isJudgeRole ? ["games"] : []),
-    ...(isLeagueManager ? ["tournaments", "teams", "game_requests", "medical", "officials", "venues"] : []),
+    ...(isLeagueManager ? ["tournaments", "teams", "game_requests", "medical", "readiness", "officials", "venues"] : []),
   ])
   // Full tournament management (create/edit/delete + approve requests) vs. the
   // coach's request-only view of the same tab.
@@ -189,6 +191,7 @@ export default function Admin() {
               {currentTab === "claims" && <><ClaimsReview teamsMap={teamsMap} coachTeamIds={coachScoped ? coachTeamIds : null} /><PlayerSubmissionsReview teamsMap={teamsMap} coachTeamIds={coachScoped ? coachTeamIds : null} /><TeamJoinRequestsReview teamsMap={teamsMap} coachTeamIds={coachScoped ? coachTeamIds : null} />{(isAdmin || isLeagueManager) && <CoachRequestsReview teamsMap={teamsMap} />}<MedicalReview coachTeamIds={coachScoped ? coachTeamIds : null} />{isAdmin && <SuggestionsReview players={players} />}</>}
               {currentTab === "game_requests" && <GameChangeRequestsReview teamsMap={teamsMap} />}
               {currentTab === "medical" && <MedicalRosterAdmin />}
+              {currentTab === "readiness" && <ReadinessAdmin />}
               {currentTab === "officials" && <OfficialsAdmin games={games} teamsMap={teamsMap} />}
               {currentTab === "venues" && <VenuesAdmin />}
               {currentTab === "reports" && <ReportsReview />}

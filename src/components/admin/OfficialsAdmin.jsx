@@ -84,9 +84,20 @@ export default function OfficialsAdmin({ games = [], teamsMap = {} }) {
     const cur = confirmedFor(game.id, role)
     if (cur) {
       return (
-        <div className="flex items-center gap-1.5 text-xs">
+        <div className="flex items-center gap-1.5 text-xs min-w-0">
           <RIcon className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-          <span className="font-semibold text-slate-700 dark:text-slate-200 truncate">{cur.display_name || "—"}</span>
+          {/* The full name is the one that goes on the game sheet; display_name is only
+              a fallback for officials who signed up before P3 required it. */}
+          <span className="font-semibold text-slate-700 dark:text-slate-200 truncate">
+            {cur.full_name || cur.display_name || "—"}
+          </span>
+          {/* The medic's number is the point of collecting it — make it tappable. */}
+          {cur.phone && (
+            <a href={`tel:${cur.phone}`} dir="ltr"
+              className="shrink-0 text-[11px] font-semibold text-brand hover:underline tabular-nums">
+              {cur.phone}
+            </a>
+          )}
           <button onClick={() => doRemove(cur.id)} disabled={busy === cur.id} className="text-slate-300 hover:text-red-500 transition-colors shrink-0"><X className="w-3.5 h-3.5" /></button>
         </div>
       )
