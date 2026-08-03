@@ -163,6 +163,8 @@ export function notificationText(n) {
     case 'game_moved':             return `${vs(d)} — ${movedSummary(d)}`
     // P5 — you follow one of these teams and asked to be told
     case 'follow_game_alert':      return `מחר: ${vs(d)}`
+    // P5 — a goal in a game you follow. Score reads away:home, per the RTL gotcha.
+    case 'goal_scored':            return `⚽ ${d.scoring_team || ''} הבקיעה! ${vs(d)} ${d.away_score ?? ''}:${d.home_score ?? ''}`
     case 'official_assigned':              return `שובצת כ${ROLE_LABEL[d.role] || 'בעל תפקיד'} למשחק`
     case 'official_application':           return `${actorName(n)} הגיש/ה מועמדות כ${ROLE_LABEL[d.role] || 'בעל תפקיד'}`
     case 'official_application_approved':  return `מועמדותך לשיבוץ כ${ROLE_LABEL[d.role] || 'בעל תפקיד'} אושרה 🎉`
@@ -210,6 +212,7 @@ export function notificationIcon(n) {
     case 'lm_broadcast':           return '📢'
     case 'game_moved':             return '🌧️'
     case 'follow_game_alert':      return '⭐'
+    case 'goal_scored':            return '⚽'
     case 'official_assigned':              return '⚖️'
     case 'official_application':           return '📝'
     case 'official_application_approved':  return '✅'
@@ -240,7 +243,8 @@ export function notificationHref(n) {
     case 'lm_officials_digest':
     case 'lm_broadcast':
     case 'game_moved':
-    case 'follow_game_alert':     return n.entity_id ? `/games/${n.entity_id}` : '/games'
+    case 'follow_game_alert':
+    case 'goal_scored':           return n.entity_id ? `/games/${n.entity_id}` : '/games'
     // reviewers land on the /admin review tabs
     case 'team_join_request':
     case 'player_submission_request':

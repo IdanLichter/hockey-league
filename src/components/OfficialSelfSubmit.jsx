@@ -10,10 +10,13 @@ const roleIcon = { judge: Gavel, medic: HeartPulse }
  * D4 — a judge/medic self-submits to work an upcoming game; the league manager approves
  * it (in the Officials admin tab). Renders only for a scheduled game to a judge/medic.
  *
- * P3 (sheet rows 16, 17): applying now requires a full name on file, and a phone as well
- * for a medic, since both end up on the game sheet. The details are collected right here
- * rather than by sending someone off to /me — the moment they matter is the moment to
- * ask for them.
+ * Sheet rows 16, 17: the name on the game sheet comes from the account, so nothing is
+ * demanded of a judge. A MEDIC must have a phone on file — that is the number you call
+ * when someone is hurt — and it is collected right here, at the moment it matters,
+ * rather than by sending him off to /me.
+ *
+ * The server also refuses an application when the game involves the applicant's own team,
+ * or when he already holds the other role in that game.
  */
 export default function OfficialSelfSubmit({ game }) {
   const { isJudgeRole, isMedic } = useAuth()
@@ -45,9 +48,11 @@ export default function OfficialSelfSubmit({ game }) {
 
   if (!active) return null
 
-  const needsName = !contact?.full_name?.trim()
+  // A full name is no longer demanded — the account's own name is the name that goes on
+  // the sheet. Only the medic's PHONE is required, because that is the number you call
+  // when someone is hurt.
   const needsPhone = isMedic && !contact?.phone?.trim()
-  const showForm = editing || needsName || needsPhone
+  const showForm = editing || needsPhone
 
   const saveContact = async (e) => {
     e.preventDefault()
@@ -85,9 +90,9 @@ export default function OfficialSelfSubmit({ game }) {
       {showForm ? (
         <form onSubmit={saveContact} className="space-y-2 p-3 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
           <p className="text-[11px] text-slate-600 dark:text-slate-300">
-            {needsName || needsPhone
-              ? `כדי להגיש מועמדות יש להזין שם מלא${isMedic ? " וטלפון — הם מופיעים בטופס המשחק" : " — הוא מופיע בטופס המשחק"}`
-              : "פרטי הקשר שלך"}
+            {needsPhone
+              ? "חובש חייב להזין מספר טלפון — הוא מופיע בטופס המשחק"
+              : "פרטי הקשר שלך (השם נלקח מהחשבון; אפשר לדייק אותו כאן)"}
           </p>
           <input value={name} onChange={e => setName(e.target.value)} placeholder="שם מלא" aria-label="שם מלא"
             className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand/30" />
@@ -95,16 +100,18 @@ export default function OfficialSelfSubmit({ game }) {
           <input value={phone} onChange={e => setPhone(e.target.value)} inputMode="tel" dir="ltr"
             placeholder={isMedic ? "טלפון (חובה לחובש)" : "טלפון (רשות)"} aria-label="טלפון"
             className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand/30" />
-          <button type="submit" disabled={savingContact || !name.trim()}
+          <button type="submit" disabled={savingContact}
             className="w-full flex items-center justify-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg bg-brand text-brand-fg hover:bg-brand-hover transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
             {savingContact ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />} שמירת פרטים
           </button>
         </form>
       ) : (
         <p className="flex items-center gap-2 text-[11px] text-slate-500 dark:text-slate-400">
+          {/* contact may be null — a judge is no longer forced to fill anything in, so
+              this branch is now reachable with no row at all. */}
           <span className="truncate">
-            {contact.full_name}
-            {contact.phone ? <> · <span dir="ltr">{contact.phone}</span></> : null}
+            {contact?.full_name?.trim() || "השם מהחשבון"}
+            {contact?.phone ? <> · <span dir="ltr">{contact.phone}</span></> : null}
           </span>
           <button onClick={() => setEditing(true)} aria-label="עריכת פרטי קשר"
             className="shrink-0 text-slate-400 hover:text-brand transition-colors">
@@ -127,10 +134,10 @@ export default function OfficialSelfSubmit({ game }) {
           }
           // A medic needs a phone; a judge only a name. Disable rather than let the
           // server refuse, and say why in the tooltip.
-          const blocked = needsName || (role === "medic" && !contact?.phone?.trim())
+          const blocked = role === "medic" && !contact?.phone?.trim()
           return (
             <button key={role} onClick={() => apply(role)} disabled={busy === role || blocked}
-              title={blocked ? "יש להשלים את פרטי הקשר תחילה" : undefined}
+              title={blocked ? "חובש חייב להזין טלפון תחילה" : undefined}
               className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-xl bg-brand text-brand-fg hover:bg-brand-hover transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
               {busy === role ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RIcon className="w-3.5 h-3.5" />}
               הגש מועמדות כ{OFFICIAL_ROLE_LABEL[role]}

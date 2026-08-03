@@ -34,6 +34,7 @@ import MedicalReview from "@/components/admin/MedicalReview"
 import MedicalRosterAdmin from "@/components/admin/MedicalRosterAdmin"
 import ReadinessAdmin from "@/components/admin/ReadinessAdmin"
 import SuspensionsAdmin from "@/components/admin/SuspensionsAdmin"
+import { getVenues } from "@/lib/venues"
 import OfficialsAdmin from "@/components/admin/OfficialsAdmin"
 import VenuesAdmin from "@/components/admin/VenuesAdmin"
 import SuggestionsReview from "@/components/admin/SuggestionsReview"
@@ -301,6 +302,11 @@ function CoachGamesView({ games, teamsMap, coachTeamIds }) {
 // ============ GAMES ADMIN ============
 function GamesAdmin({ games, teams, players, teamsMap, gameStats, tournaments = [], membersByTeam, reload }) {
   const [showForm, setShowForm] = useState(false)
+  // Venue options for the game form — see the <select> below for why it isn't free text.
+  const [venueNames, setVenueNames] = useState([])
+  useEffect(() => {
+    getVenues().then(v => setVenueNames((v || []).map(x => x.name))).catch(() => {})
+  }, [])
   const [editingGame, setEditingGame] = useState(null)
   const [editingStats, setEditingStats] = useState(null)
   const [saving, setSaving] = useState(false)
@@ -452,7 +458,18 @@ function GamesAdmin({ games, teams, players, teamsMap, gameStats, tournaments = 
             </div>
             <div>
               <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1 block">מגרש</label>
-              <input type="text" value={form.venue} onChange={e => setForm({ ...form, venue: e.target.value })} className="filter-input w-full" placeholder="מגרש" />
+              {/* A dropdown, not free text: typing the venue by hand is how the league
+                  ended up with both "קריית ביאליק" and "קרית ביאליק" on real games.
+                  Options come from the מגרשים tab. A value already on the game that is
+                  no longer in that list is kept as an option so editing an old fixture
+                  cannot silently blank its venue. */}
+              <select value={form.venue} onChange={e => setForm({ ...form, venue: e.target.value })} className="filter-input w-full">
+                <option value="">בחר מגרש…</option>
+                {venueNames.map(v => <option key={v} value={v}>{v}</option>)}
+                {form.venue && !venueNames.includes(form.venue) && (
+                  <option value={form.venue}>{form.venue} (לא ברשימה)</option>
+                )}
+              </select>
             </div>
             <div>
               <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1 block">תוצאת בית</label>

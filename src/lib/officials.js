@@ -77,3 +77,21 @@ export async function getMyOfficialRoles(gameId) {
   if (error) return []
   return data || []
 }
+
+/**
+ * Games this user was APPROVED to judge. The judge page lists only these — previously
+ * every judge saw every upcoming fixture, so there was nothing stopping one from opening
+ * a board for a game he had nothing to do with.
+ */
+export async function getMyApprovedGameIds(role = 'judge') {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return new Set()
+  const { data, error } = await supabase
+    .from('game_officials')
+    .select('game_id')
+    .eq('user_id', user.id)
+    .eq('role', role)
+    .eq('status', 'approved')
+  if (error) return new Set()
+  return new Set((data || []).map(r => r.game_id))
+}

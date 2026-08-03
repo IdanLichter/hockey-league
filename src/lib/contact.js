@@ -49,6 +49,8 @@ export function officialApplyError(e) {
   const msg = String(e?.message || '')
   if (/missing full name/i.test(msg)) return 'יש להזין שם מלא לפני הגשת מועמדות'
   if (/missing phone/i.test(msg)) return 'חובש חייב להזין מספר טלפון לטופס המשחק'
+  if (/own team/i.test(msg)) return 'אי אפשר לשפוט משחק שהקבוצה שלך משחקת בו'
+  if (/other role taken/i.test(msg)) return 'כבר הגשת מועמדות לתפקיד אחר במשחק הזה'
   if (/not authorized|not-authorized/i.test(msg)) return 'אין לך הרשאה להגיש מועמדות לתפקיד זה'
   return 'הפעולה נכשלה, נסו שוב'
 }

@@ -2,6 +2,8 @@ import { useState, useEffect } from "react"
 import { Link } from "react-router-dom"
 import { getGames, getTeams, getPlayers } from "@/lib/api"
 import { getAvailabilityForOfficialBatch } from "@/lib/availability"
+import { getMyApprovedGameIds } from "@/lib/officials"
+import { useAuth } from "@/lib/AuthContext"
 import { Gavel, Calendar, MapPin, RefreshCw, ChevronLeft, Clock, Users, AlertTriangle } from "lucide-react"
 import { motion } from "framer-motion"
 import { format } from "date-fns"
@@ -16,10 +18,13 @@ const statusCfg = {
 }
 
 function JudgePicker() {
+  const { isAdmin } = useAuth()
   const [games, setGames] = useState([])
   const [teams, setTeams] = useState([])
   const [players, setPlayers] = useState([])
   const [availByGame, setAvailByGame] = useState({})
+  // Games this judge was APPROVED for. Previously every judge saw every fixture.
+  const [myGameIds, setMyGameIds] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
@@ -28,8 +33,10 @@ function JudgePicker() {
   const loadData = async () => {
     try {
       setLoading(true); setError(null)
-      const [g, t, p] = await Promise.all([getGames(), getTeams(), getPlayers()])
-      setGames(g); setTeams(t); setPlayers(p)
+      const [g, t, p, mine] = await Promise.all([
+        getGames(), getTeams(), getPlayers(), getMyApprovedGameIds('judge'),
+      ])
+      setGames(g); setTeams(t); setPlayers(p); setMyGameIds(mine)
       const upcomingIds = g.filter(x => OFFICIABLE.includes(x.status)).map(x => x.id)
       const rows = await getAvailabilityForOfficialBatch(upcomingIds)
       const map = {}
@@ -61,8 +68,12 @@ function JudgePicker() {
   }
 
   const teamsMap = Object.fromEntries(teams.map(t => [t.id, t]))
+  // A judge sees only the games he was approved for; an admin still sees everything.
+  // myGameIds === null means the assignments are still loading — show nothing rather
+  // than briefly flashing the full fixture list.
   const officiable = games
     .filter(g => OFFICIABLE.includes(g.status))
+    .filter(g => isAdmin || (myGameIds ? myGameIds.has(g.id) : false))
     .sort((a, b) => new Date(a.game_date) - new Date(b.game_date))
 
   // C3: attendance readiness per team, for the referee's upcoming games.
