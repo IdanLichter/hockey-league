@@ -34,10 +34,20 @@ export default function PlayerSubmissionsReview({ teamsMap = {}, coachTeamIds = 
     catch (e) { setError(submissionError(e, "שגיאה באישור הבקשה")) }
     finally { setBusyId(null) }
   }
+  // A reason is mandatory (server-enforced). The submitter and the team's coach both
+  // receive it, so the rejection tells them what to fix instead of just saying no.
   const doReject = async (s) => {
+    const reason = window.prompt(
+      `סיבת הדחייה של ${s.first_name} ${s.last_name} — תישלח למגיש ולמאמן:`)
+    if (reason === null) return                 // cancelled
+    if (!reason.trim()) { setError("יש להזין סיבה לדחייה"); return }
     setBusyId(s.id); setError(null)
-    try { await rejectPlayerSubmission(s.id); await load() }
-    catch (e) { setError(submissionError(e, "שגיאה בדחיית הבקשה")) }
+    try { await rejectPlayerSubmission(s.id, reason.trim()); await load() }
+    catch (e) {
+      setError(e?.message === "reason-required"
+        ? "יש להזין סיבה לדחייה"
+        : submissionError(e, "שגיאה בדחיית הבקשה"))
+    }
     finally { setBusyId(null) }
   }
 

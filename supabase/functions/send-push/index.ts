@@ -98,11 +98,12 @@ function notificationText(n: NotificationRow, actorName: string): string {
     case "team_join_rejected":   return `בקשתך להצטרף לקבוצת ${d.team_name ?? ""} נדחתה`;
     case "player_submission_request":  return `${actorName} הגיש/ה כרטיס שחקן חדש${d.candidate_name ? `: ${d.candidate_name}` : ""}${d.team_name ? ` — ${d.team_name}` : ""}`;
     case "player_submission_approved": return `כרטיס השחקן ${d.candidate_name ?? ""} שהגשת אושר 🎉`;
-    case "player_submission_rejected": return `כרטיס השחקן ${d.candidate_name ?? ""} שהגשת נדחה`;
+    case "player_submission_rejected": return `כרטיס השחקן ${d.candidate_name ?? ""} נדחה${d.reason ? ` — ${d.reason}` : ""}`;
     case "medical_submitted":    return `${d.player_name ?? actorName} העלה/תה אישור רפואי הממתין לאישור`;
     case "medical_approved":     return `האישור הרפואי שלך אושר ✅`;
     case "medical_rejected":     return `האישור הרפואי שלך נדחה — יש להעלות מחדש`;
     case "medical_expiring":     return `האישור הרפואי שלך יפוג בעוד ${d.days_left ?? ""} ימים — מומלץ לחדש`;
+    case "medical_expiring_player": return `האישור הרפואי של ${d.player_name ?? "שחקן"} יפוג בעוד ${d.days_left ?? ""} ימים`;
     case "game_change_opponent": return `${actorName} מבקש/ת שינוי מועד — יש לבחור מועד שמתאים לך${d.reason ? ` (${d.reason})` : ""}`;
     case "coach_request":          return `${d.requester ?? actorName} מבקש/ת להיות מאמן/ת של ${d.team_name ?? "קבוצה"}`;
     case "coach_request_rejected": return `בקשתך להיות מאמן/ת של ${d.team_name ?? "קבוצה"} נדחתה`;
@@ -157,6 +158,7 @@ function notificationHref(n: NotificationRow): string {
     case "medical_approved":
     case "medical_rejected":
     case "medical_expiring":       return "/me";
+    case "medical_expiring_player": return "/admin";
     case "tournament_invite":
     case "tournament_invite_accepted":
     case "tournament_invite_declined": return n.entity_id ? `/tournaments/${n.entity_id}` : "/tournaments";

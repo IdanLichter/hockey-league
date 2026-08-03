@@ -10,6 +10,7 @@ const Feed = lazy(() => import('./pages/Feed'))
 const Home = lazy(() => import('./pages/Home'))
 const Games = lazy(() => import('./pages/Games'))
 const GameDetail = lazy(() => import('./pages/GameDetail'))
+const GameTv = lazy(() => import('./pages/GameTv'))
 const Statistics = lazy(() => import('./pages/Statistics'))
 const Teams = lazy(() => import('./pages/Teams'))
 const TeamDetail = lazy(() => import('./pages/TeamDetail'))
@@ -138,6 +139,8 @@ function App() {
             <Route path="/standings" element={<Home />} />
             <Route path="/games" element={<Games />} />
             <Route path="/games/:id" element={<GameDetail />} />
+            {/* Row 21 — fullscreen board for an HDMI-connected TV (fixed inset-0 covers the shell) */}
+            <Route path="/games/:id/tv" element={<GameTv />} />
             <Route path="/statistics" element={<Statistics />} />
             <Route path="/teams" element={<Teams />} />
             <Route path="/teams/:id" element={<TeamDetail />} />

@@ -4,7 +4,33 @@ import { getMyAvailability, setMyAvailability, getGameAvailability } from "@/lib
 import { getApprovedMedicalPlayerIds } from "@/lib/medical"
 import { getActiveSuspension, removePlayerFromSquad } from "@/lib/squad"
 import AddSquadPlayer from "@/components/AddSquadPlayer"
-import { Check, X, Loader2, CalendarCheck, AlertTriangle, Ban, UserMinus } from "lucide-react"
+import { Check, X, Loader2, CalendarCheck, AlertTriangle, Ban, UserMinus, Share2 } from "lucide-react"
+
+/**
+ * Sheet row 11 — the coach posts the squad to WhatsApp. Plain text, because that is
+ * what actually gets read: most players have no account (a reminder in the app reaches
+ * a fraction of the roster), so WhatsApp is the channel that reaches everyone.
+ * Numbered, goalkeepers marked, non-responders listed last so the coach can chase them.
+ */
+export function buildSquadMessage({ game, teamName, opponentName, coming, notComing, noReply, nameOf }) {
+  const when = game?.game_date
+    ? new Date(game.game_date).toLocaleString("he-IL", {
+        weekday: "long", day: "numeric", month: "numeric", hour: "2-digit", minute: "2-digit" })
+    : ""
+  const list = (arr) => arr.map((p, i) =>
+    `${i + 1}. ${nameOf(p)}${p.position === "Goalkeeper" ? " (שוער)" : ""}`).join("\n")
+
+  const parts = [
+    `*סגל ${teamName}*${opponentName ? ` — נגד ${opponentName}` : ""}`,
+    [when, game?.venue].filter(Boolean).join(" · "),
+    "",
+    `*מגיעים (${coming.length}):*`,
+    coming.length ? list(coming) : "—",
+  ]
+  if (notComing.length) parts.push("", `*לא מגיעים (${notComing.length}):*`, list(notComing))
+  if (noReply.length) parts.push("", `*טרם הגיבו (${noReply.length}):*`, list(noReply))
+  return parts.join("\n")
+}
 
 const MED_MSG = "כדי לאשר הגעה יש להעלות בדיקה רפואית ולקבל אישור בתוקף"
 const SUSPENDED_MSG = "אינך יכול להירשם: הרחקה בעקבות כרטיס אדום"
@@ -211,6 +237,23 @@ export default function GameAvailability({ game, myPlayerId, officialTeamIds = [
               <Col label="לא מגיעים" cls="text-red-600 dark:text-red-400" list={notComing} canEdit={full} />
               {full && <Col label="לא הגיבו" cls="text-slate-500 dark:text-slate-400" list={noReply} />}
             </div>
+            {/* Row 11 — hand the squad to WhatsApp, the channel that actually reaches
+                players who have no account. */}
+            {full && (
+              <button
+                onClick={() => {
+                  const text = buildSquadMessage({
+                    game, teamName: teamsMap[tid]?.name || "הקבוצה",
+                    opponentName: teamsMap[tid === game.home_team_id ? game.away_team_id : game.home_team_id]?.name,
+                    coming, notComing, noReply, nameOf,
+                  })
+                  window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank", "noopener,noreferrer")
+                }}
+                className="mt-2 ms-2 inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1.5 rounded-lg border border-dashed border-emerald-300 dark:border-emerald-700 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-colors">
+                <Share2 className="w-3.5 h-3.5" /> ייצוא לוואטסאפ
+              </button>
+            )}
+
             {/* Only a coach of this team (or an admin) builds the squad. */}
             {full && (
               <AddSquadPlayer

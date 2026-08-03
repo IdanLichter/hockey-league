@@ -140,11 +140,14 @@ export function notificationText(n) {
     case 'coach_request_rejected': return `בקשתך להיות מאמן/ת של ${d.team_name || 'קבוצה'} נדחתה`
     case 'player_submission_request':  return `${actorName(n)} הגיש/ה כרטיס שחקן חדש${d.candidate_name ? `: ${d.candidate_name}` : ''}${d.team_name ? ` — ${d.team_name}` : ''}`
     case 'player_submission_approved': return `כרטיס השחקן ${d.candidate_name || ''} שהגשת אושר 🎉`
-    case 'player_submission_rejected': return `כרטיס השחקן ${d.candidate_name || ''} שהגשת נדחה`
+    // P6 row 30 — a rejection without its reason is a dead end for the submitter
+    case 'player_submission_rejected': return `כרטיס השחקן ${d.candidate_name || ''} נדחה${d.reason ? ` — ${d.reason}` : ''}`
     case 'medical_submitted':    return `${d.player_name || actorName(n)} העלה/תה אישור רפואי הממתין לאישור`
     case 'medical_approved':     return `האישור הרפואי שלך אושר ✅`
     case 'medical_rejected':     return `האישור הרפואי שלך נדחה — יש להעלות מחדש`
     case 'medical_expiring':     return `האישור הרפואי שלך יפוג בעוד ${d.days_left ?? ''} ימים — מומלץ לחדש`
+    // P6 row 27 — the coach gets it too; many players have no account to receive it
+    case 'medical_expiring_player': return `האישור הרפואי של ${d.player_name || 'שחקן'} יפוג בעוד ${d.days_left ?? ''} ימים`
     case 'tournament_invite':          return `קבוצת ${d.team_name || ''} הוזמנה לטורניר ${d.tournament_name || ''}`
     case 'tournament_invite_accepted': return `קבוצת ${d.team_name || ''} אישרה השתתפות בטורניר ${d.tournament_name || ''} 🎉`
     case 'tournament_invite_declined': return `קבוצת ${d.team_name || ''} דחתה את ההזמנה לטורניר ${d.tournament_name || ''}`
@@ -195,6 +198,7 @@ export function notificationIcon(n) {
     case 'medical_approved':     return '🩺'
     case 'medical_rejected':     return '⛔'
     case 'medical_expiring':     return '⏰'
+    case 'medical_expiring_player': return '⏰'
     case 'tournament_invite':          return '🏆'
     case 'tournament_invite_accepted': return '✅'
     case 'tournament_invite_declined': return '⛔'
@@ -251,6 +255,7 @@ export function notificationHref(n) {
     case 'medical_approved':
     case 'medical_rejected':
     case 'medical_expiring':       return '/me'
+    case 'medical_expiring_player': return '/admin'
     case 'tournament_invite':
     case 'tournament_invite_accepted':
     case 'tournament_invite_declined': return n.entity_id ? `/tournaments/${n.entity_id}` : '/tournaments'

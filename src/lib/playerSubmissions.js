@@ -93,10 +93,18 @@ export async function approvePlayerSubmission(id) {
   }
 }
 
-export async function rejectPlayerSubmission(id) {
-  const { error } = await supabase.rpc('reject_player_submission', { p_submission_id: id })
+/**
+ * Reject a submitted player card. A reason is REQUIRED (enforced server-side): the
+ * submitter and the team's coach both receive it, so they know what to fix and can
+ * resubmit. A bare "נדחה" is a dead end.
+ */
+export async function rejectPlayerSubmission(id, reason) {
+  const { error } = await supabase.rpc('reject_player_submission', {
+    p_submission_id: id, p_reason: reason || null,
+  })
   if (error) {
     if (/not authorized/i.test(error.message || '')) throw new Error('not-authorized')
+    if (/reason is required/i.test(error.message || '')) throw new Error('reason-required')
     throw error
   }
 }
