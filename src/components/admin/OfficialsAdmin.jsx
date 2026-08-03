@@ -149,8 +149,15 @@ export default function OfficialsAdmin({ games = [], teamsMap = {} }) {
                 <div key={a.id} className="flex items-center justify-between gap-2 p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/50">
                   <div className="flex items-center gap-2 min-w-0 text-sm">
                     <RIcon className="w-4 h-4 text-slate-400 shrink-0" />
-                    <span className="font-semibold text-slate-800 dark:text-slate-200 truncate">{a.display_name || "—"}</span>
-                    <span className="text-[11px] text-slate-400 truncate">{OFFICIAL_ROLE_LABEL[a.role]} · {g ? `${teamsMap[g.home_team_id]?.name || "?"} נגד ${teamsMap[g.away_team_id]?.name || "?"}` : "משחק"}</span>
+                    <span className="font-semibold text-slate-800 dark:text-slate-200 truncate">{a.full_name || a.display_name || "—"}</span>
+                    {/* The manager is deciding whether to assign someone to a specific
+                        fixture — he needs WHEN and WHERE, not just the fixture name. */}
+                    <span className="text-[11px] text-slate-400 truncate">
+                      {OFFICIAL_ROLE_LABEL[a.role]} · {g ? `${teamsMap[g.home_team_id]?.name || "?"} נגד ${teamsMap[g.away_team_id]?.name || "?"}` : "משחק"}
+                      {g?.game_date && ` · ${new Date(g.game_date).toLocaleString("he-IL", { weekday: "short", day: "numeric", month: "numeric", hour: "2-digit", minute: "2-digit" })}`}
+                      {g?.venue && ` · ${g.venue}`}
+                      {a.phone && <> · <span dir="ltr" className="tabular-nums">{a.phone}</span></>}
+                    </span>
                   </div>
                   <div className="flex items-center gap-1.5 shrink-0">
                     <button onClick={() => doReview(a.id, true)} disabled={busy === a.id} className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1.5 rounded-lg bg-emerald-500 text-white hover:bg-emerald-600 disabled:opacity-50"><Check className="w-3.5 h-3.5" /> אשר</button>
