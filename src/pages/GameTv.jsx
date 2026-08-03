@@ -14,6 +14,19 @@ import { getLiveGame, subscribeLiveGame } from "@/lib/live"
  * deadline (`clock_ends_at`) and is counted down locally; a paused one arrives as a
  * frozen `clock_remaining_ms`. So this stays exact even on a flaky hall connection.
  */
+/* Sizes track the SMALLER of the two axes. Sizing purely in vh works on a landscape TV,
+ * where height is the constraint, but on a portrait phone width is — two big score digits
+ * plus the clock simply run off the sides. min(vw,vh) makes whichever dimension is
+ * tighter govern, and the rem clamps bound the extremes. Mirrors SB in GameScoreboard. */
+const TV = {
+  crest: "clamp(3rem, min(16vh, 18vw), 12rem)",
+  name:  "clamp(0.9rem, min(4vh, 4.5vw), 3rem)",
+  score: "clamp(3rem, min(22vh, 20vw), 18rem)",
+  clock: "clamp(2.5rem, min(14vh, 15vw), 13rem)",
+  period:"clamp(0.9rem, min(4vh, 4vw), 2.5rem)",
+  note:  "clamp(0.75rem, min(3vh, 3vw), 1.5rem)",
+}
+
 export default function GameTv() {
   const { id } = useParams()
   const [game, setGame] = useState(null)
@@ -66,33 +79,33 @@ export default function GameTv() {
   const Side = ({ team, score }) => (
     <div className="flex-1 min-w-0 flex flex-col items-center gap-[2vh]">
       {team?.logo_url
-        ? <img src={team.logo_url} alt="" className="h-[16vh] w-[16vh] object-contain" />
-        : <div className="h-[16vh]" />}
-      <p className="text-[4vh] font-bold text-white/80 truncate max-w-full px-2">{team?.name || "—"}</p>
-      <p className="text-[22vh] leading-none font-extrabold text-white tabular-nums">{score}</p>
+        ? <img src={team.logo_url} alt="" style={{ height: TV.crest, width: TV.crest }} className="object-contain" />
+        : <div style={{ height: TV.crest }} />}
+      <p style={{ fontSize: TV.name }} className="font-bold text-white/80 truncate max-w-full px-2">{team?.name || "—"}</p>
+      <p style={{ fontSize: TV.score }} className="leading-none font-extrabold text-white tabular-nums">{score}</p>
     </div>
   )
 
   return (
     <div className="fixed inset-0 z-[100] bg-[#0E2350] flex flex-col items-center justify-center select-none overflow-hidden">
-      <div className="w-full flex items-center justify-center gap-[4vw] px-[3vw]">
+      <div className="w-full flex items-center justify-center gap-[min(4vw,3vh)] px-[3vw]">
         <Side team={home} score={homeScore} />
         <div className="flex flex-col items-center gap-[1vh] shrink-0">
-          <p className="text-[14vh] leading-none font-extrabold text-white tabular-nums" dir="ltr">
+          <p style={{ fontSize: TV.clock }} className="leading-none font-extrabold text-white tabular-nums" dir="ltr">
             {mm}:{ss}
           </p>
           {live?.period && (
-            <p className="text-[4vh] font-bold text-white/70">{live.period}</p>
+            <p style={{ fontSize: TV.period }} className="font-bold text-white/70">{live.period}</p>
           )}
           {live && !live.is_running && (
-            <p className="text-[3vh] font-bold text-amber-400">עצור</p>
+            <p style={{ fontSize: TV.note }} className="font-bold text-amber-400">עצור</p>
           )}
         </div>
         <Side team={away} score={awayScore} />
       </div>
 
       {!live && (
-        <p className="absolute bottom-[4vh] text-[2.5vh] text-white/40">המשחק אינו משודר כרגע</p>
+        <p style={{ fontSize: TV.note }} className="absolute bottom-[4vh] text-white/40">המשחק אינו משודר כרגע</p>
       )}
     </div>
   )
