@@ -156,6 +156,12 @@ export default function NotificationBell() {
               ))}
             </ul>
           )}
+          {/* Long messages (a league-manager broadcast runs to 500 chars) don't fit a
+              dropdown, and they exist nowhere else — so always offer the full list. */}
+          <Link to="/notifications" onClick={() => setOpen(false)}
+            className="block px-4 py-2.5 text-center text-xs font-semibold text-brand hover:bg-slate-50 dark:hover:bg-slate-800/60 border-t border-slate-100 dark:border-slate-700 transition-colors">
+            הצגת כל ההתראות
+          </Link>
         </div>
       )}
     </div>
