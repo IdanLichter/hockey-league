@@ -59,13 +59,20 @@ export async function createPlayerSubmission({ teamId, firstName, lastName, jers
  * manager. For everyone else this returns [] — an unapproved card must never surface on
  * the public team page.
  */
+const REJECTED_VISIBLE_DAYS = 14
+
 export async function getTeamSubmissions(teamId) {
   if (!teamId) return []
+  // Pending rows stay until resolved. Rejections are shown only briefly — long enough
+  // for the submitter to read the reason and resubmit. Keeping them forever turns the
+  // roster into a permanent log of every card ever refused, including junk and troll
+  // submissions from past seasons, which is noise at best and unpleasant at worst.
+  const cutoff = new Date(Date.now() - REJECTED_VISIBLE_DAYS * 86400000).toISOString()
   const { data, error } = await supabase
     .from('player_submissions')
-    .select('id,first_name,last_name,jersey_number,position,status,decision_note,created_at')
+    .select('id,first_name,last_name,jersey_number,position,status,decision_note,created_at,reviewed_at')
     .eq('team_id', teamId)
-    .in('status', ['pending', 'rejected'])
+    .or(`status.eq.pending,and(status.eq.rejected,reviewed_at.gte.${cutoff})`)
     .order('created_at', { ascending: false })
   if (error) return []
   return data || []

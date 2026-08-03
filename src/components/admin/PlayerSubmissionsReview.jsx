@@ -20,6 +20,8 @@ export default function PlayerSubmissionsReview({ teamsMap = {}, coachTeamIds = 
   const [loading, setLoading] = useState(true)
   const [busyId, setBusyId] = useState(null)
   const [error, setError] = useState(null)
+  const [rejectingId, setRejectingId] = useState(null)   // which row is asking for a reason
+  const [rejectText, setRejectText] = useState({})
 
   const load = async () => {
     try { setLoading(true); setError(null); setItems(await getPendingPlayerSubmissions()) }
@@ -36,14 +38,20 @@ export default function PlayerSubmissionsReview({ teamsMap = {}, coachTeamIds = 
   }
   // A reason is mandatory (server-enforced). The submitter and the team's coach both
   // receive it, so the rejection tells them what to fix instead of just saying no.
-  const doReject = async (s) => {
-    const reason = window.prompt(
-      `סיבת הדחייה של ${s.first_name} ${s.last_name} — תישלח למגיש ולמאמן:`)
-    if (reason === null) return                 // cancelled
-    if (!reason.trim()) { setError("יש להזין סיבה לדחייה"); return }
+  //
+  // Collected in an inline panel rather than window.prompt(): a native dialog blocks the
+  // whole renderer, cannot be styled, and lands in the middle of an otherwise Hebrew,
+  // RTL, themed admin page looking like a browser error.
+  const submitReject = async (s) => {
+    const reason = (rejectText[s.id] || "").trim()
+    if (!reason) { setError("יש להזין סיבה לדחייה"); return }
     setBusyId(s.id); setError(null)
-    try { await rejectPlayerSubmission(s.id, reason.trim()); await load() }
-    catch (e) {
+    try {
+      await rejectPlayerSubmission(s.id, reason)
+      setRejectingId(null)
+      setRejectText(t => ({ ...t, [s.id]: "" }))
+      await load()
+    } catch (e) {
       setError(e?.message === "reason-required"
         ? "יש להזין סיבה לדחייה"
         : submissionError(e, "שגיאה בדחיית הבקשה"))
@@ -100,7 +108,8 @@ export default function PlayerSubmissionsReview({ teamsMap = {}, coachTeamIds = 
             ].filter(Boolean).join(" · ")
             const busy = busyId === s.id
             return (
-              <div key={s.id} className="card p-4 flex flex-col sm:flex-row sm:items-center gap-3">
+              <div key={s.id} className="card p-4 flex flex-col gap-3">
+               <div className="flex flex-col sm:flex-row sm:items-center gap-3">
                 <div className="flex items-center gap-3 flex-1 min-w-0">
                   <TeamLogo team={team} size={10} />
                   <div className="min-w-0">
@@ -120,11 +129,38 @@ export default function PlayerSubmissionsReview({ teamsMap = {}, coachTeamIds = 
                     className="flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-lg bg-emerald-500 text-white hover:bg-emerald-600 transition-colors disabled:opacity-50">
                     <Check className="w-3.5 h-3.5" /> אישור
                   </button>
-                  <button onClick={() => doReject(s)} disabled={busy}
+                  <button onClick={() => setRejectingId(rejectingId === s.id ? null : s.id)} disabled={busy}
                     className="flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-600 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors disabled:opacity-50">
                     <X className="w-3.5 h-3.5" /> דחייה
                   </button>
                 </div>
+               </div>
+
+                {/* Row 30 — the reason is required and is sent to the submitter and the
+                    coach, so the refusal says what to fix rather than just "נדחה". */}
+                {rejectingId === s.id && (
+                  <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 space-y-2">
+                    <label className="block text-[11px] font-semibold text-slate-600 dark:text-slate-300">
+                      סיבת הדחייה — תישלח למגיש/ה ולמאמן
+                    </label>
+                    <textarea
+                      value={rejectText[s.id] || ""}
+                      onChange={e => setRejectText(t => ({ ...t, [s.id]: e.target.value }))}
+                      rows={2} maxLength={300} autoFocus
+                      placeholder="למשל: חסרה תמונה, או שם לא תואם לתעודת הזהות"
+                      className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand/30 resize-y" />
+                    <div className="flex items-center gap-2">
+                      <button onClick={() => submitReject(s)} disabled={busy || !(rejectText[s.id] || "").trim()}
+                        className="flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg bg-red-500 text-white hover:bg-red-600 transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
+                        <X className="w-3.5 h-3.5" /> שליחת דחייה
+                      </button>
+                      <button onClick={() => setRejectingId(null)}
+                        className="text-xs font-semibold px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-600 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
+                        ביטול
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             )
           })}
