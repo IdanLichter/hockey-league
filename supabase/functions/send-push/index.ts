@@ -123,6 +123,7 @@ function notificationText(n: NotificationRow, actorName: string): string {
     case "lm_officials_digest":    return `${vs(d)} — ${officialsSummary(d)}`;
     case "lm_broadcast":           return `הודעת מנהל הליגה (${vs(d)}): ${d.message ?? ""}`;
     case "game_moved":             return `${vs(d)} — ${movedSummary(d)}`;
+    case "follow_game_alert":      return `מחר: ${vs(d)}`;
     default:               return "התראה חדשה";
   }
 }
@@ -165,7 +166,8 @@ function notificationHref(n: NotificationRow): string {
     case "lm_squad_digest":
     case "lm_officials_digest":
     case "lm_broadcast":
-    case "game_moved":             return n.entity_id ? `/games/${n.entity_id}` : "/games";
+    case "game_moved":
+    case "follow_game_alert":      return n.entity_id ? `/games/${n.entity_id}` : "/games";
     default:               return "/";
   }
 }

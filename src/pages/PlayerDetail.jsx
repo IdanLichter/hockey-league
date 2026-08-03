@@ -16,6 +16,7 @@ import TeamMembershipCard from "@/components/TeamMembershipCard"
 import { RoleBadge, deriveRoleItems } from "@/components/RoleBadges"
 import { BRAND_ORANGE } from '@/lib/brand'
 import { useSeo } from '@/lib/seo'
+import FollowButton from "@/components/FollowButton"
 
 export default function PlayerDetail() {
   const { id } = useParams()
@@ -226,7 +227,11 @@ export default function PlayerDetail() {
         <div className="flex items-center gap-4">
           <PlayerAvatar player={player} team={team} size={20} />
           <div className="min-w-0">
-            <h1 className="page-title truncate">{player.first_name} {player.last_name}</h1>
+            <div className="flex items-center gap-2 flex-wrap">
+              <h1 className="page-title truncate">{player.first_name} {player.last_name}</h1>
+              {/* P5 — follow this player (feed ranking); the bell is a separate opt-in */}
+              <FollowButton targetType="player" targetId={player.id} size="sm" />
+            </div>
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1.5">
               {myTeams.length ? myTeams.map(({ team: tm, age }) => (
                 <Link key={tm.id} to={`/teams/${tm.id}`} className="flex items-center gap-2 group w-fit">

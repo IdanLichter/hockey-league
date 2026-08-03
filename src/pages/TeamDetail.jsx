@@ -15,6 +15,7 @@ import TeamEditModal from "@/components/TeamEditModal"
 import TeamCoachRequest from "@/components/TeamCoachRequest"
 import { useSeo } from "@/lib/seo"
 import { getApprovedMedicalPlayerIds } from "@/lib/medical"
+import FollowButton from "@/components/FollowButton"
 
 export default function TeamDetail() {
   const { id } = useParams()
@@ -136,6 +137,11 @@ export default function TeamDetail() {
               {isSeniorTeam
                 ? <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-700 px-2 py-0.5 rounded-md">#{rank} בטבלה</span>
                 : <span className="text-[11px] font-bold text-brand dark:text-brand-light bg-brand/10 dark:bg-brand/20 px-2 py-0.5 rounded-md">{AGE_LABEL[ageOf(team)]}</span>}
+            </div>
+            {/* P5 — follow this team: ranks it up in the feed, and (separately) opts
+                into notifications about its games. */}
+            <div className="mt-2">
+              <FollowButton targetType="team" targetId={team.id} size="sm" />
             </div>
             <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
               {team.city}{team.founded_year ? ` • נוסדה ${team.founded_year}` : ''}

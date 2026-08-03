@@ -9,6 +9,7 @@ import { Rink } from "@/components/icons/HockeyIcons"
 import { motion } from "framer-motion"
 import { useSeasonMode } from "@/App"
 import { buildFeed } from "@/lib/feed"
+import { getMyFollowSets } from "@/lib/follows"
 import { attachEventPhotos } from "@/lib/eventPhotos"
 import { getPhotoIndex } from "@/lib/media"
 import { getPhotoOverrides } from "@/lib/photoOverrides"
@@ -23,6 +24,8 @@ import OnlinePresence from "@/components/OnlinePresence"
 
 const SEASON_NAME = "2025-26"
 const PAGE_SIZE = 25
+// Stable identity so the feed useMemo doesn't rebuild on every render for guests.
+const EMPTY_FOLLOWS = { teams: new Set(), players: new Set(), notify: new Set() }
 
 export default function Feed() {
   const { seasonMode } = useSeasonMode()
@@ -40,6 +43,7 @@ export default function Feed() {
   const [itemLikeCounts, setItemLikeCounts] = useState({})
   const [itemCommentCounts, setItemCommentCounts] = useState({})
   const [blockedIds, setBlockedIds] = useState(() => new Set())
+  const [follows, setFollows] = useState(EMPTY_FOLLOWS)
   const [championId, setChampionId] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -55,6 +59,15 @@ export default function Feed() {
     getItemLikes().then(({ counts, mine }) => { setItemLikeCounts(counts); setLikedItems(mine) }).catch(() => {})
     getItemCommentCounts().then(setItemCommentCounts).catch(() => {})
   }, [])
+
+  // What the viewer follows → the feed ranker gives those items a freshness bonus.
+  // Guests follow nothing, so they get the plain chronological stream.
+  useEffect(() => {
+    if (!user) { setFollows(EMPTY_FOLLOWS); return }
+    let alive = true
+    getMyFollowSets().then(f => { if (alive) setFollows(f) }).catch(() => {})
+    return () => { alive = false }
+  }, [user])
 
   // The viewer's block list — loaded only when signed in (skips the round trip for
   // guests). Used to hide blocked authors' posts + comments across the feed.
@@ -108,10 +121,11 @@ export default function Feed() {
       games, teams, players, gameStats,
       humanPosts: posts.filter(p => !blockedIds.has(p.author_id)),
       championId, seasonName: SEASON_NAME, seasonMode,
+      followedTeams: follows.teams, followedPlayers: follows.players,
     }),
     { photos: photoIndex.photos, photoPlayers: photoIndex.photoPlayers, players },
     photoOverrides
-  ), [games, teams, players, gameStats, posts, championId, seasonMode, photoIndex, blockedIds, photoOverrides])
+  ), [games, teams, players, gameStats, posts, championId, seasonMode, photoIndex, blockedIds, photoOverrides, follows])
 
   const counts = useMemo(() => ({
     all: feed.length,

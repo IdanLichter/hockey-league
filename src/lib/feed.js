@@ -19,6 +19,44 @@ export function groupStatsByGame(gameStats = []) {
 }
 
 /**
+ * How much "freshness" a followed item is worth, expressed as time.
+ *
+ * Ranking is score = timestamp + (followed ? boost : 0), which keeps ONE stream rather
+ * than splitting into tabs: recency still dominates, so the feed never becomes a stale
+ * wall of your own team, but among items of a similar age the ones you follow surface
+ * first. 18 hours is tuned so a followed item outranks unfollowed ones from the same
+ * day and the day before, and loses to anything genuinely newer than that.
+ */
+export const FOLLOW_BOOST_MS = 18 * 60 * 60 * 1000
+
+/**
+ * Does this post concern something the viewer follows?
+ * Kept separate from the builder so the rule is testable on its own.
+ */
+export function isFollowedPost(post, followedTeams, followedPlayers) {
+  if (!followedTeams?.size && !followedPlayers?.size) return false
+  const d = post.data || {}
+  const team = (id) => !!id && followedTeams?.has(id)
+  const player = (id) => !!id && followedPlayers?.has(id)
+
+  switch (post.type) {
+    case 'game_result':
+      return team(d.game?.home_team_id) || team(d.game?.away_team_id)
+    case 'milestone':
+      return player(d.playerId) || team(d.team?.id)
+    case 'champion':
+      return team(d.team?.id)
+    case 'top_scorer':
+      return player(d.player?.id) || team(d.team?.id)
+    case 'post':
+      // a post is followed via its team, or via the author's linked player
+      return team(d.post?.team_id) || player(d.author?.player_id)
+    default:
+      return false
+  }
+}
+
+/**
  * Build the feed.
  * @param {Object} args
  * @param {Array} args.games
@@ -28,7 +66,9 @@ export function groupStatsByGame(gameStats = []) {
  * @param {string|null} args.championId
  * @param {string} args.seasonName
  * @param {string} args.seasonMode - 'regular' | 'final_four'
- * @returns {Array} post objects: { id, type, date, rank, data }
+ * @param {Set} args.followedTeams - team ids the viewer follows
+ * @param {Set} args.followedPlayers - player ids the viewer follows
+ * @returns {Array} post objects: { id, type, date, rank, followed, data }
  */
 export function buildFeed({
   games = [],
@@ -39,6 +79,8 @@ export function buildFeed({
   championId = null,
   seasonName = '',
   seasonMode = 'regular',
+  followedTeams = new Set(),
+  followedPlayers = new Set(),
 } = {}) {
   const teamsMap = Object.fromEntries(teams.map(t => [t.id, t]))
   const playersMap = Object.fromEntries(players.map(p => [p.id, p]))
@@ -162,10 +204,18 @@ export function buildFeed({
     })
   }
 
-  // ---- Sort: date DESC, then rank DESC ----
+  // ---- Rank: recency, with followed items given a fixed freshness bonus ----
+  // One stream, not two tabs: a followed item floats above same-age neighbours but
+  // still loses to genuinely newer news, so the feed stays current AND personal.
+  for (const p of posts) {
+    p.followed = isFollowedPost(p, followedTeams, followedPlayers)
+    const t = new Date(p.date).getTime()
+    p.score = (isNaN(t) ? 0 : t) + (p.followed ? FOLLOW_BOOST_MS : 0)
+  }
+
   posts.sort((a, b) => {
-    const dt = new Date(b.date).getTime() - new Date(a.date).getTime()
-    if (dt !== 0) return dt
+    const ds = b.score - a.score
+    if (ds !== 0) return ds
     return b.rank - a.rank
   })
 
