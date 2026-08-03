@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react"
-import { getMedicalRoster, signMedical } from "@/lib/medical"
-import { HeartPulse, RefreshCw, Search, Eye } from "lucide-react"
+import { getMedicalRoster, signMedical, getPlayerMedicalCerts, revokeMedical, setMedicalExamDate } from "@/lib/medical"
+import { HeartPulse, RefreshCw, Search, Eye, Ban, CalendarClock, X, Loader2 } from "lucide-react"
 import { format } from "date-fns"
 import { SortBar, sortItems } from "@/components/admin/SortBar"
 
@@ -50,6 +50,36 @@ export default function MedicalRosterAdmin() {
   const [filter, setFilter] = useState("issues") // all | issues | expiring
   const [q, setQ] = useState("")
   const [sort, setSort] = useState({ key: "severity", dir: "asc" })
+  // Acting on a specific certificate needs its id, which the roster RPC deliberately
+  // doesn't return (it's a status-only summary) — so the file is fetched on demand.
+  const [modal, setModal] = useState(null)   // { row, mode:'date'|'revoke', cert }
+  const [reason, setReason] = useState("")
+  const [examDate, setExamDate] = useState("")
+  const [busy, setBusy] = useState(false)
+
+  const openFor = async (row, mode) => {
+    setError(null); setReason(""); setBusy(true)
+    try {
+      const certs = await getPlayerMedicalCerts(row.player_id)
+      const cert = certs.find(c => c.status === "approved") || certs[0]
+      if (!cert) { setError("לא נמצא אישור לטיפול"); return }
+      setExamDate(cert.exam_date || "")
+      setModal({ row, mode, cert })
+    } catch { setError("שגיאה בטעינת האישור") } finally { setBusy(false) }
+  }
+  const openManage = (row) => openFor(row, "date")
+  const openRevoke = (row) => openFor(row, "revoke")
+
+  const confirmAction = async () => {
+    if (!modal) return
+    setBusy(true); setError(null)
+    try {
+      if (modal.mode === "revoke") await revokeMedical(modal.cert.id, reason)
+      else await setMedicalExamDate(modal.cert.id, examDate)
+      setModal(null)
+      await load()
+    } catch (e) { setError(e.message) } finally { setBusy(false) }
+  }
 
   const load = async () => {
     try { setError(null); setRows(await getMedicalRoster()) }
@@ -140,6 +170,7 @@ export default function MedicalRosterAdmin() {
                   <th className="text-right font-bold px-3 py-2.5">סטטוס רפואי</th>
                   <th className="text-right font-bold px-3 py-2.5">תאריך בדיקה</th>
                   <th className="text-right font-bold px-3 py-2.5">מסמך</th>
+                  <th className="text-right font-bold px-3 py-2.5">פעולות</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-700/50">
@@ -162,10 +193,84 @@ export default function MedicalRosterAdmin() {
                         <span className="text-slate-300 dark:text-slate-600">—</span>
                       )}
                     </td>
+                    {/* The manager reviews these himself: correct a wrong exam date, or
+                        revoke a file he judges inadequate. Only meaningful while the
+                        player actually holds a valid certificate. */}
+                    <td className="px-3 py-2.5 whitespace-nowrap">
+                      {r.has_valid ? (
+                        <div className="flex items-center gap-1.5">
+                          <button onClick={() => openManage(r)}
+                            className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
+                            <CalendarClock className="w-3.5 h-3.5" /> תאריך
+                          </button>
+                          <button onClick={() => openRevoke(r)}
+                            className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1.5 rounded-lg border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors">
+                            <Ban className="w-3.5 h-3.5" /> ביטול
+                          </button>
+                        </div>
+                      ) : (
+                        <span className="text-slate-300 dark:text-slate-600">—</span>
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>
             </table>
+          </div>
+        </div>
+      )}
+
+      {/* Correct a wrong exam date, or revoke a file the manager judges inadequate.
+          Revoking takes the player's ability to register away, so it demands a reason
+          and says so plainly — the player and his coach both receive it. */}
+      {modal && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" dir="rtl"
+          onClick={() => !busy && setModal(null)}>
+          <div className="w-full max-w-sm card p-4 space-y-3" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between gap-2">
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+                {modal.mode === "revoke" ? "ביטול אישור רפואי" : "שינוי תאריך בדיקה"}
+                {" · "}{modal.row.first_name} {modal.row.last_name}
+              </h3>
+              <button onClick={() => setModal(null)} disabled={busy} aria-label="סגירה"
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><X className="w-4 h-4" /></button>
+            </div>
+
+            {modal.mode === "revoke" ? (
+              <>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">
+                  לאחר הביטול השחקן לא יוכל להירשם למשחקים עד להעלאת אישור חדש. הסיבה
+                  תישלח אליו ולמאמן.
+                </p>
+                <input value={reason} onChange={e => setReason(e.target.value)} maxLength={200} autoFocus
+                  placeholder="סיבה (למשל: הצילום לא קריא, התאריך לא ברור)" aria-label="סיבת הביטול"
+                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-2 text-sm text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand/30" />
+              </>
+            ) : (
+              <>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">
+                  תוקף האישור מחושב אוטומטית — שנה לתאריך הבדיקה בפועל.
+                </p>
+                <input type="date" value={examDate} max={new Date().toLocaleDateString("en-CA")}
+                  onChange={e => setExamDate(e.target.value)} aria-label="תאריך בדיקה"
+                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-2 text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-brand/30" />
+              </>
+            )}
+
+            <div className="flex items-center gap-2">
+              <button onClick={confirmAction}
+                disabled={busy || (modal.mode === "revoke" ? !reason.trim() : !examDate)}
+                className={`flex-1 flex items-center justify-center gap-1.5 text-xs font-bold px-3 py-2 rounded-lg text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
+                  modal.mode === "revoke" ? "bg-red-500 hover:bg-red-600" : "bg-brand hover:bg-brand-hover"}`}>
+                {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  : modal.mode === "revoke" ? <Ban className="w-3.5 h-3.5" /> : <CalendarClock className="w-3.5 h-3.5" />}
+                {modal.mode === "revoke" ? "ביטול האישור" : "שמירת התאריך"}
+              </button>
+              <button onClick={() => setModal(null)} disabled={busy}
+                className="text-xs font-semibold px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-600 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
+                ביטול
+              </button>
+            </div>
           </div>
         </div>
       )}

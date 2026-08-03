@@ -110,3 +110,46 @@ export async function signMedical(filePath) {
   if (error) return null
   return data?.signedUrl ?? null
 }
+
+/**
+ * League-manager / admin review of a specific player's certificates.
+ * The roster RPC deliberately returns status only; this returns the individual files so
+ * a manager can act on one — revoke it, or correct its exam date.
+ */
+export async function getPlayerMedicalCerts(playerId) {
+  if (!playerId) return []
+  const { data, error } = await supabase.rpc('player_medical_certs', { p_player: playerId })
+  if (error) return []
+  return data || []
+}
+
+/**
+ * Revoke an approved certificate. A reason is required — the player is about to lose the
+ * ability to register for games and has to know what to fix. He and his coach are both
+ * notified.
+ */
+export async function revokeMedical(certId, reason) {
+  const { error } = await supabase.rpc('revoke_medical_certificate', {
+    p_id: certId, p_reason: reason || null,
+  })
+  if (error) {
+    const m = error.message || ''
+    if (/reason is required/i.test(m)) throw new Error('יש להזין סיבה לביטול')
+    if (/not authorized/i.test(m)) throw new Error('אין לך הרשאה לבטל אישור רפואי')
+    throw new Error('ביטול האישור נכשל')
+  }
+}
+
+/** Correct the exam date; the expiry date follows it automatically (+1 year). */
+export async function setMedicalExamDate(certId, examDate) {
+  const { error } = await supabase.rpc('set_medical_exam_date', {
+    p_id: certId, p_exam_date: examDate,
+  })
+  if (error) {
+    const m = error.message || ''
+    if (/in future/i.test(m)) throw new Error('תאריך הבדיקה לא יכול להיות עתידי')
+    if (/required/i.test(m)) throw new Error('יש לבחור תאריך בדיקה')
+    if (/not authorized/i.test(m)) throw new Error('אין לך הרשאה לשנות תאריך בדיקה')
+    throw new Error('עדכון התאריך נכשל')
+  }
+}

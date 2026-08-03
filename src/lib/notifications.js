@@ -148,6 +148,10 @@ export function notificationText(n) {
     case 'medical_expiring':     return `האישור הרפואי שלך יפוג בעוד ${d.days_left ?? ''} ימים — מומלץ לחדש`
     // P6 row 27 — the coach gets it too; many players have no account to receive it
     case 'medical_expiring_player': return `האישור הרפואי של ${d.player_name || 'שחקן'} יפוג בעוד ${d.days_left ?? ''} ימים`
+    // The manager reviewed the file himself and rejected it — losing a valid
+    // medical means no registering, so the reason has to travel with it.
+    case 'medical_revoked':      return `האישור הרפואי ${d.player_name ? `של ${d.player_name} ` : ''}בוטל${d.reason ? ` — ${d.reason}` : ''}`
+    case 'medical_date_changed': return `תאריך הבדיקה עודכן — האישור בתוקף עד ${d.expires_at ? new Date(d.expires_at).toLocaleDateString('he-IL') : ''}`
     case 'tournament_invite':          return `קבוצת ${d.team_name || ''} הוזמנה לטורניר ${d.tournament_name || ''}`
     case 'tournament_invite_accepted': return `קבוצת ${d.team_name || ''} אישרה השתתפות בטורניר ${d.tournament_name || ''} 🎉`
     case 'tournament_invite_declined': return `קבוצת ${d.team_name || ''} דחתה את ההזמנה לטורניר ${d.tournament_name || ''}`
@@ -200,6 +204,8 @@ export function notificationIcon(n) {
     case 'medical_approved':     return '🩺'
     case 'medical_rejected':     return '⛔'
     case 'medical_expiring':     return '⏰'
+    case 'medical_revoked':      return '⛔'
+    case 'medical_date_changed': return '🩺'
     case 'medical_expiring_player': return '⏰'
     case 'tournament_invite':          return '🏆'
     case 'tournament_invite_accepted': return '✅'
@@ -260,6 +266,8 @@ export function notificationHref(n) {
     case 'medical_rejected':
     case 'medical_expiring':       return '/me'
     case 'medical_expiring_player': return '/admin'
+    case 'medical_revoked':
+    case 'medical_date_changed':   return '/me'
     case 'tournament_invite':
     case 'tournament_invite_accepted':
     case 'tournament_invite_declined': return n.entity_id ? `/tournaments/${n.entity_id}` : '/tournaments'

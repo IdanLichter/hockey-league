@@ -157,7 +157,11 @@ export default function Admin() {
       {/* Side-nav layout: vertical rail (right in RTL) on desktop, scrollable row on mobile */}
       <div className="lg:grid lg:grid-cols-[210px_minmax(0,1fr)] lg:gap-6 lg:items-start">
         <aside className="lg:sticky lg:top-20 self-start mb-4 lg:mb-0">
-          <nav className="card p-2 flex lg:flex-col gap-1 overflow-x-auto lg:overflow-visible [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          {/* The rail is sticky, so on desktop it must cap its own height and scroll —
+              with this many tabs it previously ran straight off the bottom of the
+              viewport and the last few were unreachable. The scrollbar is hidden on
+              mobile (a horizontal strip) but shown on desktop, so it's discoverable. */}
+          <nav className="card p-2 flex lg:flex-col gap-1 overflow-x-auto lg:overflow-x-hidden lg:overflow-y-auto lg:max-h-[calc(100vh-7rem)] [scrollbar-width:none] lg:[scrollbar-width:thin] [&::-webkit-scrollbar]:hidden lg:[&::-webkit-scrollbar]:block lg:[&::-webkit-scrollbar]:w-1.5 lg:[&::-webkit-scrollbar-thumb]:rounded-full lg:[&::-webkit-scrollbar-thumb]:bg-slate-300 dark:lg:[&::-webkit-scrollbar-thumb]:bg-slate-600">
             {visibleTabs.map(tab => {
               const active = currentTab === tab.id
               return (
