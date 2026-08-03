@@ -33,6 +33,7 @@ import CoachRequestsReview from "@/components/admin/CoachRequestsReview"
 import MedicalReview from "@/components/admin/MedicalReview"
 import MedicalRosterAdmin from "@/components/admin/MedicalRosterAdmin"
 import ReadinessAdmin from "@/components/admin/ReadinessAdmin"
+import SuspensionsAdmin from "@/components/admin/SuspensionsAdmin"
 import OfficialsAdmin from "@/components/admin/OfficialsAdmin"
 import VenuesAdmin from "@/components/admin/VenuesAdmin"
 import SuggestionsReview from "@/components/admin/SuggestionsReview"
@@ -42,7 +43,7 @@ import GameChangeRequestsReview from "@/components/admin/GameChangeRequestsRevie
 import WhatsNew from "@/components/admin/WhatsNew"
 import ClustersAdmin from "@/components/admin/ClustersAdmin"
 import { SortBar, sortItems } from "@/components/admin/SortBar"
-import { Award, Images, HeartPulse, Gavel, MapPin, BellRing } from "lucide-react"
+import { Award, Images, HeartPulse, Gavel, MapPin, BellRing, Ban } from "lucide-react"
 import { BRAND_ORANGE } from '@/lib/brand'
 
 const tabs = [
@@ -55,6 +56,7 @@ const tabs = [
   { id: "game_requests", label: "בקשות משחקים", icon: CalendarClock },
   { id: "medical", label: "מעקב רפואי", icon: HeartPulse },
   { id: "readiness", label: "מוכנות להתראות", icon: BellRing },
+  { id: "suspensions", label: "הרחקות", icon: Ban },
   { id: "officials", label: "בעלי תפקיד", icon: Gavel },
   { id: "venues", label: "מגרשים", icon: MapPin },
   { id: "reports", label: "דיווחים", icon: Flag },
@@ -77,7 +79,7 @@ export default function Admin() {
     ...(isJudgeRole ? ["games"] : []),
     // "claims" holds the player-card review queue — row 29 requires the league manager
     // to approve players, and approve_player_submission already permits him.
-    ...(isLeagueManager ? ["tournaments", "teams", "claims", "game_requests", "medical", "readiness", "officials", "venues"] : []),
+    ...(isLeagueManager ? ["tournaments", "teams", "claims", "game_requests", "medical", "readiness", "suspensions", "officials", "venues"] : []),
   ])
   // Full tournament management (create/edit/delete + approve requests) vs. the
   // coach's request-only view of the same tab.
@@ -194,6 +196,7 @@ export default function Admin() {
               {currentTab === "game_requests" && <GameChangeRequestsReview teamsMap={teamsMap} />}
               {currentTab === "medical" && <MedicalRosterAdmin />}
               {currentTab === "readiness" && <ReadinessAdmin />}
+              {currentTab === "suspensions" && <SuspensionsAdmin players={players} teamsMap={teamsMap} />}
               {currentTab === "officials" && <OfficialsAdmin games={games} teamsMap={teamsMap} />}
               {currentTab === "venues" && <VenuesAdmin />}
               {currentTab === "reports" && <ReportsReview />}

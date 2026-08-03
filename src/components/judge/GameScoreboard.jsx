@@ -6,6 +6,7 @@ import { getGameAvailabilityForOfficial } from "@/lib/availability"
 import { broadcastGameState, setGameStatus } from "@/lib/live"
 import { clockString } from "@/lib/game/format"
 import { Phase, TeamSide, CardType, GameFormat } from "@/lib/game/rules"
+import { issueSuspension } from "@/lib/suspensions"
 import {
   RotateCcw, Pencil, CheckCircle2, Megaphone, Settings as SettingsIcon, Paintbrush,
   Hand, RectangleVertical, SkipForward, Save, Undo2, Plus, Minus, X, Maximize, Minimize,
@@ -296,7 +297,17 @@ export default function GameScoreboard({ game, home, guest, players }) {
     if (!picker) return
     const ref = p ? toRef(p) : null
     if (picker.kind === "goal") engine.addGoal(picker.side, ref)
-    else engine.addCard(picker.side, ref, picker.kind === "red" ? CardType.red : CardType.blue)
+    else {
+      engine.addCard(picker.side, ref, picker.kind === "red" ? CardType.red : CardType.blue)
+      // Sheet rows 5/15: a red card blocks the player's NEXT game. Issued here, as it
+      // happens, rather than derived from the scoresheet afterwards — the judge is the
+      // one who saw it. Only for a real player card (a free-text guest has nothing to
+      // block), and best-effort: a failure here must never disrupt officiating.
+      if (picker.kind === "red" && p?.id) {
+        issueSuspension(p.id, { gameId: game.id, reason: `כרטיס אדום · ${p.first_name} ${p.last_name}` })
+          .catch(() => {})
+      }
+    }
     setPicker(null)
   }
 
