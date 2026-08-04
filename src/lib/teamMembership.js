@@ -40,6 +40,7 @@ export const JOIN_ERRORS = {
   'pending-in-age-group': 'כבר יש לך בקשה ממתינה לקבוצה בקבוצת הגיל הזו',
   'already-on-team':      'את/ה כבר בקבוצה הזו',
   'already-in-age-group': 'את/ה כבר משוייך/ת לקבוצה בקבוצת הגיל הזו — יש לעזוב אותה תחילה',
+  'too-old-for-age-group': 'הגיל שלך גבוה מקטגוריית הגיל של הקבוצה',
   'not-linked-player':    'רק שחקן/ית מקושר/ת לכרטיס שחקן יכול/ה לבקש הצטרפות',
 }
 export const joinErrorText = (e) => JOIN_ERRORS[e?.message] || 'שגיאה בשליחת הבקשה'
@@ -55,6 +56,8 @@ export async function requestTeamJoin(teamId, note = null) {
     if (/already on this team/i.test(msg)) throw new Error('already-on-team')
     if (/already in age group/i.test(msg)) throw new Error('already-in-age-group')
     if (/pending in age group/i.test(msg)) throw new Error('pending-in-age-group')
+    // u19 → 19, u17 → 17, u15 → 15. Inclusive: 19 may play u19, 20 may not.
+    if (/too old for age group/i.test(msg)) throw new Error('too-old-for-age-group')
     throw error
   }
   return data
