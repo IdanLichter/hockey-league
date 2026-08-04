@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from "react"
 import { useAuth } from "@/lib/AuthContext"
-import { useNavigate, Link } from "react-router-dom"
+import { useNavigate, Link, useSearchParams } from "react-router-dom"
 import {
   getTeams, getPlayers, getGames, getGameStats, getAdminUsers,
   createGame, updateGame, deleteGame,
@@ -89,7 +89,17 @@ export default function Admin() {
   // A role-less user reaches AccessDenied below, but this runs first — so never
   // index into an empty array.
   const firstTabId = visibleTabs[0]?.id ?? tabs[0].id
-  const [activeTab, setActiveTab] = useState(firstTabId)
+  // A notification links to /admin?tab=<id> so it lands on the tab it is about.
+  // Landing on the default tab and making the manager hunt is the whole complaint.
+  const [searchParams, setSearchParams] = useSearchParams()
+  const requestedTab = searchParams.get('tab')
+  const [activeTab, setActiveTab] = useState(requestedTab || firstTabId)
+  // React to the param changing after mount too (clicking a second notification while
+  // already on /admin) — but only when it names a tab this role can actually see.
+  useEffect(() => {
+    if (requestedTab && visibleTabs.some(t => t.id === requestedTab)) setActiveTab(requestedTab)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [requestedTab, visibleTabs.length])
   // Auth may still be loading when this mounts (e.g. the OAuth redirect lands on
   // /admin), so roles can arrive after the initial render. Derive the tab actually
   // shown: if the stored one isn't visible for this role, fall back to the first
@@ -165,7 +175,7 @@ export default function Admin() {
             {visibleTabs.map(tab => {
               const active = currentTab === tab.id
               return (
-                <button key={tab.id} onClick={() => setActiveTab(tab.id)}
+                <button key={tab.id} onClick={() => { setActiveTab(tab.id); setSearchParams(tab.id === firstTabId ? {} : { tab: tab.id }, { replace: true }) }}
                   className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all whitespace-nowrap shrink-0 lg:w-full ${
                     active
                       ? "bg-brand text-white shadow-sm shadow-brand/25"

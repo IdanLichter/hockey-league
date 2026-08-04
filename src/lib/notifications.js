@@ -233,9 +233,11 @@ export function notificationHref(n) {
     case 'claim_approved':
     case 'claim_rejected': return n.entity_id ? `/players/${n.entity_id}` : '/me'
     case 'role_granted':   return '/me'
-    case 'claim_request':
-    case 'content_report': return '/admin'
-    case 'game_change_request':  return '/admin'
+    // Deep-link to the TAB the notification is about. Bare /admin opens whatever tab
+    // happens to be first, leaving the reviewer to hunt for the queue in question.
+    case 'claim_request':          return '/admin?tab=claims'
+    case 'content_report':         return '/admin?tab=reports'
+    case 'game_change_request':    return '/admin?tab=game_requests'
     case 'game_change_opponent':
     case 'game_result':
     case 'game_change_approved':
@@ -254,18 +256,18 @@ export function notificationHref(n) {
     // reviewers land on the /admin review tabs
     case 'team_join_request':
     case 'player_submission_request':
-    case 'medical_submitted':      return '/admin'
+    case 'medical_submitted':      return '/admin?tab=claims'
     // the player / submitter lands where the outcome lives
     case 'team_join_approved':
     case 'team_join_rejected':     return n.entity_id ? `/teams/${n.entity_id}` : '/me'
-    case 'coach_request':          return '/admin'
+    case 'coach_request':          return '/admin?tab=claims'
     case 'coach_request_rejected': return n.entity_id ? `/teams/${n.entity_id}` : '/me'
     case 'player_submission_approved': return n.data?.player_id ? `/players/${n.data.player_id}` : '/me'
     case 'player_submission_rejected':
     case 'medical_approved':
     case 'medical_rejected':
     case 'medical_expiring':       return '/me'
-    case 'medical_expiring_player': return '/admin'
+    case 'medical_expiring_player': return '/admin?tab=medical'
     case 'medical_revoked':
     case 'medical_date_changed':   return '/me'
     case 'tournament_invite':
@@ -274,9 +276,12 @@ export function notificationHref(n) {
     case 'official_assigned':
     case 'official_application_approved':
     case 'official_application_rejected': return n.entity_id ? `/games/${n.entity_id}` : '/games'
-    case 'official_application':          return '/admin'
+    case 'official_application':   return '/admin?tab=officials'
+    // Land on the post itself. The feed paginates, so an old post may not be mounted —
+    // the anchor simply does nothing then and you get the feed, which is no worse than
+    // today's behaviour.
     case 'post_like':
-    case 'post_comment':
+    case 'post_comment':   return n.entity_id ? `/#post-${n.entity_id}` : '/'
     default:               return '/'
   }
 }

@@ -242,7 +242,12 @@ export default function Feed() {
           ) : (
             <div className="space-y-5">
               {visible.map(post => (
+                // Anchor for deep links: a like/comment notification points at
+                // /#post-<id>, and buildFeed already ids human posts as `post-<uuid>`,
+                // which is exactly the notification's entity_id.
+                <div key={post.id} id={post.id} className="scroll-mt-24">
                 <FeedPost key={post.id} post={post} playersMap={playersMap} teamsMap={teamsMap} roleBadges={roleBadges} likedPostIds={likedPostIds} likedItems={likedItems} itemLikeCounts={itemLikeCounts} itemCommentCounts={itemCommentCounts} blockedIds={blockedIds} onPhotoRefreshed={handlePhotoRefreshed} />
+                </div>
               ))}
             </div>
           )}
