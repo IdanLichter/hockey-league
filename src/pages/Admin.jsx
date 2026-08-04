@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { useAuth } from "@/lib/AuthContext"
 import { useNavigate, Link } from "react-router-dom"
 import {
@@ -1144,6 +1144,17 @@ function PlayersAdmin({ players, teams, teamsMap, membersByPlayer = new Map(), r
 
 // ============ TEAMS ADMIN ============
 function TeamsAdmin({ teams, reload, reviewOnly = false }) {
+  // Home venue is picked from the מגרשים list, not typed — the same free-text drift that
+  // produced "קריית ביאליק" and "קרית ביאליק" on games also happened on teams.
+  const [venueNames, setVenueNames] = useState([])
+  useEffect(() => {
+    getVenues().then(v => setVenueNames((v || []).map(x => x.name))).catch(() => {})
+  }, [])
+  // City stays free text — a new town must remain possible — but suggests the ones
+  // already in use so nobody retypes a variant of an existing spelling.
+  const cityOptions = useMemo(
+    () => [...new Set(teams.map(t => t.city).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'he')),
+    [teams])
   const [editingTeam, setEditingTeam] = useState(null)
   const [saving, setSaving] = useState(false)
   const [form, setForm] = useState({})
@@ -1239,6 +1250,8 @@ function TeamsAdmin({ teams, reload, reviewOnly = false }) {
 
   return (
     <div className="space-y-3">
+      {/* Suggestions for the city field — shared by the create and edit forms. */}
+      <datalist id="team-cities">{cityOptions.map(c => <option key={c} value={c} />)}</datalist>
       {!reviewOnly && (
         <>
           <div className="flex items-center justify-between">
@@ -1262,7 +1275,7 @@ function TeamsAdmin({ teams, reload, reviewOnly = false }) {
             </div>
             <div>
               <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1 block">עיר</label>
-              <input type="text" value={createForm.city} onChange={e => setCreateForm({ ...createForm, city: e.target.value })} className="filter-input w-full" />
+              <input type="text" list="team-cities" value={createForm.city} onChange={e => setCreateForm({ ...createForm, city: e.target.value })} className="filter-input w-full" />
             </div>
             <div>
               <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1 block">קטגוריית גיל</label>
@@ -1272,7 +1285,13 @@ function TeamsAdmin({ teams, reload, reviewOnly = false }) {
             </div>
             <div>
               <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1 block">מגרש בית</label>
-              <input type="text" value={createForm.home_venue} onChange={e => setCreateForm({ ...createForm, home_venue: e.target.value })} className="filter-input w-full" />
+              <select value={createForm.home_venue} onChange={e => setCreateForm({ ...createForm, home_venue: e.target.value })} className="filter-input w-full">
+                <option value="">בחר מגרש…</option>
+                {venueNames.map(v => <option key={v} value={v}>{v}</option>)}
+                {createForm.home_venue && !venueNames.includes(createForm.home_venue) && (
+                  <option value={createForm.home_venue}>{createForm.home_venue} (לא ברשימה)</option>
+                )}
+              </select>
             </div>
             <div>
               <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1 block">צבע</label>
@@ -1352,11 +1371,17 @@ function TeamsAdmin({ teams, reload, reviewOnly = false }) {
                 </div>
                 <div>
                   <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1 block">עיר</label>
-                  <input type="text" value={form.city} onChange={e => setForm({ ...form, city: e.target.value })} className="filter-input w-full" />
+                  <input type="text" list="team-cities" value={form.city} onChange={e => setForm({ ...form, city: e.target.value })} className="filter-input w-full" />
                 </div>
                 <div>
                   <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1 block">מגרש בית</label>
-                  <input type="text" value={form.home_venue} onChange={e => setForm({ ...form, home_venue: e.target.value })} className="filter-input w-full" />
+                  <select value={form.home_venue} onChange={e => setForm({ ...form, home_venue: e.target.value })} className="filter-input w-full">
+                <option value="">בחר מגרש…</option>
+                {venueNames.map(v => <option key={v} value={v}>{v}</option>)}
+                {form.home_venue && !venueNames.includes(form.home_venue) && (
+                  <option value={form.home_venue}>{form.home_venue} (לא ברשימה)</option>
+                )}
+              </select>
                 </div>
                 <div>
                   <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1 block">קטגוריית גיל</label>
