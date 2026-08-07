@@ -5,7 +5,7 @@ import { useAuth } from "@/lib/AuthContext"
 import { useSeo } from "@/lib/seo"
 import { supabase } from "@/lib/supabase"
 import { getViewerIceServersDetailed } from "@/lib/video"
-import { probeIce, playWHEP, readInbound, hasTurn } from "@/lib/whep"
+import { probeIce, playWHEP, hasTurn } from "@/lib/whep"
 
 /**
  * Admin-only stream diagnostics — /stream-debug
@@ -106,13 +106,12 @@ export default function StreamDebug() {
     const ice = await getViewerIceServersDetailed()
     const playUrl = `https://customer-${code}.cloudflarestream.com/${uid}/webRTC/play`
     try {
+      // playWHEP now waits for real bytes itself and throws `no-media` if none
+      // arrive, so reaching here means media is genuinely flowing.
       const session = await playWHEP(playUrl, ice.iceServers, videoRef.current, { policy })
       whepRef.current = session
       setLive(true)
-      // Give it a few seconds of real playback before asking whether bytes arrived.
-      await new Promise((r) => setTimeout(r, 4000))
-      const inbound = await readInbound(session.pc)
-      set(key, { ok: true, playUrl, ...session.diag, inbound, receiving: (inbound?.video?.bytes || 0) > 0 })
+      set(key, { ok: true, playUrl, ...session.diag })
     } catch (e) {
       // playWHEP tears its own connection down on every throw.
       set(key, { ok: false, playUrl, ...(e?.diag || {}), error: String(e?.message || e) })
@@ -249,7 +248,9 @@ export default function StreamDebug() {
             <Result ok={report.whep.ok && report.whep.receiving} label="WHEP">
               {fmtWhep(report.whep)}
             </Result>
-            {report.whep.ok && (
+            {/* Offered on failure too — a media-stage failure is precisely when the
+                relay re-run is the deciding test. */}
+            {report.whep.playUrl && (
               <button
                 onClick={() => runWhep(
                   report.whep.playUrl.split("customer-")[1]?.split(".")[0],
@@ -333,8 +334,13 @@ const fmtProbe = (p) => {
 
 const fmtWhep = (w) => {
   if (!w.ok) {
-    const where = { "ice-gather": "איסוף ICE", "whep-post": "בקשה ל-Cloudflare", "whep-answer": "תשובת SDP", connect: "חיבור ICE" }[w.stage] || w.stage
+    const where = { "ice-gather": "איסוף ICE", "whep-post": "בקשה ל-Cloudflare", "whep-answer": "תשובת SDP", connect: "חיבור ICE", media: "זרימת מדיה" }[w.stage] || w.stage
     const status = w.whepStatus ? ` (HTTP ${w.whepStatus})` : ""
+    // The media stage is the informative one: the route came up and carried nothing.
+    if (w.stage === "media") {
+      const pair = w.selectedPair ? `${w.selectedPair.local} ← ${w.selectedPair.remote}` : "?"
+      return `חובר דרך ${pair} אך לא התקבלה מדיה · DTLS: ${w.connectionState} · ICE: ${w.iceConnectionState}`
+    }
     return `נכשל בשלב ${where}${status} — ${w.error}`
   }
   const pair = w.selectedPair ? `${w.selectedPair.local} ← ${w.selectedPair.remote}` : "?"
@@ -355,6 +361,13 @@ function buildVerdict(r) {
   if (r.iceRelay && !r.iceRelay.types?.relay) {
     return { ok: false, title: "הרשת הזו חוסמת את שרתי ה-TURN", detail: "לא נאסף אף מועמד relay. סביר שיציאות 3478/5349 חסומות — צפייה מרשת כזו לא תעבוד עד שנוסיף relay על 443." }
   }
+  // The relay re-run is what separates "this route is dead" from "nothing works".
+  if (r.whepRelay && !r.whepRelay.ok && r.whepRelay.stage === "media") {
+    return { ok: false, title: "גם relay בלבד לא מקבל מדיה", detail: `החיבור קם דרך TURN ובכל זאת 0 bytes. הבעיה אינה בבחירת המסלול — חשד ל-DTLS או לצד המשדר. DTLS: ${r.whepRelay.connectionState}.` }
+  }
+  if (r.whepRelay?.ok) {
+    return { ok: true, title: "relay בלבד עובד — המסלול הישיר הוא הבעיה", detail: "ICE בחר מסלול ישיר שעובר בדיקות אך לא מעביר מדיה. הנגן מסלים ל-relay אוטומטית אחרי כישלון כזה." }
+  }
   if (r.whep && !r.whep.ok) {
     if (r.whep.stage === "whep-post" && r.whep.whepStatus === 409) {
       return { ok: false, title: "אין שידור חי כרגע", detail: "Cloudflare מחזיר 409 — לא הגיעה מדיה לשידור הזה. בדקו מול שידור פעיל." }
@@ -362,10 +375,11 @@ function buildVerdict(r) {
     if (r.whep.stage === "whep-post") {
       return { ok: false, title: "הבקשה ל-Cloudflare נחסמה", detail: "לא ICE — הבקשה עצמה נכשלה. חשד ל-CORS, DNS או proxy שמפרק TLS ברשת הזו." }
     }
+    if (r.whep.stage === "media") {
+      const pair = r.whep.selectedPair?.local || "?"
+      return { ok: false, title: "החיבור קם אבל לא זרמה מדיה", detail: `ICE בחר ${pair} ואפס bytes התקבלו — המסלול עובר בדיקות STUN אך לא מעביר RTP. הריצו שוב דרך relay בלבד כדי לאשר.` }
+    }
     return { ok: false, title: "ICE נכשל למרות ש-TURN זמין", detail: "ה-relay נאסף אבל החיבור לא קם. הריצו שוב במצב relay בלבד כדי לבודד." }
-  }
-  if (r.whep?.ok && !r.whep.receiving) {
-    return { ok: false, title: "החיבור קם אבל לא זורמת מדיה", detail: "ICE התחבר ואפס bytes התקבלו — בעיה בצד Cloudflare או בשידור עצמו, לא ברשת הצופה." }
   }
   if (r.whep?.ok) {
     return { ok: true, title: "הצפייה עובדת מהמכשיר הזה", detail: `מדיה מתקבלת דרך ${r.whep.selectedPair?.local || "?"}.` }

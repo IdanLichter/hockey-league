@@ -100,6 +100,10 @@ function CloudflarePlayer({ video, isLive }) {
     let cancelled = false
     let retryTimer = null
     let attempts = 0
+    // Escalation: once a route has connected and carried no media, plain ICE will
+    // keep picking that same dead pair — it considers it succeeded. Forcing
+    // relay-only is the only way past it, so every later attempt goes through TURN.
+    let policy = null
     const maxAttempts = isLive ? 15 : 3 // live: ride out startup; VOD: fail fast to the recording
     setStatus("connecting")
     const tryPlay = async () => {
@@ -107,7 +111,7 @@ function CloudflarePlayer({ video, isLive }) {
       if (cancelled) return
       try {
         const playUrl = `https://customer-${code}.cloudflarestream.com/${video.video_id}/webRTC/play`
-        const session = await playWHEP(playUrl, ice.iceServers, videoRef.current)
+        const session = await playWHEP(playUrl, ice.iceServers, videoRef.current, { policy })
         if (cancelled) { session.stop(); return }
         sessionRef.current = session
         setStatus("playing")
@@ -122,6 +126,8 @@ function CloudflarePlayer({ video, isLive }) {
         // Never swallow this: a viewer who can't watch used to leave no trace at
         // all, which made "works here, black screen there" impossible to diagnose.
         console.warn("[stream] WHEP attempt failed", rec)
+        // Only worth forcing when we actually have a relay to force onto.
+        if ((rec.stage === "media" || rec.stage === "connect") && rec.hasTurn) policy = "relay"
         if (attempts < maxAttempts) retryTimer = setTimeout(tryPlay, 3000)
         else setMode("iframe")
       }
@@ -183,6 +189,7 @@ function StreamDiag({ diag, mode, isLive }) {
   else if (!diag.hasTurn) verdict = "אין TURN ברשימת ה-ICE — הנגן רץ על STUN בלבד"
   else if (diag.stage === "whep-post" && diag.whepStatus === 409) verdict = "Cloudflare עדיין לא מקבל מדיה (409) — השידור לא התחיל או הסתיים"
   else if (diag.stage === "whep-post") verdict = `הבקשה ל-Cloudflare נכשלה (${diag.whepStatus || "network"})`
+  else if (diag.stage === "media") verdict = `החיבור קם דרך ${diag.selectedPair?.local || "?"} אבל לא זרמה מדיה — עוברים ל-relay`
   else if (diag.stage === "connect") verdict = (diag.types?.relay ? "ICE נכשל למרות relay זמין" : "ICE נכשל ולא נאסף relay — הרשת חוסמת את TURN")
   else verdict = `כשל בשלב ${diag.stage || "?"}`
 
@@ -196,6 +203,8 @@ function StreamDiag({ diag, mode, isLive }) {
     ["איסוף ICE", diag.gatherMs != null ? `${diag.gatherMs}ms ${diag.gatherComplete ? "(הושלם)" : "(נקטע)"}` : "—"],
     ["WHEP POST", diag.whepStatus != null ? `${diag.whepStatus} (${diag.whepMs}ms)` : "—"],
     ["זוג נבחר", diag.selectedPair ? `${diag.selectedPair.local} ← ${diag.selectedPair.remote}` : "—"],
+    ["מדיה", diag.receiving == null ? "—" : diag.receiving ? `כן (${diag.inbound?.video?.bytes} bytes)` : "0 bytes"],
+    ["מסלול", diag.policy === "relay" ? "relay בלבד (הסלמה)" : "רגיל"],
     ["שגיאה", diag.error || "—"],
   ]
 

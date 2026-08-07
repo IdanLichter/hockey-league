@@ -135,10 +135,30 @@ export async function readInbound(pc) {
   } catch { return null }
 }
 
+// Poll until real RTP arrives, or give up. ICE reaching "connected" only proves
+// the STUN probes got through — on some mobile/CGNAT paths those small packets
+// pass while actual media is dropped, so ICE declares victory on a route that
+// carries nothing. Bytes are the only honest success signal.
+async function awaitMedia(pc, timeoutMs) {
+  const deadline = performance.now() + timeoutMs
+  let inbound = null
+  for (;;) {
+    inbound = await readInbound(pc)
+    const bytes = (inbound?.video?.bytes || 0) + (inbound?.audio?.bytes || 0)
+    if (bytes > 0) return { ok: true, inbound }
+    if (pc.connectionState === "failed" || pc.iceConnectionState === "failed") break
+    if (performance.now() >= deadline) break
+    await new Promise((r) => setTimeout(r, 300))
+  }
+  return { ok: false, inbound }
+}
+
 // Play a Cloudflare live input's WHEP stream into `videoEl`.
 // Returns { pc, stop, diag }. Throws on failure with `err.diag` attached — the
-// `stage` field says exactly where it died: ice-gather | whep-post | connect.
-export async function playWHEP(playUrl, iceServers, videoEl, { policy = null } = {}) {
+// `stage` field says exactly where it died:
+//   ice-gather | whep-post | whep-answer | connect | media
+// `media` is the one that used to masquerade as success: connected, playing, black.
+export async function playWHEP(playUrl, iceServers, videoEl, { policy = null, mediaTimeoutMs = 5000 } = {}) {
   const t0 = performance.now()
   const diag = {
     stage: "setup",
@@ -146,10 +166,10 @@ export async function playWHEP(playUrl, iceServers, videoEl, { policy = null } =
     iceServerCount: iceServers?.length || 0,
     hasTurn: hasTurn(iceServers),
     candidates: [], types: {}, relayTransports: [], iceErrors: [],
-    gatherMs: null, gatherComplete: null,
+    gatherMs: null, gatherComplete: null, gatherEarlyExit: false,
     whepStatus: null, whepMs: null,
     connectMs: null, iceConnectionState: null, connectionState: null,
-    selectedPair: null, error: null,
+    selectedPair: null, inbound: null, receiving: null, error: null,
   }
   const fail = (stage, err) => {
     diag.stage = stage
@@ -166,9 +186,18 @@ export async function playWHEP(playUrl, iceServers, videoEl, { policy = null } =
     bundlePolicy: "max-bundle",
     ...(policy ? { iceTransportPolicy: policy } : {}),
   })
+  // Gathering often never "completes" on a phone: Chrome keeps retrying TURN
+  // allocations on a secondary interface (icecandidateerror 701) until the cap
+  // expires, so waiting for completion costs a full 8s of black screen before we
+  // even POST the offer. A relay candidate is everything the offer needs — take
+  // a short grace for stragglers after it lands and go.
+  let enoughResolve
+  const enoughGathered = new Promise((r) => { enoughResolve = r })
   pc.addEventListener("icecandidate", (e) => {
     if (!e.candidate) return
-    diag.candidates.push({ ...summarizeCandidate(e.candidate), atMs: Math.round(performance.now() - t0) })
+    const c = { ...summarizeCandidate(e.candidate), atMs: Math.round(performance.now() - t0) }
+    diag.candidates.push(c)
+    if (c.type === "relay") enoughResolve()
   })
   pc.addEventListener("icecandidateerror", (e) => {
     diag.iceErrors.push({ url: e.url || null, code: e.errorCode ?? null, text: e.errorText || null })
@@ -186,7 +215,15 @@ export async function playWHEP(playUrl, iceServers, videoEl, { policy = null } =
   diag.stage = "ice-gather"
   try {
     await pc.setLocalDescription(await pc.createOffer())
-    await waitForIceGathering(pc)
+    // Whichever comes first: full gathering, or a relay candidate + 400ms grace.
+    // With no TURN at all the race falls through to the normal completion wait.
+    await Promise.race([
+      waitForIceGathering(pc),
+      enoughGathered.then(() => {
+        diag.gatherEarlyExit = true
+        return new Promise((r) => setTimeout(r, 400))
+      }),
+    ])
   } catch (e) {
     try { pc.close() } catch { /* ignore */ }
     throw fail("ice-gather", e)
@@ -246,9 +283,25 @@ export async function playWHEP(playUrl, iceServers, videoEl, { policy = null } =
     throw err
   }
   diag.connectMs = Math.round(performance.now() - tConn)
+
+  // ICE is connected — but that is NOT playback. Wait for actual bytes, then
+  // record the state as it stands AFTER media has had its chance, so the
+  // connectionState in the diagnostic reflects a settled DTLS rather than the
+  // "connecting" snapshot you always get the instant ICE flips.
+  diag.stage = "media"
+  const media = await awaitMedia(pc, mediaTimeoutMs)
   diag.iceConnectionState = pc.iceConnectionState
   diag.connectionState = pc.connectionState
   diag.selectedPair = await readSelectedPair(pc)
+  diag.inbound = media.inbound
+  diag.receiving = media.ok
+  if (!media.ok) {
+    // Connected over a route that carries no media. The caller escalates to
+    // relay-only, which ICE will not do on its own once a pair "succeeds".
+    const err = fail("media", new Error("no-media"))
+    teardown()
+    throw err
+  }
   diag.stage = "playing"
 
   return { pc, stop: teardown, diag }
