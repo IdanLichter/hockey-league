@@ -10,6 +10,11 @@ import {
 } from "@/lib/video"
 import { publishWHIP, confirmBroadcastLive } from "@/lib/whip"
 import { playWHEP, hasTurn } from "@/lib/whep"
+import StreamQualityPanel from "@/components/StreamQualityPanel"
+import {
+  loadQuality, saveQuality, videoConstraints, applyQualityToTrack,
+  applyQualityToSender, readSettings,
+} from "@/lib/cameraConfig"
 
 // Marker kinds → Hebrew label + emoji + pill colour (reuses the StatPills palette).
 const KINDS = {
@@ -251,7 +256,7 @@ function StreamDiag({ diag, mode, isLive }) {
 // The streamer's own view while broadcasting: the local camera preview (instant,
 // no round-trip) with a live pill and a stop control. Spectators meanwhile watch
 // the CloudflarePlayer embed.
-function LocalBroadcast({ previewRef, starting, onStop }) {
+function LocalBroadcast({ previewRef, starting, onStop, quality, onQualityChange, actual }) {
   return (
     <div className="space-y-3">
       <div className="relative w-full aspect-video bg-black rounded-xl overflow-hidden">
@@ -261,6 +266,9 @@ function LocalBroadcast({ previewRef, starting, onStop }) {
           {starting ? "מתחבר…" : "משדר"}
         </div>
       </div>
+      {/* Adjustable mid-broadcast: applyConstraints + setParameters need no
+          renegotiation, so the streamer can dial quality down if it looks rough. */}
+      <StreamQualityPanel quality={quality} onChange={onQualityChange} actual={actual} live disabled={starting} />
       <button onClick={onStop}
         className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold text-white bg-slate-800 hover:bg-slate-900 transition-colors">
         <Square className="w-4 h-4 fill-current" /> הפסק שידור
@@ -276,6 +284,9 @@ export default function GameVideo({ game, home, away, players = [] }) {
   const [player, setPlayer] = useState(null)
   const [duration, setDuration] = useState(0)
   const [broadcast, setBroadcast] = useState(null) // null | 'starting' | { stop }
+  // Capture/encoder settings, remembered across games so a streamer picks once.
+  const [quality, setQuality] = useState(loadQuality)
+  const [actualSettings, setActualSettings] = useState(null) // what the camera really gave
   const previewRef = useRef(null)
   const sessionRef = useRef(null)
 
@@ -325,8 +336,11 @@ export default function GameVideo({ game, home, away, players = [] }) {
     let stream
     try {
       stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: "environment" }, audio: true,
+        video: videoConstraints(quality), audio: true,
       })
+      // Report what the camera actually produced, not what we asked for — phones
+      // routinely accept a 60fps request and hand back 30.
+      setActualSettings(readSettings(stream.getVideoTracks()[0]))
     } catch {
       alert("לא ניתן לגשת למצלמה/מיקרופון")
       setBroadcast(null)
@@ -349,6 +363,10 @@ export default function GameVideo({ game, home, away, players = [] }) {
       // hotspot — which would otherwise show a fake "משדר" nobody can watch.
       const reallyLive = await confirmBroadcastLive(data.cfCustomerCode, data.uid)
       if (!reallyLive) throw new Error("not-reaching-server")
+      // Cap the encoder now that there's a sender. Capture settings alone don't
+      // bound what goes on the wire — and with no simulcast, that bitrate is what
+      // every viewer must sustain and what bills against the TURN allowance.
+      await applyQualityToSender(session.pc, quality)
       sessionRef.current = session
       setBroadcast(session)
       load() // refresh the row (badge/kind); spectators already got the realtime insert
@@ -369,10 +387,22 @@ export default function GameVideo({ game, home, away, players = [] }) {
     }
   }
 
+  // Quality change. Before going live it's just a stored preference; mid-broadcast we
+  // re-aim the camera and the encoder in place — neither needs renegotiation, so the
+  // stream never drops while the streamer experiments.
+  const changeQuality = async (next) => {
+    setQuality(next)
+    saveQuality(next)
+    const track = previewRef.current?.srcObject?.getVideoTracks?.()[0]
+    if (track) setActualSettings(await applyQualityToTrack(track, next))
+    if (sessionRef.current?.pc) await applyQualityToSender(sessionRef.current.pc, next)
+  }
+
   const stopBroadcast = async () => {
     const session = sessionRef.current
     sessionRef.current = null
     setBroadcast(null)
+    setActualSettings(null)
     const s = previewRef.current?.srcObject
     if (s) { s.getTracks().forEach((t) => t.stop()); previewRef.current.srcObject = null }
     try { await session?.stop?.() } catch { /* ignore */ }
@@ -413,7 +443,8 @@ export default function GameVideo({ game, home, away, players = [] }) {
 
       <div className="p-4 sm:p-5 space-y-4">
         {broadcast ? (
-          <LocalBroadcast previewRef={previewRef} starting={broadcast === "starting"} onStop={stopBroadcast} />
+          <LocalBroadcast previewRef={previewRef} starting={broadcast === "starting"} onStop={stopBroadcast}
+            quality={quality} onQualityChange={changeQuality} actual={actualSettings} />
         ) : video ? (
           <>
             {video.provider === "cloudflare"
@@ -467,10 +498,15 @@ export default function GameVideo({ game, home, away, players = [] }) {
           </>
         ) : (
           isLive && canStream ? (
-            <button onClick={startBroadcast}
-              className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold text-white bg-red-500 hover:bg-red-600 transition-colors">
-              <Camera className="w-4 h-4" /> שדר עכשיו מהמצלמה
-            </button>
+            <div className="space-y-3">
+              {/* Chosen BEFORE the camera opens: the resolution/fps go into the very
+                  first getUserMedia, so there's no restart to apply them. */}
+              <StreamQualityPanel quality={quality} onChange={changeQuality} />
+              <button onClick={startBroadcast}
+                className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold text-white bg-red-500 hover:bg-red-600 transition-colors">
+                <Camera className="w-4 h-4" /> שדר עכשיו מהמצלמה
+              </button>
+            </div>
           ) : null
         )}
       </div>
