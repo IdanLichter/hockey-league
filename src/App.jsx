@@ -22,6 +22,7 @@ const TournamentDetail = lazy(() => import('./pages/TournamentDetail'))
 const Judge = lazy(() => import('./pages/Judge'))
 const JudgeGame = lazy(() => import('./pages/JudgeGame'))
 const Admin = lazy(() => import('./pages/Admin'))
+const StreamDebug = lazy(() => import('./pages/StreamDebug'))
 const ArchivePage = lazy(() => import('./pages/Archive'))
 const Media = lazy(() => import('./pages/Media'))
 const ContentCreators = lazy(() => import('./pages/ContentCreators'))
@@ -160,6 +161,8 @@ function App() {
             <Route path="/judge" element={<Judge />} />
             <Route path="/judge/:id" element={<JudgeGame />} />
             <Route path="/admin" element={<Admin />} />
+            {/* Admin-only WebRTC diagnostics — run it ON the device that can't watch */}
+            <Route path="/stream-debug" element={<StreamDebug />} />
             <Route path="/archive" element={<ArchivePage />} />
             <Route path="/archive/:seasonId" element={<ArchivePage />} />
             <Route path="*" element={<NotFound />} />

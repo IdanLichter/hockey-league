@@ -1,11 +1,12 @@
 import { useState, useEffect, useRef, useCallback } from "react"
+import { Link } from "react-router-dom"
 import { motion } from "framer-motion"
-import { Video, Radio, Trash2, ExternalLink, Tag, Camera, Square, Eye } from "lucide-react"
+import { Video, Radio, Trash2, ExternalLink, Tag, Camera, Square, Eye, Stethoscope } from "lucide-react"
 import { useAuth } from "@/lib/AuthContext"
 import { useStreamViewers } from "@/lib/useStreamViewers"
 import {
   getGameVideo, detachVideo, addMarker, deleteMarker,
-  subscribeGameVideo, fmtClock, goLiveCloudflare, getViewerIceServers,
+  subscribeGameVideo, fmtClock, goLiveCloudflare, getViewerIceServersDetailed,
 } from "@/lib/video"
 import { publishWHIP, confirmBroadcastLive } from "@/lib/whip"
 import { playWHEP } from "@/lib/whep"
@@ -79,11 +80,15 @@ function YouTubePlayer({ videoId, onReady }) {
 // fine and universal — we also fall back to it if the live WHEP can't connect
 // (e.g. the broadcast already ended).
 function CloudflarePlayer({ video, isLive }) {
+  const { isAdmin } = useAuth()
   const code = video.cf_customer_code
   const videoRef = useRef(null)
   const sessionRef = useRef(null)
   const [mode, setMode] = useState("whep") // always try the live WHEP+TURN path first
   const [status, setStatus] = useState("connecting") // connecting | playing
+  // Last WHEP attempt's diagnostic — rendered for admins only, but recorded for
+  // every viewer (and logged) so a failure on someone else's network leaves a trace.
+  const [diag, setDiag] = useState(null)
 
   // Re-attempt the live path when the stream/liveness changes. We deliberately do
   // NOT gate WHEP on game.status (it can be stale) — we just try WHEP, and fall
@@ -98,19 +103,25 @@ function CloudflarePlayer({ video, isLive }) {
     const maxAttempts = isLive ? 15 : 3 // live: ride out startup; VOD: fail fast to the recording
     setStatus("connecting")
     const tryPlay = async () => {
+      const ice = await getViewerIceServersDetailed()
+      if (cancelled) return
       try {
-        const iceServers = await getViewerIceServers()
-        if (cancelled) return
         const playUrl = `https://customer-${code}.cloudflarestream.com/${video.video_id}/webRTC/play`
-        const session = await playWHEP(playUrl, iceServers, videoRef.current)
+        const session = await playWHEP(playUrl, ice.iceServers, videoRef.current)
         if (cancelled) { session.stop(); return }
         sessionRef.current = session
         setStatus("playing")
-      } catch {
+        setDiag({ ok: true, attempt: attempts + 1, ice, ...session.diag })
+      } catch (e) {
         if (cancelled) return
         // The broadcast may not be live yet (Cloudflare 409 "not started"), or a
         // transient hiccup — retry for ~35s before giving up to the recording.
         attempts += 1
+        const rec = { ok: false, attempt: attempts, ice, ...(e?.diag || {}), error: String(e?.message || e) }
+        setDiag(rec)
+        // Never swallow this: a viewer who can't watch used to leave no trace at
+        // all, which made "works here, black screen there" impossible to diagnose.
+        console.warn("[stream] WHEP attempt failed", rec)
         if (attempts < maxAttempts) retryTimer = setTimeout(tryPlay, 3000)
         else setMode("iframe")
       }
@@ -131,22 +142,89 @@ function CloudflarePlayer({ video, isLive }) {
     )
   }
 
-  if (mode === "iframe") {
-    const src = `https://customer-${code}.cloudflarestream.com/${video.video_id}/iframe?autoplay=true&muted=true&preload=auto`
-    return (
-      <div className="relative w-full aspect-video bg-black rounded-xl overflow-hidden">
-        <iframe src={src} className="absolute inset-0 w-full h-full border-0" title="שידור"
-          allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;" allowFullScreen />
-      </div>
-    )
-  }
-
-  return (
+  const src = `https://customer-${code}.cloudflarestream.com/${video.video_id}/iframe?autoplay=true&muted=true&preload=auto`
+  const player = mode === "iframe" ? (
+    <div className="relative w-full aspect-video bg-black rounded-xl overflow-hidden">
+      <iframe src={src} className="absolute inset-0 w-full h-full border-0" title="שידור"
+        allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;" allowFullScreen />
+    </div>
+  ) : (
     <div className="relative w-full aspect-video bg-black rounded-xl overflow-hidden">
       <video ref={videoRef} autoPlay playsInline muted controls className="absolute inset-0 w-full h-full object-contain bg-black" />
       {status === "connecting" && (
         <div className="absolute inset-0 grid place-items-center bg-black/60 text-white text-sm">
           <span className="flex items-center gap-2"><Radio className="w-4 h-4 animate-pulse text-red-500" /> מתחבר לשידור…</span>
+        </div>
+      )}
+    </div>
+  )
+
+  return (
+    <div className="space-y-3">
+      {player}
+      {isAdmin && <StreamDiag diag={diag} mode={mode} isLive={isLive} />}
+    </div>
+  )
+}
+
+// Admin-only readout of the last WHEP attempt. Spectators see nothing — this is
+// here so whoever runs the league can tell, on the failing device itself, WHICH
+// leg broke: the TURN fetch, ICE gathering, the Cloudflare POST, or the connect.
+function StreamDiag({ diag, mode, isLive }) {
+  const [open, setOpen] = useState(false)
+  if (!diag) return null
+
+  // A one-line verdict, because the raw numbers only help once you know where to look.
+  let verdict
+  if (diag.ok) {
+    const via = diag.selectedPair?.local?.startsWith("relay") ? "דרך TURN relay" : "בחיבור ישיר"
+    verdict = `מחובר ${via}`
+  } else if (diag.ice?.error) verdict = "כשל בשליפת TURN — הנגן רץ על STUN בלבד"
+  else if (!diag.hasTurn) verdict = "אין TURN ברשימת ה-ICE — הנגן רץ על STUN בלבד"
+  else if (diag.stage === "whep-post" && diag.whepStatus === 409) verdict = "Cloudflare עדיין לא מקבל מדיה (409) — השידור לא התחיל או הסתיים"
+  else if (diag.stage === "whep-post") verdict = `הבקשה ל-Cloudflare נכשלה (${diag.whepStatus || "network"})`
+  else if (diag.stage === "connect") verdict = (diag.types?.relay ? "ICE נכשל למרות relay זמין" : "ICE נכשל ולא נאסף relay — הרשת חוסמת את TURN")
+  else verdict = `כשל בשלב ${diag.stage || "?"}`
+
+  const rows = [
+    ["שלב", diag.stage || "—"],
+    ["ניסיון", diag.attempt],
+    ["turn-creds", diag.ice?.error ? `שגיאה: ${diag.ice.error}` : `תקין (${diag.ice?.ms}ms)`],
+    ["TURN ברשימה", diag.hasTurn ? "כן" : "לא"],
+    ["מועמדי ICE", Object.entries(diag.types || {}).map(([k, v]) => `${k}:${v}`).join(" ") || "—"],
+    ["מעבר relay", diag.relayTransports?.length ? diag.relayTransports.join(", ") : "—"],
+    ["איסוף ICE", diag.gatherMs != null ? `${diag.gatherMs}ms ${diag.gatherComplete ? "(הושלם)" : "(נקטע)"}` : "—"],
+    ["WHEP POST", diag.whepStatus != null ? `${diag.whepStatus} (${diag.whepMs}ms)` : "—"],
+    ["זוג נבחר", diag.selectedPair ? `${diag.selectedPair.local} ← ${diag.selectedPair.remote}` : "—"],
+    ["שגיאה", diag.error || "—"],
+  ]
+
+  return (
+    <div className={`rounded-xl border text-xs ${diag.ok
+      ? "border-emerald-200 dark:border-emerald-900/50 bg-emerald-50/50 dark:bg-emerald-900/10"
+      : "border-amber-200 dark:border-amber-900/50 bg-amber-50/50 dark:bg-amber-900/10"}`}>
+      <button onClick={() => setOpen((o) => !o)}
+        className="w-full flex items-center gap-2 px-3 py-2 text-right font-semibold text-slate-700 dark:text-slate-200">
+        <Stethoscope className="w-3.5 h-3.5 shrink-0" />
+        <span className="flex-1">אבחון שידור: {verdict}</span>
+        <span className="text-slate-400">{open ? "−" : "+"}</span>
+      </button>
+      {open && (
+        <div className="px-3 pb-3 space-y-1">
+          {rows.map(([k, v]) => (
+            <div key={k} className="flex gap-2">
+              <span className="text-slate-500 dark:text-slate-400 w-24 shrink-0">{k}</span>
+              <span dir="ltr" className="font-mono text-slate-800 dark:text-slate-200 break-all text-left flex-1">{String(v)}</span>
+            </div>
+          ))}
+          {mode === "iframe" && isLive && (
+            <p className="text-amber-700 dark:text-amber-400 pt-1">
+              הנגן נפל ל-iframe. לשידור חי מהדפדפן אין HLS, כך שה-iframe לא יציג תמונה.
+            </p>
+          )}
+          <Link to="/stream-debug" className="inline-block pt-1 text-brand font-semibold hover:underline">
+            פתח אבחון מלא ←
+          </Link>
         </div>
       )}
     </div>

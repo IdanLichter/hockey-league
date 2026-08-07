@@ -74,14 +74,27 @@ export async function attachVideo(gameId, { url, kind = 'full', offset = 0 } = {
 // playback. Anon-callable (spectators aren't signed in). TURN is what lets a
 // viewer on a strict/mobile network watch the WebRTC-only live stream; falls
 // back to STUN-only if the endpoint is unreachable.
-export async function getViewerIceServers() {
+//
+// Detailed variant: reports WHY it came back empty. A silent null here degrades
+// the player to STUN-only, which is invisible on a permissive network and fatal
+// on a strict one — so the reason has to survive, not get swallowed.
+export async function getViewerIceServersDetailed() {
+  const t0 = performance.now()
+  const ms = () => Math.round(performance.now() - t0)
   try {
     const { data, error } = await supabase.functions.invoke('turn-creds', { body: {} })
-    if (error) return null
-    return data?.iceServers || null
-  } catch {
-    return null
+    if (error) return { iceServers: null, error: error.message || String(error), ms: ms() }
+    const iceServers = data?.iceServers || null
+    return { iceServers, error: iceServers ? null : 'turn-creds returned no iceServers', ms: ms() }
+  } catch (e) {
+    // Thrown here = blocked before it left the device: ad-blocker, captive
+    // portal, corporate proxy or DNS failure on the Supabase host.
+    return { iceServers: null, error: String(e?.message || e), ms: ms() }
   }
+}
+
+export async function getViewerIceServers() {
+  return (await getViewerIceServersDetailed()).iceServers
 }
 
 // Streamer: start a Cloudflare Stream live broadcast from the browser camera.
