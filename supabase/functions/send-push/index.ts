@@ -387,9 +387,31 @@ Deno.serve(async (req) => {
   const path = notificationHref(n);
 
   // Recipient's devices.
-  const { data: subs, error } = await admin
-    .from("push_subscriptions").select("id, platform, endpoint, keys, environment")
+  //
+  // `data.platforms` narrows the fan-out to specific platforms — e.g. an
+  // "update your app" nudge is only true for Android, where the app is sideloaded and
+  // has no store to update it; pushing that to an iPhone would be nonsense. Absent (the
+  // normal case) means every device, so existing notifications are unaffected.
+  //
+  // `data.max_app_version` narrows further to devices running a build at or below that
+  // number — devices that never reported a version are INCLUDED, since an unknown build
+  // is far more likely to be an old one than a new one.
+  const wantPlatforms: string[] | null = Array.isArray(n.data?.platforms) && n.data.platforms.length
+    ? n.data.platforms.map((p: unknown) => String(p))
+    : null;
+  const maxAppVersion: number | null = Number.isFinite(Number(n.data?.max_app_version))
+    ? Number(n.data.max_app_version)
+    : null;
+
+  let subsQuery = admin
+    .from("push_subscriptions")
+    .select("id, platform, endpoint, keys, environment, app_version")
     .eq("user_id", n.user_id);
+  if (wantPlatforms) subsQuery = subsQuery.in("platform", wantPlatforms);
+  if (maxAppVersion !== null) {
+    subsQuery = subsQuery.or(`app_version.is.null,app_version.lte.${maxAppVersion}`);
+  }
+  const { data: subs, error } = await subsQuery;
   if (error) {
     console.log("subs query error", error.message);
     return new Response("db error", { status: 500 });
