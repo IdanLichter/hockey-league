@@ -1,11 +1,13 @@
 import { useState, useEffect, useMemo } from "react"
-import { CalendarDays, Plus, Trash2, ChevronRight, ChevronLeft, AlertTriangle, Loader2, Sparkles } from "lucide-react"
+import { CalendarDays, Plus, Trash2, ChevronRight, ChevronLeft, AlertTriangle, Loader2, Sparkles, Wand2 } from "lucide-react"
 import { motion } from "framer-motion"
 import {
-  getSeasons, createPlannedSeason, getSeasonGames,
-  createGame, updateGame, deleteGame, getTeams,
+  getSeasons, createPlannedSeason, getSeasonGames, clearPlannedSeasonFixtures,
+  createGame, createGames, updateGame, deleteGame, getTeams,
 } from "@/lib/api"
 import { getVenues } from "@/lib/venues"
+import { BLOCK_CATEGORIES, DEFAULT_BLOCKED, getBlockedDates } from "@/lib/hebrewCalendar"
+import { generateRegularSeason, toGameRows, DEFAULT_SLOTS } from "@/lib/fixtures"
 import TeamLogo from "@/components/TeamLogo"
 
 /**
@@ -46,6 +48,7 @@ export default function SeasonCalendar() {
   const [error, setError] = useState(null)
   const [draftDay, setDraftDay] = useState(null)
   const [newSeason, setNewSeason] = useState({ open: false, name: "", startsOn: "" })
+  const [genOpen, setGenOpen] = useState(false)
 
   const season = seasons.find(s => s.id === seasonId) || null
 
@@ -171,6 +174,14 @@ export default function SeasonCalendar() {
     finally { setBusy(false) }
   }
 
+  async function clearFixtures() {
+    if (!confirm(`למחוק את כל ${games.length} המשחקים מהלוח של ${season?.name}?`)) return
+    setBusy(true); setError(null)
+    try { await clearPlannedSeasonFixtures(seasonId); await loadGames(seasonId) }
+    catch (e) { setError(e.message) }
+    finally { setBusy(false) }
+  }
+
   async function handleCreateSeason() {
     if (!newSeason.name.trim()) return
     setBusy(true); setError(null)
@@ -212,6 +223,18 @@ export default function SeasonCalendar() {
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-brand/25 text-brand dark:text-brand-light text-sm font-semibold hover:bg-brand/[0.06] transition-colors">
             <Plus className="w-4 h-4" /> עונה חדשה בתכנון
           </button>
+          <button onClick={() => setGenOpen(true)} disabled={!seasonId}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-brand text-white text-sm font-semibold hover:bg-brand-hover transition-colors disabled:opacity-50">
+            <Wand2 className="w-4 h-4" /> יצירת לוח אוטומטית
+          </button>
+          {/* Only offered for a planned season — the RPC refuses anything else,
+              so a live or archived season's played games can never be wiped. */}
+          {season?.status === "planned" && games.length > 0 && (
+            <button onClick={clearFixtures} disabled={busy}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 text-sm font-semibold hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors disabled:opacity-50">
+              <Trash2 className="w-4 h-4" /> נקה את הלוח
+            </button>
+          )}
         </div>
 
         {newSeason.open && (
@@ -367,6 +390,191 @@ export default function SeasonCalendar() {
         <FixtureDraft day={draftDay} teams={teams} venues={venues} busy={busy}
           onCancel={() => setDraftDay(null)} onSave={addFixture} />
       )}
+
+      {genOpen && (
+        <GenerateSchedule
+          season={season} teams={teams} existingCount={games.length}
+          onCancel={() => setGenOpen(false)}
+          onDone={async () => { setGenOpen(false); await loadGames(seasonId) }}
+          onJumpTo={(d) => setCursor(d)}
+        />
+      )}
+    </div>
+  )
+}
+
+/**
+ * Automatic schedule generation.
+ *
+ * Deliberately two-step: generate a preview, look at it, then write. A season is
+ * 42 fixtures — enough that a wrong start date or an unnoticed holiday clash is
+ * painful to unpick afterwards, and cheap to spot in a preview.
+ */
+function GenerateSchedule({ season, teams, existingCount, onCancel, onDone, onJumpTo }) {
+  const [mode, setMode] = useState("regular")
+  const [startDate, setStartDate] = useState(season?.starts_on || "")
+  const [categories, setCategories] = useState(DEFAULT_BLOCKED)
+  const [preview, setPreview] = useState(null)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState(null)
+
+  const toggle = (key) =>
+    setCategories(c => (c.includes(key) ? c.filter(k => k !== key) : [...c, key]))
+
+  async function buildPreview() {
+    setBusy(true); setError(null); setPreview(null)
+    try {
+      const start = new Date(startDate + "T00:00:00")
+      // Look two years ahead: holidays push the end date well past the naive
+      // "14 Saturdays" window.
+      const until = new Date(start); until.setFullYear(until.getFullYear() + 2)
+      const blocked = await getBlockedDates(start, until, categories)
+      const result = generateRegularSeason({
+        teams, startDate: start, blocked, slots: DEFAULT_SLOTS, seasonId: season.id,
+      })
+      setPreview(result)
+    } catch (e) { setError(e.message) }
+    finally { setBusy(false) }
+  }
+
+  async function commit() {
+    if (!preview?.fixtures.length) return
+    setBusy(true); setError(null)
+    try {
+      await createGames(toGameRows(preview.fixtures))
+      onJumpTo?.(new Date(preview.fixtures[0].date))
+      await onDone()
+    } catch (e) { setError(e.message); setBusy(false) }
+  }
+
+  const fmt = (d) => `${d.getDate()}/${d.getMonth() + 1}/${d.getFullYear()}`
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4" dir="rtl">
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onCancel} />
+      <motion.div initial={{ opacity: 0, scale: 0.97 }} animate={{ opacity: 1, scale: 1 }}
+        className="relative card w-full max-w-2xl p-5 shadow-2xl max-h-[88vh] overflow-y-auto space-y-4">
+        <h4 className="font-bold text-sm text-slate-900 dark:text-white flex items-center gap-2">
+          <Wand2 className="w-4 h-4 text-brand" /> יצירת לוח משחקים — {season?.name}
+        </h4>
+
+        <div className="grid sm:grid-cols-2 gap-3">
+          <div>
+            <label className="text-xs font-semibold text-slate-500 mb-1 block">סוג הלוח</label>
+            <select value={mode} onChange={e => setMode(e.target.value)}
+              aria-label="סוג הלוח" className="filter-input w-full">
+              <option value="regular">עונה סדירה — כל קבוצה פעמיים (בית וחוץ)</option>
+            </select>
+          </div>
+          <div>
+            <label className="text-xs font-semibold text-slate-500 mb-1 block">שבת ראשונה</label>
+            <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)}
+              aria-label="תאריך התחלה" className="filter-input w-full" dir="ltr" />
+          </div>
+        </div>
+
+        <div>
+          <label className="text-xs font-semibold text-slate-500 mb-1.5 block">לא משחקים בתאריכים אלה</label>
+          <div className="grid sm:grid-cols-2 gap-1.5">
+            {BLOCK_CATEGORIES.map(c => (
+              <label key={c.key}
+                className="flex items-start gap-2 rounded-lg border border-slate-100 dark:border-slate-700 p-2 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors">
+                <input type="checkbox" checked={categories.includes(c.key)} onChange={() => toggle(c.key)}
+                  className="mt-0.5 accent-[color:var(--brand,#1b3d7d)]" />
+                <span className="min-w-0">
+                  <span className="block text-xs font-semibold text-slate-700 dark:text-slate-200">{c.label}</span>
+                  <span className="block text-[10px] text-slate-400 leading-tight">{c.hint}</span>
+                </span>
+              </label>
+            ))}
+          </div>
+          <p className="text-[10px] text-slate-400 mt-1.5 leading-relaxed">
+            חג מתחיל בשקיעה — לכן שבת שלפני חג נחשבת תפוסה. צום שמתחיל עם עלות השחר (כמו עשרה בטבת) אינו חוסם את ליל שבת.
+          </p>
+        </div>
+
+        {error && (
+          <div className="rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 p-2.5 text-xs text-red-700 dark:text-red-400">
+            {error}
+          </div>
+        )}
+
+        {!preview ? (
+          <button onClick={buildPreview} disabled={!startDate || busy}
+            className="w-full px-4 py-2.5 rounded-xl bg-brand text-white text-sm font-semibold hover:bg-brand-hover transition-colors disabled:opacity-50">
+            {busy ? "מחשב…" : "הצג תצוגה מקדימה"}
+          </button>
+        ) : (
+          <>
+            <div className="rounded-xl border border-slate-100 dark:border-slate-700 divide-y divide-slate-100 dark:divide-slate-700/60">
+              <Row label="משחקים" value={`${preview.fixtures.length}`} />
+              <Row label="מחזורים" value={`${preview.rounds}`} />
+              {preview.fixtures.length > 0 && (
+                <Row label="טווח" value={`${fmt(preview.fixtures[0].date)} — ${fmt(preview.fixtures.at(-1).date)}`} />
+              )}
+              <Row label="חלוקה למגרשים"
+                value={Object.entries(preview.perVenue).map(([v, n]) => `${v}: ${n}`).join(" · ") || "—"} />
+            </div>
+
+            {preview.skipped.length > 0 && (
+              <div className="rounded-xl bg-slate-50 dark:bg-slate-800/50 p-3">
+                <p className="text-xs font-bold text-slate-600 dark:text-slate-300 mb-1.5">
+                  שבתות שדולגו ({preview.skipped.length})
+                </p>
+                <ul className="space-y-0.5">
+                  {preview.skipped.map((s, i) => (
+                    <li key={i} className="text-[11px] text-slate-500 dark:text-slate-400 flex gap-2">
+                      <span dir="ltr" className="tabular-nums">{fmt(s.date)}</span>
+                      <span>{s.names.join(", ")}{s.eve ? " (ערב החג)" : ""}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {preview.warnings.length > 0 && (
+              <div className="rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 p-3 space-y-1">
+                {preview.warnings.map((w, i) => (
+                  <p key={i} className="text-[11px] text-amber-700 dark:text-amber-400 flex items-start gap-1.5">
+                    <AlertTriangle className="w-3 h-3 shrink-0 mt-0.5" /> {w}
+                  </p>
+                ))}
+              </div>
+            )}
+
+            {existingCount > 0 && (
+              <p className="text-[11px] text-amber-600 dark:text-amber-400 flex items-start gap-1.5">
+                <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+                בעונה כבר יש {existingCount} משחקים. הלוח החדש <strong>יתווסף</strong> אליהם ולא יחליף אותם.
+              </p>
+            )}
+
+            <div className="flex gap-2">
+              <button onClick={commit} disabled={busy || !preview.fixtures.length}
+                className="flex-1 px-4 py-2.5 rounded-xl bg-brand text-white text-sm font-semibold hover:bg-brand-hover transition-colors disabled:opacity-50">
+                {busy ? "יוצר…" : `צור ${preview.fixtures.length} משחקים`}
+              </button>
+              <button onClick={() => setPreview(null)} disabled={busy}
+                className="px-4 py-2.5 text-sm font-semibold text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 transition-colors">
+                שנה הגדרות
+              </button>
+            </div>
+          </>
+        )}
+
+        <button onClick={onCancel} className="w-full text-xs font-semibold text-slate-400 hover:text-slate-600 transition-colors">
+          סגור
+        </button>
+      </motion.div>
+    </div>
+  )
+}
+
+function Row({ label, value }) {
+  return (
+    <div className="flex items-center justify-between gap-3 px-3 py-2">
+      <span className="text-xs text-slate-500 dark:text-slate-400">{label}</span>
+      <span className="text-xs font-bold text-slate-900 dark:text-white text-left">{value}</span>
     </div>
   )
 }

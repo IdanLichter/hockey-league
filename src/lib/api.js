@@ -561,6 +561,23 @@ export async function createPlannedSeason(name, startsOn = null) {
 }
 
 /**
+ * Delete every fixture in a PLANNED season, so a schedule can be regenerated.
+ *
+ * The RPC refuses any season that is not 'planned', so this can never be aimed
+ * at the live season or at played history — that guard is server-side, not a UI
+ * convention.
+ *
+ * @returns {Promise<number>} fixtures deleted
+ */
+export async function clearPlannedSeasonFixtures(seasonId) {
+  const { data, error } = await supabase.rpc('clear_planned_season_fixtures', {
+    p_season_id: seasonId,
+  })
+  if (error) throw error
+  return data
+}
+
+/**
  * Games belonging to one season. Admins and league managers can read any season
  * directly; everyone else is limited to the live one by RLS.
  */
