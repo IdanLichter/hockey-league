@@ -30,3 +30,64 @@ echo "→ cleaning up worktree…"
 git -C "$REPO" worktree remove "$WT" --force
 git -C "$REPO" worktree prune
 echo "✓ rinkhockeyil.com is now serving origin/main"
+
+# ---------------------------------------------------------------------------
+# Announce the Android build to the app.
+#
+# The Android app is sideloaded, so nothing tells a user a newer APK exists. Since
+# 1.4.2 the app shows an in-app banner when its own versionCode is behind
+# `league_settings.android_latest_version` — which means publishing an APK and
+# forgetting to bump that row ships a release NOBODY IS EVER TOLD ABOUT, silently
+# and with no error anywhere. So the deploy does it, and reads the number out of the
+# APK actually being served rather than trusting a hand-edited constant.
+#
+# Non-fatal by design: the website is already live at this point, and a failure here
+# must not read as a failed deploy. It shouts instead.
+# ---------------------------------------------------------------------------
+announce_apk() {
+  local apk="$REPO/public/rinkhockeyIL.apk"
+  [ -f "$apk" ] || { echo "⚠ no APK at public/rinkhockeyIL.apk — skipping version announce"; return; }
+
+  if ! command -v apkanalyzer >/dev/null 2>&1; then
+    echo "⚠ apkanalyzer not found — could not announce the APK version."
+    echo "  Set it by hand, or users are never told this release exists:"
+    echo "    update league_settings set value='<versionCode>' where key='android_latest_version';"
+    return
+  fi
+
+  local code name
+  code="$(apkanalyzer manifest version-code "$apk" 2>/dev/null | tail -1 | tr -d '[:space:]')"
+  name="$(apkanalyzer manifest version-name "$apk" 2>/dev/null | tail -1 | tr -d '[:space:]')"
+  case "$code" in
+    ''|*[!0-9]*) echo "⚠ could not read a versionCode from the APK — skipping announce"; return ;;
+  esac
+
+  # The Management API runs SQL as the project owner, so it is not blocked by the
+  # admin-only UPDATE policy on league_settings the way an anon key would be.
+  set -a; . "$REPO/.env"; set +a
+  if [ -z "${SUPABASE_ACCESS_TOKEN:-}" ] || [ -z "${SUPABASE_PROJECT_REF:-}" ]; then
+    echo "⚠ SUPABASE_ACCESS_TOKEN / SUPABASE_PROJECT_REF missing from .env — skipping announce"
+    return
+  fi
+
+  local sql http
+  sql="insert into public.league_settings (key, value) values
+        ('android_latest_version','${code}'), ('android_latest_name','${name}')
+       on conflict (key) do update set value = excluded.value, updated_at = now();"
+  http="$(curl -s -o /tmp/rink-announce.out -w '%{http_code}' -X POST \
+    "https://api.supabase.com/v1/projects/${SUPABASE_PROJECT_REF}/database/query" \
+    -H "Authorization: Bearer ${SUPABASE_ACCESS_TOKEN}" \
+    -H "Content-Type: application/json" \
+    --data "$(python3 -c 'import json,sys; print(json.dumps({"query": sys.argv[1]}))' "$sql")" || echo 000)"
+
+  if [ "$http" = "200" ] || [ "$http" = "201" ]; then
+    echo "✓ app update banner now points at Android ${name} (${code})"
+  else
+    echo "⚠ announce failed (HTTP ${http}) — users will NOT be told about this release."
+    echo "  $(head -c 200 /tmp/rink-announce.out 2>/dev/null)"
+    echo "  Fix by hand: update league_settings set value='${code}' where key='android_latest_version';"
+  fi
+  rm -f /tmp/rink-announce.out
+}
+
+announce_apk
