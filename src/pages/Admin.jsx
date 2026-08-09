@@ -11,7 +11,7 @@ import {
   getGameStatsByGameId,
   recalculateTeamStats, recalculatePlayerStats,
   getLeagueSetting,
-  archiveAndResetSeason, getArchivedSeasons
+  closeSeason, getArchivedSeasons, getCurrentSeason
 } from "@/lib/api"
 import {
   Shield, Calendar, UserCheck, Users, Settings, LogOut, Trash2, Plus,
@@ -37,6 +37,7 @@ import SuspensionsAdmin from "@/components/admin/SuspensionsAdmin"
 import { getVenues } from "@/lib/venues"
 import OfficialsAdmin from "@/components/admin/OfficialsAdmin"
 import VenuesAdmin from "@/components/admin/VenuesAdmin"
+import SeasonCalendar from "@/components/admin/SeasonCalendar"
 import SuggestionsReview from "@/components/admin/SuggestionsReview"
 import RolesAdmin from "@/components/admin/RolesAdmin"
 import ReportsReview from "@/components/admin/ReportsReview"
@@ -44,11 +45,12 @@ import GameChangeRequestsReview from "@/components/admin/GameChangeRequestsRevie
 import WhatsNew from "@/components/admin/WhatsNew"
 import ClustersAdmin from "@/components/admin/ClustersAdmin"
 import { SortBar, sortItems } from "@/components/admin/SortBar"
-import { Award, Images, HeartPulse, Gavel, MapPin, BellRing, Ban } from "lucide-react"
+import { Award, Images, HeartPulse, Gavel, MapPin, BellRing, Ban, CalendarDays } from "lucide-react"
 import { BRAND_ORANGE } from '@/lib/brand'
 
 const tabs = [
   { id: "games", label: "משחקים", icon: Calendar },
+  { id: "calendar", label: "לוח שנה", icon: CalendarDays },
   { id: "players", label: "שחקנים", icon: UserCheck },
   { id: "teams", label: "קבוצות", icon: Users },
   { id: "tournaments", label: "טורנירים", icon: Trophy },
@@ -80,7 +82,9 @@ export default function Admin() {
     ...(isJudgeRole ? ["games"] : []),
     // "claims" holds the player-card review queue — row 29 requires the league manager
     // to approve players, and approve_player_submission already permits him.
-    ...(isLeagueManager ? ["tournaments", "teams", "claims", "game_requests", "medical", "readiness", "suspensions", "officials", "venues"] : []),
+    // "calendar" is the league manager's — laying out the season's fixtures,
+    // including a season that has not started yet, is their job.
+    ...(isLeagueManager ? ["tournaments", "teams", "claims", "game_requests", "medical", "readiness", "suspensions", "officials", "venues", "calendar"] : []),
   ])
   // Full tournament management (create/edit/delete + approve requests) vs. the
   // coach's request-only view of the same tab.
@@ -206,6 +210,7 @@ export default function Admin() {
                 : <TournamentRequests reload={loadData} />)}
               {currentTab === "players" && <PlayersAdmin players={players} teams={teams} teamsMap={teamsMap} membersByPlayer={membersByPlayer} reload={loadData} coachTeamIds={coachScoped ? coachTeamIds : null} />}
               {currentTab === "teams" && <TeamsAdmin teams={teams} reload={loadData} reviewOnly={!isAdmin && !isLeagueManager} />}
+              {currentTab === "calendar" && <SeasonCalendar />}
               {currentTab === "season" && <SeasonAdmin games={games} teams={teams} players={players} reload={loadData} />}
               {currentTab === "claims" && <><ClaimsReview teamsMap={teamsMap} coachTeamIds={coachScoped ? coachTeamIds : null} /><PlayerSubmissionsReview teamsMap={teamsMap} coachTeamIds={coachScoped ? coachTeamIds : null} /><TeamJoinRequestsReview teamsMap={teamsMap} coachTeamIds={coachScoped ? coachTeamIds : null} />{(isAdmin || isLeagueManager) && <CoachRequestsReview teamsMap={teamsMap} />}<MedicalReview coachTeamIds={coachScoped ? coachTeamIds : null} />{isAdmin && <SuggestionsReview players={players} />}</>}
               {currentTab === "game_requests" && <GameChangeRequestsReview teamsMap={teamsMap} />}
@@ -1822,34 +1827,39 @@ function UsersAdmin({ adminUsers, currentUserEmail, reload }) {
 // ============ SEASON ADMIN ============
 function SeasonAdmin({ games, teams, players, reload }) {
   const [archivedSeasons, setArchivedSeasons] = useState([])
-  const [seasonName, setSeasonName] = useState("")
-  const [archiving, setArchiving] = useState(false)
+  const [current, setCurrent] = useState(null)
+  // The name asked for is the season being OPENED, not the one being closed —
+  // close_season() takes the next season and flips the pointer onto it.
+  const [nextName, setNextName] = useState("")
+  const [startsOn, setStartsOn] = useState("")
+  const [closing, setClosing] = useState(false)
   const [confirmText, setConfirmText] = useState("")
   const [showConfirm, setShowConfirm] = useState(false)
   const { setSeasonMode } = useSeasonMode()
 
-  useEffect(() => {
+  const refresh = () => {
     getArchivedSeasons().then(setArchivedSeasons).catch(() => {})
-  }, [])
+    getCurrentSeason().then(setCurrent).catch(() => {})
+  }
+  useEffect(refresh, [])
 
   const completedGames = games.filter(g => g.status === 'completed').length
-  const totalGoals = teams.reduce((sum, t) => sum + (t.goals_for || 0), 0)
 
-  const handleArchive = async () => {
-    if (confirmText !== seasonName) return
-    setArchiving(true)
+  const handleClose = async () => {
+    if (confirmText !== nextName) return
+    setClosing(true)
     try {
-      await archiveAndResetSeason(seasonName)
+      await closeSeason(nextName, startsOn || null)
       setSeasonMode('regular')
       setShowConfirm(false)
       setConfirmText("")
-      setSeasonName("")
-      const seasons = await getArchivedSeasons()
-      setArchivedSeasons(seasons)
+      setNextName("")
+      setStartsOn("")
+      refresh()
       await reload()
-      alert('העונה אורכבה בהצלחה! כל הנתונים אופסו לעונה חדשה.')
+      alert(`עונת ${nextName} נפתחה. נתוני העונה הקודמת נשמרו במלואם בארכיון.`)
     } catch (err) { alert('שגיאה: ' + err.message) }
-    finally { setArchiving(false) }
+    finally { setClosing(false) }
   }
 
   return (
@@ -1874,11 +1884,32 @@ function SeasonAdmin({ games, teams, players, reload }) {
       {/* Current season summary */}
       <div className="card p-5">
         <h3 className="font-bold text-sm text-slate-900 dark:text-white mb-4 flex items-center gap-2">
-          <Archive className="w-4 h-4 text-brand" /> סיום עונה וארכוב
+          <Archive className="w-4 h-4 text-brand" /> סיום עונה ופתיחת עונה חדשה
+          {current && (
+            <span className="mr-auto text-[11px] font-semibold px-2 py-0.5 rounded-full bg-brand/10 text-brand dark:text-brand-light">
+              עונה פעילה: {current.name}
+            </span>
+          )}
         </h3>
-        <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
-          פעולה זו תשמור את כל נתוני העונה הנוכחית בארכיון ותאפס את כל הסטטיסטיקות לקראת העונה הבאה.
+        <p className="text-sm text-slate-600 dark:text-slate-400 mb-3">
+          סגירת העונה פותחת עונה חדשה ומאפסת את הטבלה ואת סטטיסטיקות השחקנים.
+          <strong className="text-slate-700 dark:text-slate-300"> שום דבר לא נמחק</strong> —
+          המשחקים, התוצאות והסטטיסטיקות של העונה שנסגרת נשמרים במלואם ועוברים לארכיון.
         </p>
+        <div className="grid sm:grid-cols-2 gap-2 mb-4 text-[11px]">
+          <div className="rounded-lg bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200/70 dark:border-emerald-800/60 p-2.5">
+            <p className="font-bold text-emerald-700 dark:text-emerald-400 mb-1">נשמר</p>
+            <p className="text-emerald-700/80 dark:text-emerald-400/80 leading-relaxed">
+              משחקים ותוצאות · סטטיסטיקות שחקנים · סרטוני משחקים · שיבוצי שופטים · הקבוצות והשחקנים · הפיד · אישורים רפואיים
+            </p>
+          </div>
+          <div className="rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200/70 dark:border-amber-800/60 p-2.5">
+            <p className="font-bold text-amber-700 dark:text-amber-400 mb-1">מתאפס</p>
+            <p className="text-amber-700/80 dark:text-amber-400/80 leading-relaxed">
+              טבלת הליגה · שערים ומשחקים של שחקנים · הרחקות · התראות · סימון האלופה. הטורנירים ממשיכים כרגיל.
+            </p>
+          </div>
+        </div>
 
         <div className="grid grid-cols-3 gap-3 mb-5">
           <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-3 text-center">
@@ -1896,16 +1927,25 @@ function SeasonAdmin({ games, teams, players, reload }) {
         </div>
 
         {!showConfirm ? (
-          <div className="flex items-end gap-3">
-            <div className="flex-1">
-              <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1 block">שם העונה לארכוב</label>
-              <input type="text" value={seasonName} onChange={e => setSeasonName(e.target.value)}
-                className="filter-input w-full" placeholder="לדוגמה: 2024-25" dir="ltr" />
+          <div className="flex flex-wrap items-end gap-3">
+            <div className="flex-1 min-w-[180px]">
+              <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1 block">
+                שם העונה החדשה
+              </label>
+              <input type="text" value={nextName} onChange={e => setNextName(e.target.value)}
+                className="filter-input w-full" placeholder="לדוגמה: 2026-27" dir="ltr" />
             </div>
-            <button onClick={() => { if (seasonName) setShowConfirm(true) }}
-              disabled={!seasonName}
+            <div className="min-w-[150px]">
+              <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1 block">
+                תאריך פתיחה (רשות)
+              </label>
+              <input type="date" value={startsOn} onChange={e => setStartsOn(e.target.value)}
+                className="filter-input w-full" dir="ltr" />
+            </div>
+            <button onClick={() => { if (nextName.trim()) setShowConfirm(true) }}
+              disabled={!nextName.trim()}
               className="flex items-center gap-2 px-5 py-2.5 bg-red-600 text-white text-sm font-semibold rounded-xl hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
-              <Archive className="w-4 h-4" /> ארכב וסיים עונה
+              <Archive className="w-4 h-4" /> סיים עונה ופתח חדשה
             </button>
           </div>
         ) : (
@@ -1916,28 +1956,30 @@ function SeasonAdmin({ games, teams, players, reload }) {
               <div>
                 <h4 className="font-bold text-sm text-red-700 dark:text-red-400">אישור סיום עונה</h4>
                 <p className="text-xs text-red-600 dark:text-red-400 mt-1">
-                  פעולה זו תארכב את עונת <strong>{seasonName}</strong> ותאפס את כל הסטטיסטיקות.
-                  המשחקים, התוצאות וכל הנתונים יישמרו בארכיון אך יימחקו מהעמודים הפעילים.
+                  {current ? <>עונת <strong>{current.name}</strong> תיסגר ותעבור לארכיון, </> : <>העונה הנוכחית תיסגר, </>}
+                  ועונת <strong>{nextName}</strong> תיפתח במקומה.
+                  הטבלה וסטטיסטיקות השחקנים יתאפסו, וההרחקות וההתראות יימחקו.
+                  המשחקים והתוצאות עצמם נשמרים.
                 </p>
                 <p className="text-xs text-red-600 dark:text-red-400 mt-2 font-semibold">
-                  הקלד את שם העונה "{seasonName}" לאישור:
+                  הקלד את שם העונה החדשה "{nextName}" לאישור:
                 </p>
               </div>
             </div>
             <input type="text" value={confirmText} onChange={e => setConfirmText(e.target.value)}
-              className="filter-input w-full border-red-300 dark:border-red-700" placeholder={seasonName} dir="ltr" />
+              className="filter-input w-full border-red-300 dark:border-red-700" placeholder={nextName} dir="ltr" />
             <div className="flex gap-2">
-              <button onClick={handleArchive}
-                disabled={archiving || confirmText !== seasonName}
+              <button onClick={handleClose}
+                disabled={closing || confirmText !== nextName}
                 className="flex items-center gap-2 px-5 py-2.5 bg-red-600 text-white text-sm font-semibold rounded-xl hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
-                {archiving ? (
+                {closing ? (
                   <>
                     <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
-                    מארכב...
+                    סוגר עונה...
                   </>
                 ) : (
                   <>
-                    <Archive className="w-4 h-4" /> אשר ארכוב
+                    <Archive className="w-4 h-4" /> אשר סיום עונה
                   </>
                 )}
               </button>

@@ -480,18 +480,28 @@ export async function setLeagueSetting(key, value) {
 
 // ============ ARCHIVE & SEASON MANAGEMENT ============
 
+/**
+ * Past seasons now live in the live tables, tagged with `season_id`, rather than
+ * in the old `archived_*` copies. Those tables are left in place but are empty
+ * and unused — the copy-and-delete rollover they served never ran.
+ *
+ * These readers keep their original names and return shapes so the archive page
+ * did not have to change with the storage.
+ */
 export async function getArchivedSeasons() {
   const { data, error } = await supabase
-    .from('archived_seasons')
-    .select('*')
-    .order('archived_at', { ascending: false })
+    .from('seasons')
+    .select('id, name, starts_on, ends_on, created_at')
+    .eq('status', 'archived')
+    .order('ends_on', { ascending: false, nullsFirst: false })
   if (error) throw error
-  return data
+  // The page renders `archived_at`; a closed season's end date is that moment.
+  return (data || []).map(s => ({ ...s, archived_at: s.ends_on || s.created_at }))
 }
 
 export async function getArchivedStandings(seasonId) {
   const { data, error } = await supabase
-    .from('archived_team_standings')
+    .from('team_season_stats')
     .select('*')
     .eq('season_id', seasonId)
     .order('final_rank')
@@ -501,36 +511,104 @@ export async function getArchivedStandings(seasonId) {
 
 export async function getArchivedPlayerStats(seasonId) {
   const { data, error } = await supabase
-    .from('archived_player_stats')
+    .from('player_season_stats')
     .select('*')
     .eq('season_id', seasonId)
     .order('goals', { ascending: false })
   if (error) throw error
-  return data
+  // Unlike the old archive, these rows keep a real player_id — so a name can be
+  // linked back to the player rather than being a dead string.
+  return (data || []).map(r => ({
+    ...r,
+    player_first_name: r.first_name,
+    player_last_name: r.last_name,
+  }))
 }
 
 export async function getArchivedGames(seasonId) {
+  // Via RPC: the games RLS policy hides other seasons from normal clients, and
+  // team names must resolve even for clubs since deactivated.
+  const { data, error } = await supabase.rpc('season_games_detail', { p_season_id: seasonId })
+  if (error) throw error
+  return data || []
+}
+
+/** Every season, newest first — for the calendar and the season picker. */
+export async function getSeasons() {
   const { data, error } = await supabase
-    .from('archived_games')
-    .select('*')
-    .eq('season_id', seasonId)
-    .order('game_date', { ascending: false })
+    .from('seasons')
+    .select('id, name, starts_on, ends_on, status, created_at')
+    .order('created_at', { ascending: false })
+  if (error) throw error
+  return data || []
+}
+
+/**
+ * Create a season the league manager can schedule into before it starts.
+ *
+ * Its games are invisible to everyone but admin and league managers — the games
+ * RLS policy only admits the current season — so next year's calendar can be
+ * drafted in the open. close_season() later promotes this season rather than
+ * creating a new one, so every fixture drafted here goes live untouched.
+ */
+export async function createPlannedSeason(name, startsOn = null) {
+  const { data, error } = await supabase.rpc('create_planned_season', {
+    p_name: name,
+    p_starts_on: startsOn,
+  })
   if (error) throw error
   return data
 }
 
 /**
- * Archive the current season and reset all stats.
- * @param {string} seasonName - e.g. "2024-25"
+ * Games belonging to one season. Admins and league managers can read any season
+ * directly; everyone else is limited to the live one by RLS.
  */
-export async function archiveAndResetSeason(seasonName) {
-  // One atomic, admin-gated RPC (supabase/archive-season-rpc.sql). Replaces the
-  // old ~90-write browser loop that had no transaction — a mid-way failure used
-  // to permanently corrupt the season. The RPC archives standings/players/games/
-  // box-scores, wipes the live season, and resets season_mode, all-or-nothing.
-  const { data, error } = await supabase.rpc('archive_and_reset_season', { p_season_name: seasonName })
+export async function getSeasonGames(seasonId) {
+  const { data, error } = await supabase
+    .from('games')
+    .select('*')
+    .eq('season_id', seasonId)
+    .order('game_date', { ascending: true })
   if (error) throw error
-  return { id: data, name: seasonName }
+  return data || []
+}
+
+/** The season the live site is currently showing. */
+export async function getCurrentSeason() {
+  const { data, error } = await supabase
+    .from('seasons')
+    .select('id, name, starts_on, ends_on, status')
+    .eq('status', 'active')
+    .order('created_at', { ascending: false })
+    .limit(1)
+  if (error) throw error
+  return data?.[0] || null
+}
+
+/**
+ * Close the running season and open the next one.
+ *
+ * Nothing is deleted. Games keep the season they were played in and drop out of
+ * the live site via RLS; the live team/player aggregates are snapshotted into
+ * team_season_stats / player_season_stats and then zeroed. Suspensions,
+ * notifications and the champion marker are cleared. The feed carries over.
+ *
+ * Replaces archiveAndResetSeason, which deleted every game and — because every
+ * FK to `games` cascades — silently took game_videos, game_officials and video
+ * markers with it. That RPC now raises if anything still calls it.
+ *
+ * @param {string} nextSeasonName - the season being opened, e.g. "2026-27"
+ * @param {string} [startsOn]     - ISO date the new season begins; defaults to today
+ * @returns {Promise<{id: string, name: string}>} the new season
+ */
+export async function closeSeason(nextSeasonName, startsOn = null) {
+  const { data, error } = await supabase.rpc('close_season', {
+    p_next_name: nextSeasonName,
+    p_next_starts: startsOn,
+  })
+  if (error) throw error
+  return { id: data, name: nextSeasonName }
 }
 
 // ============ STATS RECALCULATION ============
