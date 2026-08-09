@@ -56,6 +56,13 @@ const ROLE_LABEL: Record<string, string> = {
 };
 
 function bodyPreview(n: NotificationRow): string {
+  // The devices this reaches are, by definition, running a build old enough to predate
+  // the in-app update banner — and a tap lands them on the bell, which offers no
+  // download. The body is their only actual instruction, so spell out where to go.
+  if (n.type === "app_update") {
+    const note = (n.data?.note ?? "").toString().trim();
+    return note || "היכנסו ל-rinkhockeyil.com/app להורדת הגרסה החדשה";
+  }
   return (n.data?.preview ?? "").toString();
 }
 
@@ -82,6 +89,8 @@ function officialsSummary(d: Record<string, any>): string {
 function notificationText(n: NotificationRow, actorName: string): string {
   const d = n.data ?? {};
   switch (n.type) {
+    case "app_update":
+      return `גרסה חדשה של האפליקציה זמינה${d.version_name ? ` (${d.version_name})` : ""}`;
     case "post_like":      return `${actorName} אהב/ה את הפוסט שלך`;
     case "post_comment":   return `${actorName} הגיב/ה על הפוסט שלך`;
     case "claim_approved": return `הבקשה שלך להתחבר לשחקן ${d.player_name ?? ""} אושרה 🎉`;
@@ -138,6 +147,7 @@ function notificationHref(n: NotificationRow): string {
     case "claim_approved":
     case "claim_rejected": return n.entity_id ? `/players/${n.entity_id}` : "/me";
     case "role_granted":   return "/me";
+    case "app_update":     return "/app";
     case "claim_request":
     case "content_report": return "/admin";
     case "game_result":    return n.entity_id ? `/games/${n.entity_id}` : "/games";
