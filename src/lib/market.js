@@ -116,12 +116,17 @@ export async function getBlockReason() {
   return data ?? null
 }
 
-/** Opens the wallet on first call (1,000 coins) and returns it. Idempotent. */
+/**
+ * Opens the wallet on first call (1,000 coins) and returns it, paying out any
+ * weekly allowance owed since the last visit. Idempotent — the stake is granted
+ * once, and a second call in the same week credits nothing.
+ *
+ * Shape: { balance, allowance_credited, allowance_weeks, next_allowance_at }
+ */
 export async function getWallet() {
   const { data, error } = await supabase.rpc('market_wallet')
   if (error) throw error
-  // Supabase returns a composite-returning RPC as a bare object.
-  return Array.isArray(data) ? data[0] : data
+  return data
 }
 
 /**
@@ -205,14 +210,20 @@ export async function getLeaderboard() {
 }
 
 /**
- * Ids of the markets I'm barred from for a conflict of interest — fixtures my own
- * team is playing. Resolved in one round trip so the board can grey them out up
- * front, rather than letting someone pick an outcome and type a stake before
- * being told no.
+ * Markets I'm barred from, as a Map of market id → reason ('own-team' |
+ * 'referee'). Resolved in one round trip so the board can grey them out up front
+ * with the rule that applied, rather than letting someone pick an outcome and
+ * type a stake before being told no.
  */
 export async function getConflicts() {
   const { data } = await supabase.rpc('market_my_conflicts')
-  return new Set((data || []).map(r => r.market_id))
+  return new Map((data || []).map(r => [r.market_id, r.reason]))
+}
+
+/** Why a market is locked for me, in Hebrew. */
+export const CONFLICT_COPY = {
+  'own-team': 'משחק של הקבוצה שלך — לא ניתן למסחר',
+  referee: 'אתה שופט את המשחק הזה — לא ניתן למסחר',
 }
 
 // ── Writes ──────────────────────────────────────────────────────────────────
@@ -220,6 +231,7 @@ export async function getConflicts() {
 function tradeError(error) {
   const m = error?.message || ''
   if (/not enough coins/i.test(m)) return new Error('אין לך מספיק מטבעות')
+  if (/refereeing/i.test(m)) return new Error('אי אפשר להמר על משחק שאתה שופט')
   if (/own team/i.test(m)) return new Error('אי אפשר להמר על משחק של הקבוצה שלך')
   if (/no longer trading|is (closed|resolved|void)/i.test(m)) return new Error('המסחר בשוק הזה נסגר')
   if (/no shares to sell/i.test(m)) return new Error('אין לך פוזיציה למכירה כאן')

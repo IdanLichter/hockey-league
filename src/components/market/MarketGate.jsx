@@ -73,7 +73,8 @@ function BirthDateUnlock({ playerId, onUnlocked }) {
         <h1 className="text-2xl font-black text-fg-strong mb-2">ברוכים הבאים להוקי מרקט</h1>
         <p className="text-sm text-fg-muted leading-relaxed">
           המרקט פתוח לשחקני הליגה מגיל 18 ומעלה. נשאר רק להוסיף תאריך לידה לכרטיס
-          השחקן שלך — ומחכים לך <span className="mkt-coin">{START_BALANCE.toLocaleString('he-IL')}</span> מטבעות.
+          השחקן שלך — ומחכים לך <span className="mkt-coin">{START_BALANCE.toLocaleString('he-IL')}</span> מטבעות,
+          ועוד <span className="mkt-coin">10</span> בכל שבוע.
         </p>
       </div>
 

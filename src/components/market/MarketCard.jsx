@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
 import { Lock, CircleCheck, Ban, Clock, TrendingUp } from 'lucide-react'
 import TeamLogo from '@/components/TeamLogo'
-import { pct } from '@/lib/market'
+import { pct, CONFLICT_COPY } from '@/lib/market'
 
 /** "עוד 3 ימים" / "עוד 4 שעות" — a deadline is more useful than a date here. */
 export function closesIn(iso) {
@@ -63,7 +63,7 @@ export function OutcomeFace({ outcome, size = 6 }) {
  * 20-runner futures market the interesting information is the front of the
  * field, not an alphabetical wall of 5% chances.
  */
-export default function MarketCard({ market, myShares = {}, conflicted = false }) {
+export default function MarketCard({ market, myShares = {}, conflict = null }) {
   const sorted = [...market.outcomes].sort((a, b) => b.price - a.price)
   const shown = sorted.slice(0, 3)
   const rest = sorted.length - shown.length
@@ -112,11 +112,11 @@ export default function MarketCard({ market, myShares = {}, conflicted = false }
         )}
       </div>
 
-      {(conflicted || held.length > 0) && (
+      {(conflict || held.length > 0) && (
         <div className="mt-3 pt-3 border-t border-line-subtle flex items-center gap-2 text-[11px]">
-          {conflicted ? (
+          {conflict ? (
             <span className="flex items-center gap-1.5 text-fg-muted">
-              <Lock className="w-3 h-3" /> משחק של הקבוצה שלך — לא ניתן למסחר
+              <Lock className="w-3 h-3 shrink-0" /> {CONFLICT_COPY[conflict] || CONFLICT_COPY['own-team']}
             </span>
           ) : (
             <span className="flex items-center gap-1.5 text-brand font-semibold">
@@ -128,7 +128,7 @@ export default function MarketCard({ market, myShares = {}, conflicted = false }
     </>
   )
 
-  if (conflicted) {
+  if (conflict) {
     return <div className="mkt-card p-4 opacity-60 cursor-not-allowed">{body}</div>
   }
   return (

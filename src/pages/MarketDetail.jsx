@@ -22,7 +22,7 @@ export default function MarketDetail() {
   const [wallet, setWallet] = useState(null)
   const [positions, setPositions] = useState({})
   const [trades, setTrades] = useState([])
-  const [conflicted, setConflicted] = useState(false)
+  const [conflict, setConflict] = useState(null)
   const [missing, setMissing] = useState(false)
 
   const load = useCallback(async () => {
@@ -34,11 +34,11 @@ export default function MarketDetail() {
       listMarkets().catch(() => []),
       getMyPositions().catch(() => ({})),
       getTrades(id).catch(() => []),
-      getConflicts().catch(() => new Set()),
+      getConflicts().catch(() => new Map()),
     ])
     const m = ms.find(x => x.id === id)
     setWallet(w); setPositions(ps); setTrades(ts)
-    setConflicted(cs.has(id)); setMarket(m || null); setMissing(!m)
+    setConflict(cs.get(id) ?? null); setMarket(m || null); setMissing(!m)
   }, [id])
 
   useEffect(() => {
@@ -144,12 +144,14 @@ export default function MarketDetail() {
         </div>
 
         <div>
-          {conflicted ? (
+          {conflict ? (
             <div className="mkt-card p-6 text-center">
               <Lock className="w-6 h-6 text-fg-subtle mx-auto mb-3" />
               <p className="text-sm font-bold text-fg-strong mb-1">השוק הזה חסום עבורך</p>
               <p className="text-xs text-fg-muted leading-relaxed">
-                אי אפשר לסחור על משחק שהקבוצה שלך משחקת בו.
+                {conflict === 'referee'
+                  ? 'אי אפשר לסחור על משחק שאתה משובץ לשפוט.'
+                  : 'אי אפשר לסחור על משחק שהקבוצה שלך משחקת בו.'}
               </p>
             </div>
           ) : (

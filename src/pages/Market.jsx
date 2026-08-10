@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { Link } from 'react-router-dom'
-import { Coins, Loader2, LayoutGrid, Wallet, Trophy, Settings, CalendarDays, Star, History } from 'lucide-react'
+import { Coins, Loader2, LayoutGrid, Wallet, Trophy, Settings, CalendarDays, Star, History, Gift } from 'lucide-react'
 import { useAuth } from '@/lib/AuthContext'
 import {
   getBlockReason, getWallet, listMarkets, getMyPositions, getConflicts,
@@ -32,7 +32,7 @@ export default function Market() {
   const [wallet, setWallet] = useState(null)
   const [markets, setMarkets] = useState(null)
   const [positions, setPositions] = useState({})
-  const [conflicts, setConflicts] = useState(new Set())
+  const [conflicts, setConflicts] = useState(new Map())
   const [tab, setTab] = useState('board')
 
   const load = useCallback(async () => {
@@ -43,7 +43,7 @@ export default function Market() {
       getWallet().catch(() => null),
       listMarkets().catch(() => []),
       getMyPositions().catch(() => ({})),
-      getConflicts().catch(() => new Set()),
+      getConflicts().catch(() => new Map()),
     ])
     setWallet(w); setMarkets(ms); setPositions(ps); setConflicts(cs)
   }, [])
@@ -119,6 +119,18 @@ export default function Market() {
         </div>
       </div>
 
+      {/* The allowance is paid on read, so this is the only moment the trader is
+          told it happened — a silent top-up reads as a balance that drifts. */}
+      {Number(wallet?.allowance_credited) > 0 && (
+        <div className="mkt-card px-4 py-2.5 mb-5 flex items-center gap-2 border-brand/40 bg-brand/5">
+          <Gift className="w-4 h-4 text-brand shrink-0" />
+          <p className="text-xs text-fg-soft">
+            דמי כיס שבועיים: <span className="mkt-coin">{fmtCoins(wallet.allowance_credited)}</span> מטבעות
+            {Number(wallet.allowance_weeks) > 1 && ` (${wallet.allowance_weeks} שבועות)`}
+          </p>
+        </div>
+      )}
+
       {/* ── Tabs ────────────────────────────────────────────────────── */}
       <div className="tab-bar mb-5">
         {TABS.map(t => (
@@ -137,12 +149,12 @@ export default function Market() {
           <div className="space-y-8">
             <Section title="משחקים" icon={CalendarDays} empty="אין כרגע משחקים פתוחים למסחר. שווקים נפתחים אוטומטית לכל משחק חדש בלוח.">
               {games.map(m => (
-                <MarketCard key={m.id} market={m} myShares={positions} conflicted={conflicts.has(m.id)} />
+                <MarketCard key={m.id} market={m} myShares={positions} conflict={conflicts.get(m.id)} />
               ))}
             </Section>
             <Section title="עונת 2026-27" icon={Star} empty="אין שווקי עונה פתוחים.">
               {futures.map(m => (
-                <MarketCard key={m.id} market={m} myShares={positions} conflicted={conflicts.has(m.id)} />
+                <MarketCard key={m.id} market={m} myShares={positions} conflict={conflicts.get(m.id)} />
               ))}
             </Section>
             {settled.length > 0 && (
