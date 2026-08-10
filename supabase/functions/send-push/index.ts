@@ -137,6 +137,16 @@ function notificationText(n: NotificationRow, actorName: string): string {
     case "game_moved":             return `${vs(d)} — ${movedSummary(d)}`;
     case "follow_game_alert":      return `מחר: ${vs(d)}`;
     case "goal_scored":            return `⚽ ${d.scoring_team ?? ""} הבקיעה! ${vs(d)} ${d.away_score ?? ""}:${d.home_score ?? ""}`;
+    // הוקי מרקט. A settlement push IS the payoff — landing it as "התראה חדשה"
+    // would waste the one notification that brings a trader back to the board.
+    case "market_resolved":
+      return Number(d.won) > 0
+        ? `${d.title ?? "שוק"} הוכרע: ${d.outcome ?? ""} — זכית ב-${Math.round(Number(d.won))} מטבעות 🎉`
+        : `${d.title ?? "שוק"} הוכרע: ${d.outcome ?? ""} — הפעם לא הצלחת`;
+    case "market_coins":
+      return Number(d.delta) >= 0
+        ? `קיבלת ${Math.round(Number(d.delta))} מטבעות להוקי מרקט${d.reason ? ` — ${d.reason}` : ""}`
+        : `הופחתו ${Math.abs(Math.round(Number(d.delta)))} מטבעות מהחשבון בהוקי מרקט${d.reason ? ` — ${d.reason}` : ""}`;
     default:               return "התראה חדשה";
   }
 }
@@ -186,6 +196,8 @@ function notificationHref(n: NotificationRow): string {
     case "game_moved":
     case "follow_game_alert":
     case "goal_scored":            return n.entity_id ? `/games/${n.entity_id}` : "/games";
+    case "market_resolved":        return n.entity_id ? `/market/${n.entity_id}` : "/market";
+    case "market_coins":           return "/market";
     default:               return "/";
   }
 }
