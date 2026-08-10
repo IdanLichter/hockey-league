@@ -8,7 +8,8 @@ import {
   LogOut,
   UserCircle,
   Swords,
-  BookOpen
+  BookOpen,
+  Coins
 } from "lucide-react"
 import { Rink, Standings, Crossed, Teams, Player, Whistle, Stats, Camera, Edit, Clipboard } from "./components/icons/HockeyIcons"
 import { useAuth } from "./lib/AuthContext"
@@ -74,6 +75,10 @@ export default function Layout({ children }) {
     { title: "קבוצות", url: "/teams", icon: NavTeams },
     { title: "שחקנים", url: "/players", icon: NavPlayers },
     { title: "מדריך", url: "/guide", icon: BookOpen },
+    // הוקי מרקט is signed-in only: the page is gated to 18+ league players
+    // anyway, and the public site should not advertise a betting board to the
+    // youth-team visitors who make up much of its traffic.
+    ...(user ? [{ title: "הוקי מרקט", url: "/market", icon: Coins }] : []),
     // Media / content-editor entry: plain users & admins keep "מדיה"; content
     // editors get "יוצרי תוכן" instead; admins see BOTH.
     ...((!isContentEditor || isAdmin) ? [{ title: "מדיה", url: "/media", icon: NavCamera }] : []),

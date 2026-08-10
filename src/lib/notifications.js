@@ -174,6 +174,16 @@ export function notificationText(n) {
     case 'official_application':           return `${actorName(n)} הגיש/ה מועמדות כ${ROLE_LABEL[d.role] || 'בעל תפקיד'}`
     case 'official_application_approved':  return `מועמדותך לשיבוץ כ${ROLE_LABEL[d.role] || 'בעל תפקיד'} אושרה 🎉`
     case 'official_application_rejected':  return `מועמדותך לשיבוץ כ${ROLE_LABEL[d.role] || 'בעל תפקיד'} נדחתה`
+    // הוקי מרקט. `won` is 0 for a holder who backed a losing outcome — say so
+    // rather than announcing a payout of nothing.
+    case 'market_resolved':
+      return Number(d.won) > 0
+        ? `${d.title || 'שוק'} הוכרע: ${d.outcome || ''} — זכית ב-${Math.round(Number(d.won))} מטבעות 🎉`
+        : `${d.title || 'שוק'} הוכרע: ${d.outcome || ''} — הפעם לא הצלחת`
+    case 'market_coins':
+      return Number(d.delta) >= 0
+        ? `קיבלת ${Math.round(Number(d.delta))} מטבעות להוקי מרקט${d.reason ? ` — ${d.reason}` : ''}`
+        : `הופחתו ${Math.abs(Math.round(Number(d.delta)))} מטבעות מהחשבון בהוקי מרקט${d.reason ? ` — ${d.reason}` : ''}`
     default:               return 'התראה חדשה'
   }
 }
@@ -225,6 +235,8 @@ export function notificationIcon(n) {
     case 'official_application':           return '📝'
     case 'official_application_approved':  return '✅'
     case 'official_application_rejected':  return '⛔'
+    case 'market_resolved': return '📈'
+    case 'market_coins':    return '🪙'
     default:               return '🔔'
   }
 }
@@ -280,6 +292,8 @@ export function notificationHref(n) {
     case 'official_application_approved':
     case 'official_application_rejected': return n.entity_id ? `/games/${n.entity_id}` : '/games'
     case 'official_application':   return '/admin?tab=officials'
+    case 'market_resolved':        return n.entity_id ? `/market/${n.entity_id}` : '/market'
+    case 'market_coins':           return '/market'
     // Land on the post itself. The feed paginates, so an old post may not be mounted —
     // the anchor simply does nothing then and you get the feed, which is no worse than
     // today's behaviour.

@@ -98,6 +98,88 @@
     --gold: 235 190 80;   /* #EBBE50 */
   }
 
+  /* ─── הוקי מרקט skin ─────────────────────────────────────────────────────
+     The market is a room of its own inside the league, so it re-points the very
+     same tokens at a different palette: warm stone neutrals instead of navy, an
+     emerald primary instead of royal blue, and coin-gold for money. Every
+     existing component (.card, .btn-primary, .stat-pill, the sticky header)
+     re-skins from this alone — which is the whole reason the tokens exist.
+
+     Applied to <html> by /market so the header changes with the page. The
+     selectors carry the `html` tag deliberately: a bare `.market-theme` scores
+     below `html.dark` and the dark values would win over the light ones. */
+  html.market-theme {
+    --brand: 16 150 105;        /* #109669 emerald */
+    --brand-hover: 12 124 87;
+    --brand-strong: 12 110 78;
+    --brand-light: 52 211 153;
+    --brand-fg: 255 255 255;
+    --brand-deep: 6 78 59;
+
+    --surface: 255 255 255;
+    --surface-page: 250 250 249;    /* warm paper, not blue-white */
+    --surface-nav: 255 255 255;
+    --surface-inset: 245 245 244;
+    --surface-sunken: 241 241 239;
+    --surface-raised: 255 255 255;
+    --surface-chip: 231 231 228;
+
+    --fg: 41 41 40;
+    --fg-strong: 12 12 11;
+    --fg-soft: 41 41 40;
+    --fg-muted: 110 110 105;
+    --fg-subtle: 150 150 145;
+    --fg-faint: 200 200 195;
+    --fg-inverse: 255 255 255;
+
+    --line: 228 228 224;
+    --line-strong: 214 214 209;
+    --line-subtle: 240 240 237;
+    --line-header: 228 228 224;
+    --divider: 240 240 237;
+    --scrollbar: 200 200 195;
+
+    --pos: 16 150 105;
+    --neg: 220 68 68;
+    --gold: 202 138 4;
+  }
+
+  html.dark.market-theme {
+    --brand: 52 211 153;        /* #34D399 — bright enough to carry on black */
+    --brand-hover: 110 231 183;
+    --brand-strong: 52 211 153;
+    --brand-light: 110 231 183;
+    --brand-fg: 4 24 18;        /* dark ink ON the bright emerald fill */
+    --brand-deep: 6 60 45;
+
+    --surface: 22 23 26;
+    --surface-page: 12 13 15;       /* near-black, no navy cast */
+    --surface-nav: 16 17 20;
+    --surface-inset: 26 27 31;
+    --surface-sunken: 30 32 36;
+    --surface-raised: 38 40 45;
+    --surface-chip: 42 44 50;
+
+    --fg: 226 226 224;
+    --fg-strong: 255 255 255;
+    --fg-soft: 205 205 203;
+    --fg-muted: 150 152 158;
+    --fg-subtle: 112 114 120;
+    --fg-faint: 70 72 78;
+    --fg-inverse: 255 255 255;
+
+    --line: 42 44 50;
+    --line-strong: 56 58 65;
+    --line-subtle: 30 32 36;
+    --line-header: 30 32 36;
+    --divider: 42 44 50;
+    --scrollbar: 56 58 65;
+
+    --pos: 52 211 153;
+    --neg: 248 113 113;
+    --gold: 251 191 36;
+  }
+
   html {
     font-family: 'Heebo', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     -webkit-font-smoothing: antialiased;
@@ -254,4 +336,42 @@
   .input {
     @apply w-full bg-surface-inset border border-line rounded-lg px-3 py-2 text-sm text-slate-800 dark:text-slate-100 placeholder:text-fg-subtle focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand;
   }
+
+  /* ─── הוקי מרקט components ───────────────────────────────────────────────
+     Money and probabilities read as a ledger, not as prose: monospaced and
+     tabular so a column of prices lines up digit-for-digit and a moving number
+     doesn't shift the layout under the reader's eye. */
+  .mkt-num {
+    font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
+    @apply tabular-nums tracking-tight;
+  }
+
+  /* Squarer than the league's .card — the market should feel like a terminal. */
+  .mkt-card {
+    @apply bg-surface border border-line rounded-xl;
+  }
+
+  .mkt-card-hover {
+    @apply mkt-card transition-colors hover:border-brand/40;
+  }
+
+  /* An outcome row's odds bar: the fill IS the implied probability. */
+  .mkt-bar {
+    @apply relative overflow-hidden rounded-md bg-surface-sunken;
+  }
+
+  .mkt-bar-fill {
+    @apply absolute inset-y-0 start-0 bg-brand/15 transition-[width] duration-500 ease-out;
+  }
+
+  /* Coin figure — gold, monospaced, never wraps. */
+  .mkt-coin {
+    @apply mkt-num font-bold text-gold whitespace-nowrap;
+  }
+}
+
+/* The market's own chrome, outside @layer so it reliably wins over component
+   defaults without an !important. */
+.market-theme .card {
+  border-radius: 0.75rem; /* squarer than the league's 1rem */
 }

@@ -21,7 +21,10 @@ const DEFAULT_IMAGE = `${SITE_URL}/logos/main-logo.png`
 // Gated tooling: no public content, must never land in a search index.
 // `/reset-password` is a one-shot token landing page — indexing it only ever
 // surfaces a dead form in search results.
-export const NOINDEX_PREFIXES = ['/admin', '/judge', '/me', '/creators', '/reset-password']
+// /market is signed-in-only and age-gated, so it must never reach the index —
+// a public search result for a betting board on a league site with youth teams
+// is exactly the wrong front door.
+export const NOINDEX_PREFIXES = ['/admin', '/judge', '/me', '/creators', '/reset-password', '/market']
 
 function upsertMeta(selector, attr, name, content) {
   let el = document.head.querySelector(selector)
