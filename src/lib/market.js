@@ -304,6 +304,32 @@ export async function setLiquidity(marketId, b) {
   }
 }
 
+/**
+ * Moves a custom market's trading deadline. `closesAt` is an ISO instant, or
+ * null for "no deadline" — trades until the manager closes it by hand.
+ *
+ * Only custom (futures) markets: a game market's deadline IS its fixture's
+ * date, and rescheduling the fixture rewrites it, so an edit there would be
+ * silently undone the next time the game moved.
+ *
+ * Returns { closes_at, status } — a deadline that has already passed closes the
+ * market on the spot, so the caller has to read the status back rather than
+ * assume the market is still trading.
+ */
+export async function setMarketCloses(marketId, closesAt) {
+  const { data, error } = await supabase.rpc('market_admin_set_closes', {
+    p_market: marketId, p_closes_at: closesAt || null,
+  })
+  if (error) {
+    const m = error.message || ''
+    if (/closes with its fixture/i.test(m)) throw new Error('שוק משחק נסגר לפי מועד המשחק')
+    if (/already settled/i.test(m)) throw new Error('השוק כבר הוכרע ואי אפשר לשנות אותו')
+    if (/not authorized/i.test(m)) throw new Error('אין לך הרשאה לפעולה הזו')
+    throw new Error('שמירת התאריך נכשלה, נסו שוב')
+  }
+  return data
+}
+
 export async function createFutures({ title, subtitle, closesAt, b }) {
   const { data, error } = await supabase.rpc('market_admin_create_futures', {
     p_title: title, p_subtitle: subtitle || null,

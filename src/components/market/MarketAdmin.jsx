@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback, Fragment } from 'react'
 import {
   Loader2, Plus, Minus, RefreshCw, Gavel, Ban, Lock, Unlock, Users, ListChecks, AlertTriangle,
+  CalendarClock, Check,
 } from 'lucide-react'
 import {
-  getTraders, adjustCoins, resolveMarket, voidMarket, setMarketStatus,
+  getTraders, adjustCoins, resolveMarket, voidMarket, setMarketStatus, setMarketCloses,
   syncGameMarkets, coins as fmtCoins, pct, START_BALANCE,
 } from '@/lib/market'
 
@@ -200,8 +201,32 @@ function Markets({ markets, onChanged }) {
   )
 }
 
+/**
+ * A UTC instant as the "YYYY-MM-DDTHH:mm" a datetime-local input expects — in
+ * the browser's own zone, which is the zone the manager is thinking in.
+ * toISOString() would hand back UTC and quietly shift the field by three hours.
+ */
+function toLocalInput(iso) {
+  if (!iso) return ''
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return ''
+  const p = n => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`
+}
+
+/** A deadline, pinned LTR: bidi otherwise swaps the date and the time around. */
+function Deadline({ iso }) {
+  return (
+    <span dir="ltr" className="mkt-num">
+      {new Date(iso).toLocaleString('he-IL', {
+        day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit',
+      })}
+    </span>
+  )
+}
+
 function MarketRow({ market, onChanged }) {
-  const [mode, setMode] = useState(null) // 'resolve' | 'void'
+  const [mode, setMode] = useState(null) // 'resolve' | 'void' | 'deadline'
   const [pick, setPick] = useState('')
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState(null)
@@ -223,6 +248,9 @@ function MarketRow({ market, onChanged }) {
           <p className="text-[11px] text-fg-subtle">
             {market.kind === 'game' ? 'שוק משחק' : 'שוק עונה'} · {market.outcomes.length} אפשרויות ·
             נזילות <span className="mkt-num">{fmtCoins(market.b)}</span>
+            {market.closes_at
+              ? <> · נסגר <Deadline iso={market.closes_at} /></>
+              : market.kind !== 'game' && <> · ללא מועד סגירה</>}
             {winner && <> · זכה: <span className="text-brand font-semibold">{winner.label}</span></>}
           </p>
         </div>
@@ -243,10 +271,22 @@ function MarketRow({ market, onChanged }) {
             <button onClick={() => run(() => setMarketStatus(market.id, 'open'))} disabled={busy}
               className="btn-secondary btn-sm"><Unlock className="w-3 h-3" /> פתיחה</button>
           )}
+          {/* Only a custom market's deadline is the manager's to set — a game
+              market's is its fixture's date, rewritten on every reschedule. */}
+          {market.kind !== 'game' && (
+            <button onClick={() => { setMode(mode === 'deadline' ? null : 'deadline'); setErr(null) }}
+              className="btn-secondary btn-sm"><CalendarClock className="w-3 h-3" /> מועד סגירה</button>
+          )}
           <button onClick={() => { setMode(mode === 'resolve' ? null : 'resolve'); setErr(null) }}
             className="btn-secondary btn-sm"><Gavel className="w-3 h-3" /> הכרעה</button>
           <button onClick={() => { setMode(mode === 'void' ? null : 'void'); setErr(null) }}
             className="btn-secondary btn-sm"><Ban className="w-3 h-3" /> ביטול</button>
+        </div>
+      )}
+
+      {mode === 'deadline' && (
+        <div className="mt-3 pt-3 border-t border-line-subtle">
+          <DeadlineForm market={market} onChanged={onChanged} />
         </div>
       )}
 
@@ -290,5 +330,74 @@ function MarketRow({ market, onChanged }) {
 
       {err && <p className="text-[11px] text-neg mt-2">{err}</p>}
     </div>
+  )
+}
+
+/** What actually happened, in the manager's words. */
+function savedNote({ closes_at: closesAt, status }) {
+  if (closesAt && new Date(closesAt) <= new Date()) {
+    return 'המועד שנבחר כבר עבר, ולכן השוק נסגר למסחר עכשיו.'
+  }
+  const what = closesAt
+    ? 'נשמר. המסחר ייסגר מעצמו במועד החדש.'
+    : 'נשמר. אין מועד סגירה — השוק יישאר פתוח עד שתסגרו אותו ידנית.'
+  return status === 'closed'
+    ? `${what} שימו לב שהשוק סגור למסחר כרגע — לחצו "פתיחה" כדי לפתוח אותו.`
+    : what
+}
+
+/**
+ * Moves the trading deadline of a custom market.
+ *
+ * The outcome is read back from the server rather than assumed: a date that has
+ * already passed closes the market on the spot, and a market that was closed by
+ * hand stays closed even when the new date is months out. Both are things the
+ * manager needs told — silently saving a date on a market nobody can trade is
+ * how a "why is nobody betting" evening starts.
+ */
+function DeadlineForm({ market, onChanged }) {
+  const [value, setValue] = useState(() => toLocalInput(market.closes_at))
+  const [busy, setBusy] = useState(false)
+  const [err, setErr] = useState(null)
+  const [saved, setSaved] = useState(null)
+
+  const picked = value ? new Date(value) : null
+  const valid = picked && !Number.isNaN(picked.getTime())
+
+  const save = async (iso) => {
+    setBusy(true); setErr(null); setSaved(null)
+    try {
+      const res = await setMarketCloses(market.id, iso)
+      setSaved(res)
+      setValue(toLocalInput(res?.closes_at))
+      await onChanged?.()
+    } catch (e) { setErr(e.message || 'הפעולה נכשלה') } finally { setBusy(false) }
+  }
+
+  return (
+    <>
+      <p className="text-[11px] text-fg-muted mb-2 leading-relaxed">
+        מועד הסגירה הוא הרגע שבו המסחר בשוק נעצר. הפוזיציות נשארות פתוחות עד להכרעה.
+      </p>
+      <div className="flex items-end gap-2 flex-wrap">
+        <label className="block">
+          <span className="text-[10px] text-fg-subtle font-semibold block mb-1">מועד סגירה</span>
+          <input type="datetime-local" dir="ltr" value={value} onChange={e => setValue(e.target.value)}
+            className="bg-surface border border-line rounded-lg px-2.5 py-1.5 mkt-num text-sm text-fg-strong focus:outline-none focus:ring-2 focus:ring-brand/30" />
+        </label>
+        <button disabled={!valid || busy} onClick={() => save(picked.toISOString())}
+          className="btn btn-sm bg-brand text-brand-fg disabled:opacity-40">
+          {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
+          שמירה
+        </button>
+        {(market.closes_at || value) && (
+          <button disabled={busy} onClick={() => save(null)} className="btn-secondary btn-sm">
+            ללא מועד סגירה
+          </button>
+        )}
+      </div>
+      {saved && <p className="text-[11px] text-pos mt-2 leading-relaxed">{savedNote(saved)}</p>}
+      {err && <p className="text-[11px] text-neg mt-2">{err}</p>}
+    </>
   )
 }
