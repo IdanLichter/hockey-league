@@ -80,9 +80,12 @@ export default function Layout({ children }) {
     // youth-team visitors who make up much of its traffic.
     ...(user ? [{ title: "הוקי מרקט", url: "/market", icon: Coins }] : []),
     // Media / content-editor entry: plain users & admins keep "מדיה"; content
-    // editors get "יוצרי תוכן" instead; admins see BOTH.
+    // editors get "יוצרי תוכן" instead. The creators entry is gated on the raw
+    // content_editor role only — an admin who isn't actually a content creator
+    // has no use for the workspace in their nav (the /creators page itself still
+    // admits admins, so a direct link keeps working).
     ...((!isContentEditor || isAdmin) ? [{ title: "מדיה", url: "/media", icon: NavCamera }] : []),
-    ...((isContentEditor || isAdmin) ? [{ title: "יוצרי תוכן", url: "/creators", icon: NavEdit }] : []),
+    ...(isContentEditor ? [{ title: "יוצרי תוכן", url: "/creators", icon: NavEdit }] : []),
     // Archive lives in the management screen's season tab (/admin), not the main nav.
     ...(hasRole("judge") ? [{ title: "שיפוט", url: "/judge", icon: NavWhistle }] : []),
     ...((isAdmin || coachTeamIds.length > 0 || isJudgeRole || isLeagueManager) ? [{ title: "ניהול", url: "/admin", icon: NavClipboard }] : []),
