@@ -106,24 +106,60 @@ export function guestEntries(stats) {
 }
 
 /**
- * The values the export dialog opens with: everything derivable from the game, so the
- * user only fills what the app genuinely never recorded.
+ * Everyone the league has on record for this fixture, sorted onto the form's lines.
+ *
+ * Two joins that are not obvious. `games.referee_id` names a PLAYER (or an external
+ * referee) while an assigned judge is an ACCOUNT, so the same person can appear as
+ * both under two different names — hence the match on the profile's linked player_id
+ * as well as the name. And a game whose referee was never recorded still has the judge
+ * who was assigned to work it, which is the same fact by another route: that judge
+ * becomes the referee, and any others fall to the שופט נוסף line.
  */
-export function defaultFormFields({ game, stats, officials }) {
-  const pick = (role) => officials.find(o => o.role === role && o.status === 'approved')?.name
-    || officials.find(o => o.role === role)?.name || ''
+export function resolveOfficials({ game, refereeName, officials = [] }) {
+  const named = (role) => officials.filter(o => o.role === role && (o.name || '').trim())
+  const judges = named('judge')
+  const medics = named('medic')
+
+  const referee = (refereeName || '').trim() || judges[0]?.name || ''
+  const isReferee = (j) => j.name === referee || (j.player_id && j.player_id === game.referee_id)
+  const coachesOf = (teamId) => officials
+    .filter(o => o.role === 'coach' && o.team_id === teamId && (o.name || '').trim())
+    .map(o => o.name)
+
+  return {
+    referee,
+    extraReferee: judges.filter(j => !isReferee(j)).map(j => j.name).join(' / '),
+    // An approved application outranks a bare assignment for the same role.
+    medic: (medics.find(m => m.status === 'approved') || medics[0])?.name || '',
+    homeCoaches: coachesOf(game.home_team_id),
+    awayCoaches: coachesOf(game.away_team_id),
+  }
+}
+
+/**
+ * The values the export dialog opens with. Everything the league already knows arrives
+ * filled — medic, the extra judge, both coaches, the referee's own notes — so the only
+ * empty fields left are the ones nothing in the database can answer: the captains, the
+ * referees' observer, and the half-time score.
+ *
+ * A team can have several accounts holding the coach role (assistants, a manager who
+ * also coaches), so `coachOptions` carries them all for the field to offer.
+ */
+export function defaultFormFields({ game, stats, officials = [], refereeName }) {
+  const resolved = resolveOfficials({ game, refereeName, officials })
   const guests = guestEntries(stats)
   return {
-    medic: pick('medic'),
-    extraReferee: '',
+    medic: resolved.medic,
+    extraReferee: resolved.extraReferee,
     observer: '',
     halftimeHome: '',
     halftimeAway: '',
-    homeCoach: '',
+    homeCoach: resolved.homeCoaches[0] || '',
     homeCaptain: '',
-    awayCoach: '',
+    awayCoach: resolved.awayCoaches[0] || '',
     awayCaptain: '',
     refereeNotes: game.referee_notes || '',
+    coachOptions: { home: resolved.homeCoaches, away: resolved.awayCoaches },
     // Nothing in the data says which side a guest played for; home is a starting
     // point the exporter can flip, not a claim.
     guestTeams: Object.fromEntries(guests.map(g => [g.id, 'home'])),
@@ -133,7 +169,7 @@ export function defaultFormFields({ game, stats, officials }) {
 /**
  * Fold the page's data and the dialog's fields into the flat shape buildGameForm wants.
  */
-export function buildReport({ game, home, away, players, stats, squad, memberships, refereeName, fields }) {
+export function buildReport({ game, home, away, players, stats, squad, memberships, refereeName, officials, fields }) {
   const { byTeam } = buildMemberMaps(memberships, players)
   const statsByPlayer = new Map(stats.filter(s => s.player_id).map(s => [s.player_id, s]))
   const date = new Date(game.game_date)
@@ -157,7 +193,9 @@ export function buildReport({ game, home, away, players, stats, squad, membershi
     day: HE_DAYS[date.getDay()],
     time: format(date, 'HH:mm'),
     venue: game.venue || '',
-    referee: refereeName || '',
+    // Falls back to the judge assigned to work the game — 5 of the played fixtures
+    // never got a referee_id, and the assignment is the same fact by another route.
+    referee: resolveOfficials({ game, refereeName, officials }).referee,
     competition: game.game_type || 'ליגה',
     ageLabel: AGE_LABEL[ageOf(home || away)] || '',
     // The uuid's first block: enough to tie a filed sheet back to a row, short enough

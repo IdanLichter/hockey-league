@@ -41,6 +41,18 @@ function Field({ label, children }) {
   )
 }
 
+function Section({ title, hint, children }) {
+  return (
+    <div className="space-y-3">
+      <div className="flex items-baseline gap-2 border-b border-line pb-1.5">
+        <h4 className="text-xs font-bold text-slate-700 dark:text-slate-200">{title}</h4>
+        <span className="text-[11px] text-slate-400">{hint}</span>
+      </div>
+      {children}
+    </div>
+  )
+}
+
 export default function GameFormExport({ game, home, away, players, stats, refereeName }) {
   const { isAdmin, isJudgeRole, isLeagueManager, coachTeamIds } = useAuth()
   const [open, setOpen] = useState(false)
@@ -63,7 +75,7 @@ export default function GameFormExport({ game, home, away, players, stats, refer
     try {
       const src = await getGameFormSources(game.id)
       setSources(src)
-      setFields(defaultFormFields({ game, stats: stats || [], officials: src.officials }))
+      setFields(defaultFormFields({ game, stats: stats || [], officials: src.officials, refereeName }))
     } catch (e) {
       // The squad and officials only add to what the game page already holds, so a
       // failure here downgrades the export rather than blocking it — open the dialog
@@ -71,7 +83,7 @@ export default function GameFormExport({ game, home, away, players, stats, refer
       console.error(e)
       setError("חלק מהנתונים לא נטענו — אפשר להשלים ידנית ולייצא")
       setSources({ squad: [], officials: [], memberships: [] })
-      setFields(defaultFormFields({ game, stats: stats || [], officials: [] }))
+      setFields(defaultFormFields({ game, stats: stats || [], officials: [], refereeName }))
     } finally { setLoading(false) }
   }
 
@@ -87,6 +99,7 @@ export default function GameFormExport({ game, home, away, players, stats, refer
         stats: stats || [],
         squad: sources?.squad || [],
         memberships: sources?.memberships || [],
+        officials: sources?.officials || [],
         refereeName,
         fields,
       })
@@ -131,66 +144,81 @@ export default function GameFormExport({ game, home, away, players, stats, refer
                 <div className="animate-spin rounded-full h-8 w-8 border-2 border-brand border-t-transparent" />
               </div>
             ) : (
-              <div className="space-y-3">
-                <Field label="שם החובש">
-                  <input value={fields.medic} onChange={set("medic")} placeholder="שם מלא" className="filter-input w-full" />
-                </Field>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <Field label="שופט נוסף">
-                    <input value={fields.extraReferee} onChange={set("extraReferee")} className="filter-input w-full" />
+              <div className="space-y-5">
+                <Section title="לא נשמר במערכת" hint="יש להשלים ידנית">
+                  <Field label="תוצאת מחצית">
+                    <div className="flex items-center gap-2">
+                      <input type="number" min="0" value={fields.halftimeHome} onChange={set("halftimeHome")}
+                        placeholder={home?.name || "מארחת"} className="filter-input flex-1" />
+                      <span className="text-slate-400 text-sm">:</span>
+                      <input type="number" min="0" value={fields.halftimeAway} onChange={set("halftimeAway")}
+                        placeholder={away?.name || "אורחת"} className="filter-input flex-1" />
+                    </div>
                   </Field>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    {[["home", home, "מארחת"], ["away", away, "אורחת"]].map(([side, team, label]) => (
+                      <Field key={side} label={`קפטן — ${team?.name || label}`}>
+                        <input value={fields[`${side}Captain`]} onChange={set(`${side}Captain`)} className="filter-input w-full" />
+                      </Field>
+                    ))}
+                  </div>
+
                   <Field label="צופה שופטים">
                     <input value={fields.observer} onChange={set("observer")} className="filter-input w-full" />
                   </Field>
-                </div>
 
-                <Field label="תוצאת מחצית">
-                  <div className="flex items-center gap-2">
-                    <input type="number" min="0" value={fields.halftimeHome} onChange={set("halftimeHome")}
-                      placeholder={home?.name || "מארחת"} className="filter-input flex-1" />
-                    <span className="text-slate-400 text-sm">:</span>
-                    <input type="number" min="0" value={fields.halftimeAway} onChange={set("halftimeAway")}
-                      placeholder={away?.name || "אורחת"} className="filter-input flex-1" />
-                  </div>
-                </Field>
-
-                {[["home", home, "מארחת"], ["away", away, "אורחת"]].map(([side, team, label]) => (
-                  <div key={side} className="grid grid-cols-2 gap-3">
-                    <Field label={`מאמן/ת — ${team?.name || label}`}>
-                      <input value={fields[`${side}Coach`]} onChange={set(`${side}Coach`)} className="filter-input w-full" />
+                  {guests.length > 0 && (
+                    <Field label="שחקנים אורחים — לאיזו קבוצה לשייך">
+                      <div className="space-y-2">
+                        {guests.map(g => (
+                          <div key={g.id} className="flex items-center gap-2">
+                            <span className="flex-1 text-sm text-slate-600 dark:text-slate-300 truncate">
+                              {g.name}{g.from ? <span className="text-xs text-slate-400"> · {g.from}</span> : null}
+                            </span>
+                            <select
+                              value={fields.guestTeams?.[g.id] || "home"}
+                              onChange={(e) => setFields(f => ({ ...f, guestTeams: { ...f.guestTeams, [g.id]: e.target.value } }))}
+                              className="filter-input shrink-0"
+                            >
+                              <option value="home">{home?.name || "מארחת"}</option>
+                              <option value="away">{away?.name || "אורחת"}</option>
+                            </select>
+                          </div>
+                        ))}
+                      </div>
                     </Field>
-                    <Field label={`קפטן — ${team?.name || label}`}>
-                      <input value={fields[`${side}Captain`]} onChange={set(`${side}Captain`)} className="filter-input w-full" />
+                  )}
+                </Section>
+
+                <Section title="מולא מהמערכת" hint="אפשר לתקן במידת הצורך">
+                  <div className="grid grid-cols-2 gap-3">
+                    <Field label="שם החובש">
+                      <input value={fields.medic} onChange={set("medic")} placeholder="לא שובץ חובש" className="filter-input w-full" />
+                    </Field>
+                    <Field label="שופט נוסף">
+                      <input value={fields.extraReferee} onChange={set("extraReferee")} className="filter-input w-full" />
                     </Field>
                   </div>
-                ))}
 
-                {guests.length > 0 && (
-                  <Field label="שחקנים אורחים — לאיזו קבוצה לשייך">
-                    <div className="space-y-2">
-                      {guests.map(g => (
-                        <div key={g.id} className="flex items-center gap-2">
-                          <span className="flex-1 text-sm text-slate-600 dark:text-slate-300 truncate">
-                            {g.name}{g.from ? <span className="text-xs text-slate-400"> · {g.from}</span> : null}
-                          </span>
-                          <select
-                            value={fields.guestTeams?.[g.id] || "home"}
-                            onChange={(e) => setFields(f => ({ ...f, guestTeams: { ...f.guestTeams, [g.id]: e.target.value } }))}
-                            className="filter-input shrink-0"
-                          >
-                            <option value="home">{home?.name || "מארחת"}</option>
-                            <option value="away">{away?.name || "אורחת"}</option>
-                          </select>
-                        </div>
-                      ))}
-                    </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    {[["home", home, "מארחת"], ["away", away, "אורחת"]].map(([side, team, label]) => (
+                      <Field key={side} label={`מאמן/ת — ${team?.name || label}`}>
+                        {/* A team can have several accounts holding the coach role, so the
+                            others are offered rather than hidden behind the first one. */}
+                        <input value={fields[`${side}Coach`]} onChange={set(`${side}Coach`)}
+                          list={`coaches-${side}`} className="filter-input w-full" />
+                        <datalist id={`coaches-${side}`}>
+                          {(fields.coachOptions?.[side] || []).map(name => <option key={name} value={name} />)}
+                        </datalist>
+                      </Field>
+                    ))}
+                  </div>
+
+                  <Field label="הערות שופט">
+                    <textarea value={fields.refereeNotes} onChange={set("refereeNotes")} rows={2} className="filter-input w-full resize-none" />
                   </Field>
-                )}
-
-                <Field label="הערות שופט">
-                  <textarea value={fields.refereeNotes} onChange={set("refereeNotes")} rows={2} className="filter-input w-full resize-none" />
-                </Field>
+                </Section>
               </div>
             )}
 
