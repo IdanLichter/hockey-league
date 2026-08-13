@@ -136,7 +136,10 @@ export class GameEngine {
     // Recompute from the monotonic deadline first: a running clock's cached remainingMS
     // lags by up to one ~50ms tick, and that stale value is what we resume after the
     // break — so without this the game clock gains a little time on every timeout.
-    this.clock.refresh()
+    // `pause()` and not `refresh()`: both recompute, but refresh fires `onExpire` at
+    // zero, which re-enters this method through `_periodDidEnd` and clobbers the break
+    // we are in the middle of starting. The clock is stopped a few lines below anyway.
+    this.clock.pause()
     this._preBreakRemainingMS = this.clock.remainingMS
     this.breaks.push({
       id: uid(), kind,
@@ -248,9 +251,12 @@ export class GameEngine {
   // ---- timeouts ----
   requestTimeout(side) {
     if (this.phase === Phase.ready || this.phase === Phase.readyOvertime || this.phase === Phase.over) return false
-    if (this._side(side).timeoutsThisPeriod >= GameRules.maxTimeoutsPerPeriod) return false
+    const used = this._side(side).timeoutsThisPeriod
+    if (used >= GameRules.maxTimeoutsPerPeriod) return false
+    // The first timeout a team takes in a period is a full minute; the second is 30s.
+    const seconds = GameRules.timeoutSeconds(used + 1)
     this._side(side).timeoutsThisPeriod += 1
-    this.startBreak(side === TeamSide.home ? BreakKind.homeTimeout : BreakKind.guestTimeout, GameRules.timeoutBreakSeconds)
+    this.startBreak(side === TeamSide.home ? BreakKind.homeTimeout : BreakKind.guestTimeout, seconds)
     return true
   }
   canTimeout(side) { return this._side(side).timeoutsThisPeriod < GameRules.maxTimeoutsPerPeriod }

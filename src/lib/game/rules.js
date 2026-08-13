@@ -11,7 +11,13 @@ export const GameRules = {
   passiveSeconds: 45,
   passiveFlashAt: 10,
   maxTimeoutsPerPeriod: 2,
-  timeoutBreakSeconds: 60,
+  // A team's FIRST timeout in a period is a full minute; the SECOND is 30s.
+  firstTimeoutSeconds: 60,
+  secondTimeoutSeconds: 30,
+  // Break length for the n-th timeout a team takes in a period (n is 1-based).
+  timeoutSeconds(n) {
+    return n <= 1 ? GameRules.firstTimeoutSeconds : GameRules.secondTimeoutSeconds
+  },
   // Team fouls ACCUMULATE for the whole game — never reset per period, and they carry
   // into overtime. The other team is awarded a penalty (free hit) on the 10th foul and
   // every 5th foul after it; a warning fires one foul earlier.
