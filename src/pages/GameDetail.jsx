@@ -17,6 +17,7 @@ import { countsForStats, FRIENDLY_GAME_TYPE } from "@/lib/leagueStats"
 import GameChangeRequestModal from "@/components/GameChangeRequestModal"
 import GameChangeOpponentCard from "@/components/GameChangeOpponentCard"
 import OfficialSelfSubmit from "@/components/OfficialSelfSubmit"
+import GameFormExport from "@/components/GameFormExport"
 import { getMyGameChangeRequest, cancelGameChangeRequest } from "@/lib/gameRequests"
 
 const statusCfg = {
@@ -231,6 +232,8 @@ export default function GameDetail() {
             <Radio className="w-3.5 h-3.5" /> {game.status === 'in_progress' ? 'נהל שידור חי' : 'שפוט / שדר משחק'}
           </Link>
         )}
+        {/* Played: officials + the two coaches can pull the filled refereeing form */}
+        <GameFormExport game={game} home={home} away={away} players={players} stats={stats} refereeName={refName} />
       </div>
 
       {/* ===== LIVE (in-progress): scoreboard + stream unified at the top ===== */}
