@@ -41,14 +41,25 @@ create policy "read rates admin/lm" on public.official_rates
   for select using (public.is_admin() or public.is_league_manager());
 
 -- ===== write RPCs (assign / remove / apply / review / set-rate) =====
+-- SUPERSEDED 2026-08-15 by migration `officials_assigned_status_collapse` — a manager
+-- picking someone from the dropdown IS the approval, so this now writes 'approved'.
+-- 'assigned' meant the same thing server-side but was recognised by only the admin tab:
+-- nine read sites across web, iOS and Android checked for 'approved' alone, so a
+-- directly-assigned judge could not open his own board and was told on the game page
+-- that he was still awaiting the manager's approval. 'assigned' stays legal in the
+-- check constraint above for historical rows; nothing writes it any more.
 create or replace function public.assign_official(p_game_id uuid, p_user_id uuid, p_role text)
 returns void language plpgsql security definer set search_path = public as $$
 begin
   if not (public.is_admin() or public.is_league_manager()) then raise exception 'not authorized'; end if;
   if p_role not in ('judge','medic') then raise exception 'bad role'; end if;
-  insert into public.game_officials (game_id, user_id, role, status, created_by)
-    values (p_game_id, p_user_id, p_role, 'assigned', auth.uid())
-    on conflict (game_id, role, user_id) do update set status = 'assigned', reviewed_by = auth.uid(), reviewed_at = now();
+  -- reviewed_by/reviewed_at are stamped on the INSERT path too. Previously only the
+  -- conflict path set them, so a freshly assigned row carried a null reviewer and read
+  -- like an approval that had never happened — which is what made this bug so hard to
+  -- reconstruct after the fact.
+  insert into public.game_officials (game_id, user_id, role, status, created_by, reviewed_by, reviewed_at)
+    values (p_game_id, p_user_id, p_role, 'approved', auth.uid(), auth.uid(), now())
+    on conflict (game_id, role, user_id) do update set status = 'approved', reviewed_by = auth.uid(), reviewed_at = now();
   perform public.create_notification(p_user_id, 'official_assigned', auth.uid(), 'game', p_game_id::text, jsonb_build_object('role', p_role));
 end; $$;
 

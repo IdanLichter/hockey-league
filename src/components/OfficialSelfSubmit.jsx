@@ -77,7 +77,12 @@ export default function OfficialSelfSubmit({ game }) {
     } finally { setBusy(null) }
   }
 
-  const statusOf = (s) => s === "approved" ? { t: "שובצת ✓", c: "text-emerald-600 dark:text-emerald-400" }
+  // 'assigned' is a manager's direct assignment — as confirmed as 'approved', and it must
+  // NOT fall through to the waiting branch. It used to: a judge the manager had put on
+  // the game read "ממתין לאישור מנהל הליגה" indefinitely, with no way to make it change.
+  // Nothing writes 'assigned' any more, but old rows still carry it.
+  const statusOf = (s) => s === "approved" || s === "assigned"
+    ? { t: "שובצת ✓", c: "text-emerald-600 dark:text-emerald-400" }
     : s === "rejected" ? { t: "המועמדות נדחתה", c: "text-red-500" }
     : { t: "ממתין לאישור מנהל הליגה", c: "text-amber-600 dark:text-amber-400" }
 

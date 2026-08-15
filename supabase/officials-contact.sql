@@ -68,10 +68,16 @@ $$;
 revoke all on function public.apply_as_official(uuid, text) from public, anon;
 grant execute on function public.apply_as_official(uuid, text) to authenticated;
 
--- Correction to game-reminders.sql: the Tuesday/Thursday officials digest must count
--- only APPROVED officials. An application still awaiting the manager's approval is
--- precisely what the digest exists to prompt him about — counting it as "covered"
--- would tell him everything is fine while the slot is in fact unfilled.
+-- Correction to game-reminders.sql: the Tuesday/Thursday officials digest must not count
+-- an APPLIED official. An application still awaiting the manager's approval is precisely
+-- what the digest exists to prompt him about — counting it as "covered" would tell him
+-- everything is fine while the slot is in fact unfilled.
+--
+-- AMENDED 2026-08-15 (migration `officials_assigned_status_collapse`): the original wrote
+-- `status = 'approved'`, which dropped 'assigned' along with 'applied' and so reported
+-- "0 judges, 0 medics" for games that had both. Counts both confirmed statuses now.
+-- NOTE: the live definition has since gained a `follower_game_alert` branch not shown
+-- in the body below — recreate from pg_get_functiondef, not from this file.
 create or replace function public.send_game_reminder(p_kind text, p_game uuid, p_for date)
 returns int language plpgsql security definer set search_path = public as $$
 declare
@@ -175,7 +181,7 @@ begin
            count(*) filter (where go.role = 'medic')
       into v_judges, v_medics
       from public.game_officials go
-     where go.game_id = g.id and go.status = 'approved';
+     where go.game_id = g.id and go.status in ('assigned', 'approved');
 
     for rec in select user_id from public.manager_user_ids() loop
       insert into public.game_reminder_log (game_id, kind, user_id, sent_for)

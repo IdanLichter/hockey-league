@@ -79,9 +79,15 @@ export async function getMyOfficialRoles(gameId) {
 }
 
 /**
- * Games this user was APPROVED to judge. The judge page lists only these — previously
+ * Games this user was CONFIRMED to judge. The judge page lists only these — previously
  * every judge saw every upcoming fixture, so there was nothing stopping one from opening
  * a board for a game he had nothing to do with.
+ *
+ * Both confirmed statuses count. A manager's direct assignment now writes 'approved'
+ * (see migration `officials_assigned_status_collapse`), but this filtered on 'approved'
+ * alone while the dropdown wrote 'assigned' — so an assigned judge simply never saw his
+ * own game here. Historical rows may still read 'assigned'; accept both rather than
+ * depend on the backfill having caught every one.
  */
 export async function getMyApprovedGameIds(role = 'judge') {
   const { data: { user } } = await supabase.auth.getUser()
@@ -91,7 +97,7 @@ export async function getMyApprovedGameIds(role = 'judge') {
     .select('game_id')
     .eq('user_id', user.id)
     .eq('role', role)
-    .eq('status', 'approved')
+    .in('status', ['assigned', 'approved'])
   if (error) return new Set()
   return new Set((data || []).map(r => r.game_id))
 }
