@@ -11,9 +11,12 @@ export const GameRules = {
   passiveSeconds: 45,
   passiveFlashAt: 10,
   maxTimeoutsPerPeriod: 2,
-  // A team's FIRST timeout in a period is a full minute; the SECOND is 30s.
+  // EVERY timeout is a full minute, first or second (owner decision 2026-08-15). This
+  // reverses the 30s second timeout introduced 2026-07-13 — do not restore it. The two
+  // constants and timeoutSeconds(n) are kept rather than collapsed to one number so the
+  // rule can differ again by editing a value, not by reintroducing a branch.
   firstTimeoutSeconds: 60,
-  secondTimeoutSeconds: 30,
+  secondTimeoutSeconds: 60,
   // Break length for the n-th timeout a team takes in a period (n is 1-based).
   timeoutSeconds(n) {
     return n <= 1 ? GameRules.firstTimeoutSeconds : GameRules.secondTimeoutSeconds
@@ -53,6 +56,8 @@ export const BuzzKind = {
   breakStart: 'breakStart',
   breakEnd: 'breakEnd',
   gameEnd: 'gameEnd',
+  passiveStart: 'passiveStart',         // 45s passive clock armed during play
+  passiveEnd: 'passiveEnd',             // …and run down to 0
 }
 
 // Match formats.

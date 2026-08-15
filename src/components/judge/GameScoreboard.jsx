@@ -86,9 +86,14 @@ function beep(kind) {
   try {
     _actx = _actx || new (window.AudioContext || window.webkitAudioContext)()
     const ctx = _actx
+    // passiveStart is a light tick that must not be mistaken for a whistle; passiveEnd
+    // sits between a foul warning and the period-end blast — it stops play, but it is
+    // not the end of anything.
     const freq = kind === "teamFoulPenalty" ? 880 : kind === "teamFoulWarning" ? 660
-      : kind === "goal" ? 520 : kind === "card" ? 380 : 700
-    const dur = kind === "teamFoulPenalty" ? 0.55 : (kind === "periodEnd" || kind === "gameEnd") ? 0.7 : 0.18
+      : kind === "goal" ? 520 : kind === "card" ? 380
+      : kind === "passiveStart" ? 1046 : kind === "passiveEnd" ? 784 : 700
+    const dur = kind === "teamFoulPenalty" ? 0.55 : (kind === "periodEnd" || kind === "gameEnd") ? 0.7
+      : kind === "passiveStart" ? 0.07 : kind === "passiveEnd" ? 0.45 : 0.18
     const o = ctx.createOscillator(), g = ctx.createGain()
     o.type = "square"; o.frequency.value = freq
     g.gain.setValueAtTime(0.12, ctx.currentTime)

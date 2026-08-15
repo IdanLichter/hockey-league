@@ -90,9 +90,13 @@ export default function AddSquadPlayer({ gameId, teamId, teamName, players = [],
         <option value="">בחר שחקן…</option>
         {grouped.map(([label, list]) => (
           <optgroup key={label} label={label}>
+            {/* The shirt number leads, because that is what the judge is reading off a
+                back on the rink. Squads share first names; "7 · יובל" is unambiguous
+                where "יובל" is not. Players with no number on file show "–" rather than
+                a fake 0 (75 of the league's 95 have none). */}
             {list.map(p => (
               <option key={p.id} value={p.id}>
-                {p.first_name} {p.last_name}{p.position === "Goalkeeper" ? " 🧤" : ""}
+                {p.jersey_number ?? "–"} · {p.first_name} {p.last_name}{p.position === "Goalkeeper" ? " 🧤" : ""}
               </option>
             ))}
           </optgroup>

@@ -265,6 +265,12 @@ export class GameEngine {
   resetPassive() {
     this.passiveRemainingMS = GameRules.passiveSeconds * 1000
     this._passiveDeadline = this.now() + GameRules.passiveSeconds
+    // Audible cue that the 45s clock is armed. Only while play is actually running and
+    // passive play is on: resetGame() also lands here (it sets phase = ready first), and
+    // a board reset must not sound, nor must a league that has passive play switched off.
+    if (this.phase === Phase.running && this.settings.passivePlayEnabled) {
+      this.buzz(BuzzKind.passiveStart)
+    }
   }
 
   buzz(kind = BuzzKind.manual) {
@@ -367,7 +373,11 @@ export class GameEngine {
       // `passiveActive` flag — that flag is seeded true and never cleared, so it kept
       // decrementing passive state even when a league had passive play switched off.
       if (this.settings.passivePlayEnabled) {
+        const before = this.passiveRemainingMS
         this.passiveRemainingMS = Math.max(0, Math.round((this._passiveDeadline - this.now()) * 1000))
+        // Sound the expiry once, on the crossing. Testing `=== 0` alone would re-buzz on
+        // every tick for as long as the clock sits at zero waiting to be re-armed.
+        if (before > 0 && this.passiveRemainingMS === 0) this.buzz(BuzzKind.passiveEnd)
       }
       this._decrementCards()
     }
