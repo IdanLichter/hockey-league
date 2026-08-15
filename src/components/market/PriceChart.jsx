@@ -1,5 +1,7 @@
 import { useMemo, useId } from 'react'
 import { pct } from '@/lib/market'
+import { useTheme } from '@/lib/ThemeContext'
+import { seriesTeamColors } from '@/lib/teamMarkColor'
 
 const W = 640, H = 160, PAD_Y = 10
 
@@ -10,9 +12,16 @@ const W = 640, H = 160, PAD_Y = 10
  * series needs no reconstruction and can never disagree with the book. Only the
  * leading outcomes are drawn: on a 20-runner futures market, twenty lines is a
  * scribble, and the story is always at the front of the field.
+ *
+ * Lines are coloured by team — the club's own hue, conditioned to be visible on
+ * the card (see lib/teamMarkColor). They used to be one emerald at three
+ * opacities, which made the leader and the third-placed line the same colour at
+ * different strengths: legible as a ranking, useless for telling בלג נוער from
+ * קריית ביאליק. A player's line takes the colour of the team they play for.
  */
 export default function PriceChart({ market, trades }) {
   const gid = useId()
+  const { dark } = useTheme()
 
   const { series, empty } = useMemo(() => {
     // Oldest first — getTrades returns newest first for the tape.
@@ -36,6 +45,20 @@ export default function PriceChart({ market, trades }) {
     }
   }, [trades, market.outcomes])
 
+  // Colour follows the entity, not the ranking: if a line overtakes another the
+  // colours must not swap, or a reader who learned "רמת ישי is the red one"
+  // is misled the moment the lead changes.
+  const colors = useMemo(
+    () => seriesTeamColors(
+      series.map(s => ({
+        color: s.outcome.markTeam?.primary_color,
+        teamId: s.outcome.markTeam?.id || s.outcome.id,
+      })),
+      dark,
+    ),
+    [series, dark],
+  )
+
   if (empty) {
     return (
       <div className="mkt-card p-4">
@@ -52,7 +75,7 @@ export default function PriceChart({ market, trades }) {
         {series.map((s, i) => (
           <span key={s.outcome.id} className="flex items-center gap-1.5 text-[11px] font-semibold">
             <span className="w-2.5 h-2.5 rounded-full shrink-0"
-              style={{ backgroundColor: `rgb(var(--brand) / ${1 - i * 0.35})` }} />
+              style={{ backgroundColor: colors[i] }} />
             <span className="text-fg-muted truncate max-w-[120px]">{s.outcome.label}</span>
             <span className="mkt-num text-fg-strong">{pct(s.outcome.price)}</span>
           </span>
@@ -69,8 +92,8 @@ export default function PriceChart({ market, trades }) {
           <g key={s.outcome.id}>
             <defs>
               <linearGradient id={`${gid}-${i}`} x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor={`rgb(var(--brand) / ${0.18 - i * 0.05})`} />
-                <stop offset="100%" stopColor="rgb(var(--brand) / 0)" />
+                <stop offset="0%" stopColor={colors[i]} stopOpacity="0.18" />
+                <stop offset="100%" stopColor={colors[i]} stopOpacity="0" />
               </linearGradient>
             </defs>
             {i === 0 && (
@@ -78,7 +101,7 @@ export default function PriceChart({ market, trades }) {
                 points={`0,${H} ${s.points.map(p => p.join(',')).join(' ')} ${W},${H}`} />
             )}
             <polyline
-              fill="none" stroke={`rgb(var(--brand) / ${1 - i * 0.35})`}
+              fill="none" stroke={colors[i]}
               strokeWidth="2" strokeLinejoin="round" strokeLinecap="round"
               vectorEffect="non-scaling-stroke"
               points={s.points.map(p => p.join(',')).join(' ')} />

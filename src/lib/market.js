@@ -144,22 +144,32 @@ export async function listMarkets() {
   if (e2) throw e2
 
   const gameIds = markets.filter(m => m.game_id).map(m => m.game_id)
-  const teamIds = [...new Set(outcomes.map(o => o.team_id).filter(Boolean))]
   const playerIds = [...new Set(outcomes.map(o => o.player_id).filter(Boolean))]
 
-  const [games, teams, players] = await Promise.all([
+  const [games, players] = await Promise.all([
     gameIds.length
       ? supabase.from('games').select('id, game_date, venue, status, home_team_id, away_team_id')
           .in('id', gameIds).then(r => r.data || [])
-      : [],
-    teamIds.length
-      ? supabase.from('teams').select('id, name, logo_url, primary_color').in('id', teamIds).then(r => r.data || [])
       : [],
     playerIds.length
       ? supabase.from('players').select('id, first_name, last_name, photo_url, team_id')
           .in('id', playerIds).then(r => r.data || [])
       : [],
   ])
+
+  // Teams wait on players deliberately: a runner in מלך השערים carries no
+  // team_id of its own, and the price chart colours that line by the team the
+  // player plays for. One extra round trip, and only when the board holds a
+  // player market at all.
+  const teamIds = [...new Set([
+    ...outcomes.map(o => o.team_id),
+    ...players.map(p => p.team_id),
+  ].filter(Boolean))]
+
+  const teams = teamIds.length
+    ? await supabase.from('teams').select('id, name, logo_url, primary_color')
+        .in('id', teamIds).then(r => r.data || [])
+    : []
 
   const gameById = Object.fromEntries(games.map(g => [g.id, g]))
   const teamById = Object.fromEntries(teams.map(t => [t.id, t]))
@@ -171,12 +181,21 @@ export async function listMarkets() {
     return {
       ...m,
       game: m.game_id ? gameById[m.game_id] || null : null,
-      outcomes: os.map((o, i) => ({
-        ...o,
-        price: ps[i] ?? 0,
-        team: o.team_id ? teamById[o.team_id] || null : null,
-        player: o.player_id ? playerById[o.player_id] || null : null,
-      })),
+      outcomes: os.map((o, i) => {
+        const player = o.player_id ? playerById[o.player_id] || null : null
+        const team = o.team_id ? teamById[o.team_id] || null : null
+        return {
+          ...o,
+          price: ps[i] ?? 0,
+          team,
+          player,
+          // The team this outcome is coloured by — its own, or the one the
+          // player belongs to. Deliberately NOT `team`: OutcomeFace draws a
+          // crest whenever `team` is set, so filling it in for a player would
+          // replace every runner's photo with their club badge.
+          markTeam: team || (player?.team_id ? teamById[player.team_id] || null : null),
+        }
+      }),
     }
   })
 }
