@@ -13,11 +13,19 @@ $$;
 
 -- ---------- helper: is the caller an admin? (reuses existing admin_users rule) ----------
 -- SECURITY DEFINER so it bypasses RLS on admin_users and never recurses.
+--
+-- The coalesce is load-bearing (migration `is_admin_null_safe`, 2026-08-15). Without it
+-- the IN returns NULL — not false — for a token carrying no email claim, and 48 RPCs are
+-- guarded as `if not public.is_admin() ... then raise`. `not NULL` is NULL, an IF on NULL
+-- does not fire, and the guard is skipped in silence: any signed-in user holding an
+-- email-less token could reach close_season, admin_delete_user, remove_admin and 45 more.
+-- An OR'd guard does not save you either — `NULL or false` is still NULL.
+-- Never drop the coalesce, and never write a new guard as a bare `if not is_admin()`.
 create or replace function public.is_admin()
 returns boolean
 language sql stable security definer set search_path = public
 as $$
-  select (auth.jwt() ->> 'email') in (select email from public.admin_users)
+  select coalesce((auth.jwt() ->> 'email') in (select email from public.admin_users), false)
 $$;
 
 -- ---------- profiles (1 row per auth user) ----------
