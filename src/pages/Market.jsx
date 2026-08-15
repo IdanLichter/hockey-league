@@ -10,6 +10,7 @@ import MarketGate from '@/components/market/MarketGate'
 import MarketCard, { OutcomeFace, StatusChip } from '@/components/market/MarketCard'
 import Leaderboard from '@/components/market/Leaderboard'
 import MarketAdmin from '@/components/market/MarketAdmin'
+import { useSeasonName } from '@/App'
 
 /**
  * Repoints the design tokens at the market palette for as long as this screen is
@@ -27,6 +28,7 @@ export function useMarketTheme() {
 export default function Market() {
   useMarketTheme()
   const { user, isAdmin, loading: authLoading } = useAuth()
+  const seasonName = useSeasonName()
 
   const [reason, setReason] = useState(undefined) // undefined = still checking
   const [wallet, setWallet] = useState(null)
@@ -152,7 +154,7 @@ export default function Market() {
                 <MarketCard key={m.id} market={m} myShares={positions} conflict={conflicts.get(m.id)} />
               ))}
             </Section>
-            <Section title="עונת 2026-27" icon={Star} empty="אין שווקי עונה פתוחים.">
+            <Section title={seasonName ? `עונת ${seasonName}` : 'שווקי עונה'} icon={Star} empty="אין שווקי עונה פתוחים.">
               {futures.map(m => (
                 <MarketCard key={m.id} market={m} myShares={positions} conflict={conflicts.get(m.id)} />
               ))}

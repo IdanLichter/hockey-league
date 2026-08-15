@@ -2,7 +2,7 @@ import { BrowserRouter as Router, Route, Routes, Navigate, useLocation, useNavig
 import { useState, useEffect, createContext, useContext, lazy, Suspense } from 'react'
 import Layout from './Layout'
 import RouteSeo from './components/RouteSeo'
-import { getLeagueSetting } from './lib/api'
+import { getLeagueSetting, getCurrentSeason } from './lib/api'
 
 // Route-level code splitting: each page ships as its own chunk, so the home
 // page no longer downloads Admin / Judge / poster generator / etc. up front.
@@ -37,6 +37,17 @@ const NotFound = lazy(() => import('./pages/NotFound'))
 
 const SeasonModeContext = createContext()
 export const useSeasonMode = () => useContext(SeasonModeContext)
+
+/**
+ * The live season's name ("2026-27"), for the badges and page subtitles that
+ * used to hardcode it. Every one of them said 2025-26 the morning after the
+ * first rollover, on every page of the site.
+ *
+ * Returns '' if the lookup failed, never a stale guess — callers omit the
+ * label rather than print a year that might be wrong. Nothing renders before
+ * the fetch resolves (App gates on it), so there is no flash of an empty one.
+ */
+export const useSeasonName = () => useContext(SeasonModeContext)?.seasonName || ''
 
 /**
  * A plain <a href> reload starts at the top; a client-side route change does not
@@ -110,12 +121,18 @@ function ScrollToTop() {
 
 function App() {
   const [seasonMode, setSeasonMode] = useState(null) // 'regular' or 'final_four'
+  const [seasonName, setSeasonName] = useState('')
   const [loading, setLoading] = useState(true)
 
+  // Both reads in one round trip — the shell already waits on the mode, so the
+  // name rides along for free rather than adding a second gate or letting the
+  // labels pop in a beat late.
   useEffect(() => {
-    getLeagueSetting('season_mode')
-      .then(val => setSeasonMode(val || 'regular'))
-      .catch(() => setSeasonMode('regular'))
+    Promise.all([
+      getLeagueSetting('season_mode').then(v => v || 'regular').catch(() => 'regular'),
+      getCurrentSeason().then(s => s?.name || '').catch(() => ''),
+    ])
+      .then(([mode, name]) => { setSeasonMode(mode); setSeasonName(name) })
       .finally(() => setLoading(false))
   }, [])
 
@@ -128,7 +145,7 @@ function App() {
   }
 
   return (
-    <SeasonModeContext.Provider value={{ seasonMode, setSeasonMode }}>
+    <SeasonModeContext.Provider value={{ seasonMode, setSeasonMode, seasonName, setSeasonName }}>
       <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <RouteSeo />
         <ScrollToTop />

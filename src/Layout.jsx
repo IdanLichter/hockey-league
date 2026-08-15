@@ -1,6 +1,7 @@
 import { BRAND_ORANGE } from '@/lib/brand'
 import { Link, useLocation } from "react-router-dom"
 import { useState } from "react"
+import { useSeasonName } from "@/App"
 import {
   UserCheck,
   Menu,
@@ -63,6 +64,7 @@ function NavAvatar({ profile, email, className = "w-8 h-8" }) {
 
 export default function Layout({ children }) {
   const location = useLocation()
+  const seasonName = useSeasonName()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const { user, isAdmin, hasRole, coachTeamIds, isJudgeRole, isContentEditor, isLeagueManager, profile, signOut, openAuth } = useAuth()
 
@@ -110,7 +112,9 @@ export default function Layout({ children }) {
                   the page's own title — its primary heading for crawlers and screen
                   readers. `block` keeps the exact layout the <h1> had. */}
               <span className="block text-xl font-black text-fg-strong tracking-tight">ליגת הוקי</span>
-              <span className="mt-1 inline-flex items-center rounded-full bg-brand/10 px-2 py-0.5 text-[11px] font-bold text-brand-strong dark:text-brand-light">עונת 2025-26</span>
+              {seasonName && (
+                <span className="mt-1 inline-flex items-center rounded-full bg-brand/10 px-2 py-0.5 text-[11px] font-bold text-brand-strong dark:text-brand-light">עונת {seasonName}</span>
+              )}
             </div>
           </Link>
 

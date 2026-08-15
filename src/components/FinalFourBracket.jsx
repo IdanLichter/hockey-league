@@ -6,6 +6,7 @@ import { motion } from "framer-motion"
 import { format } from "date-fns"
 import TeamLogo from "@/components/TeamLogo"
 import { TeamLink } from "@/components/EntityLinks"
+import { useSeasonName } from "@/App"
 
 // Full Final Four bracket — the path to the title, shown above the league table
 // on the standings page (there is no separate Final Four page). Receives already
@@ -13,6 +14,7 @@ import { TeamLink } from "@/components/EntityLinks"
 // Palette is intentionally two-tone: neutral slate for structure, gold for the
 // things that matter (winners, the league-winner's path, and the champion).
 export default function FinalFourBracket({ teams = [], games = [], championId = null }) {
+  const seasonName = useSeasonName()
   const champion = championId ? teams.find(t => t.id === championId) || null : null
   const sorted = [...teams].filter(t => ageOf(t) === DEFAULT_AGE).sort(standingsComparator)
   const first = sorted[0]
@@ -104,7 +106,7 @@ export default function FinalFourBracket({ teams = [], games = [], championId = 
           <h2 className="text-lg font-black text-fg-strong flex items-center gap-2">
             <TrophyIcon className="size-6 text-gold" /> פיינל פור
           </h2>
-          <p className="text-xs text-fg-muted mt-0.5">שלב הגמר — עונת 2025-26</p>
+          <p className="text-xs text-fg-muted mt-0.5">שלב הגמר{seasonName && ` — עונת ${seasonName}`}</p>
         </div>
         {champion && (
           <span className="flex items-center gap-1.5 text-sm font-bold text-fg-strong bg-gold/[0.12] ring-1 ring-gold/30 rounded-full px-3 py-1.5">

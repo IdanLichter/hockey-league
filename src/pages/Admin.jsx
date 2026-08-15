@@ -1835,7 +1835,7 @@ function SeasonAdmin({ games, teams, players, reload }) {
   const [closing, setClosing] = useState(false)
   const [confirmText, setConfirmText] = useState("")
   const [showConfirm, setShowConfirm] = useState(false)
-  const { setSeasonMode } = useSeasonMode()
+  const { setSeasonMode, setSeasonName } = useSeasonMode()
 
   const refresh = () => {
     getArchivedSeasons().then(setArchivedSeasons).catch(() => {})
@@ -1851,6 +1851,9 @@ function SeasonAdmin({ games, teams, players, reload }) {
     try {
       await closeSeason(nextName, startsOn || null)
       setSeasonMode('regular')
+      // The shell reads the season once on boot, so without this every badge on
+      // the site keeps naming the season that was just archived until a reload.
+      setSeasonName(nextName)
       setShowConfirm(false)
       setConfirmText("")
       setNextName("")

@@ -7,7 +7,7 @@ import { useAuth } from "@/lib/AuthContext"
 import { RefreshCw, Smartphone } from "lucide-react"
 import { Rink } from "@/components/icons/HockeyIcons"
 import { motion } from "framer-motion"
-import { useSeasonMode } from "@/App"
+import { useSeasonMode, useSeasonName } from "@/App"
 import { buildFeed } from "@/lib/feed"
 import { getMyFollowSets } from "@/lib/follows"
 import { attachEventPhotos } from "@/lib/eventPhotos"
@@ -22,13 +22,13 @@ import QuickActions from "@/components/feed/QuickActions"
 import { StandingsWidget, NextGameWidget, LeadersWidget } from "@/components/feed/Widgets"
 import OnlinePresence from "@/components/OnlinePresence"
 
-const SEASON_NAME = "2025-26"
 const PAGE_SIZE = 25
 // Stable identity so the feed useMemo doesn't rebuild on every render for guests.
 const EMPTY_FOLLOWS = { teams: new Set(), players: new Set(), notify: new Set() }
 
 export default function Feed() {
   const { seasonMode } = useSeasonMode()
+  const seasonName = useSeasonName()
   const { user } = useAuth()
   const [games, setGames] = useState([])
   const [teams, setTeams] = useState([])
@@ -120,12 +120,12 @@ export default function Feed() {
     buildFeed({
       games, teams, players, gameStats,
       humanPosts: posts.filter(p => !blockedIds.has(p.author_id)),
-      championId, seasonName: SEASON_NAME, seasonMode,
+      championId, seasonName, seasonMode,
       followedTeams: follows.teams, followedPlayers: follows.players,
     }),
     { photos: photoIndex.photos, photoPlayers: photoIndex.photoPlayers, players },
     photoOverrides
-  ), [games, teams, players, gameStats, posts, championId, seasonMode, photoIndex, blockedIds, photoOverrides, follows])
+  ), [games, teams, players, gameStats, posts, championId, seasonName, seasonMode, photoIndex, blockedIds, photoOverrides, follows])
 
   const counts = useMemo(() => ({
     all: feed.length,

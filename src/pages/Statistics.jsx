@@ -7,6 +7,7 @@ import { motion } from "framer-motion"
 import TeamLogo from "@/components/TeamLogo"
 import { PlayerLink } from "@/components/EntityLinks"
 import { useTheme } from "@/lib/ThemeContext"
+import { useSeasonName } from "@/App"
 import { seriesColors, teamColorIndex, diverging } from "@/lib/chartPalette"
 import {
   leagueSummary, monthlyGoals, cumulativeTeamGoals, cumulativePlayerGoals,
@@ -30,6 +31,7 @@ const statsNote = (withStats, completed) =>
 
 export default function Statistics() {
   const { dark } = useTheme()
+  const seasonName = useSeasonName()
   const [teams, setTeams] = useState([])
   const [players, setPlayers] = useState([])
   const [games, setGames] = useState([])
@@ -387,7 +389,7 @@ export default function Statistics() {
         <h1 className="page-title flex items-center gap-2.5">
           <Stats className="w-7 h-7 text-brand" /> סטטיסטיקות
         </h1>
-        <p className="page-subtitle mt-1">נתוני ביצועים עונת 2025-26</p>
+        <p className="page-subtitle mt-1">נתוני ביצועים{seasonName && ` עונת ${seasonName}`}</p>
       </motion.div>
 
       {/* Overview tiles */}

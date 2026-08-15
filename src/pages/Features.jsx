@@ -1,5 +1,6 @@
 import { Globe, Smartphone, UserCircle, Users, Trophy, PenLine, Crown, Wrench, MessageSquareText, Star } from "lucide-react"
 import { Player, Whistle } from "@/components/icons/HockeyIcons"
+import { useSeasonName } from "@/App"
 
 /**
  * Public feature guide (/guide) — "what can you do in the system", organised by
@@ -207,12 +208,13 @@ function RoleCard({ id, Icon, title, who, feats }) {
 }
 
 export default function Features() {
+  const seasonName = useSeasonName()
   return (
     <div dir="rtl" className="max-w-4xl mx-auto p-4 sm:p-6 lg:p-8">
       {/* Header — navy brand band */}
       <div className="relative overflow-hidden rounded-3xl p-6 sm:p-8 mb-6 text-white bg-gradient-to-bl from-[#12295a] to-[#0B1B3A] border border-amber-400/30">
         <div className="absolute inset-x-0 bottom-0 h-0.5 bg-gradient-to-r from-transparent via-amber-300/70 to-transparent" />
-        <div className="text-[13px] font-extrabold tracking-widest text-amber-300 mb-2">מדריך תכונות · עונת 2025-26</div>
+        <div className="text-[13px] font-extrabold tracking-widest text-amber-300 mb-2">מדריך תכונות{seasonName && ` · עונת ${seasonName}`}</div>
         <h1 className="text-3xl sm:text-4xl font-black tracking-tight text-balance leading-tight">מה אפשר לעשות במערכת</h1>
         <p className="mt-2.5 text-[15px] text-slate-200 max-w-2xl leading-relaxed">
           כל מה שהמערכת מציעה — מסודר לפי סוג המשתמש ולפי הפלטפורמה. השתמשו בזה כדי לדעת בדיוק מה אפשר לנסות, ואיפה.

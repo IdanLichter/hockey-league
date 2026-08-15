@@ -14,9 +14,11 @@ import { DEFAULT_AGE, ageGroupsOf } from "@/lib/ageGroups"
 import LiveGameBanner from "@/components/LiveGameBanner"
 import { useLiveGames } from "@/lib/useLiveGames"
 import { Radio } from "lucide-react"
+import { useSeasonName } from "@/App"
 
 export default function Games() {
   const { coachTeamIds } = useAuth()
+  const seasonName = useSeasonName()
   const [games, setGames] = useState([])
   const [availByGame, setAvailByGame] = useState({})
   const [teams, setTeams] = useState([])
@@ -343,7 +345,7 @@ export default function Games() {
         <h1 className="page-title flex items-center gap-2.5">
           <Crossed className="w-7 h-7 text-brand" /> משחקים
         </h1>
-        <p className="page-subtitle mt-1">לוח משחקים ותוצאות עונת 2025-26</p>
+        <p className="page-subtitle mt-1">לוח משחקים ותוצאות{seasonName && ` עונת ${seasonName}`}</p>
       </motion.div>
 
       {/* Filters */}

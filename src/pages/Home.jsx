@@ -8,8 +8,10 @@ import { motion } from "framer-motion"
 import TeamLogo from "@/components/TeamLogo"
 import { TeamLink } from "@/components/EntityLinks"
 import FinalFourBracket from "@/components/FinalFourBracket"
+import { useSeasonName } from "@/App"
 
 export default function Home() {
+  const seasonName = useSeasonName()
   const [teams, setTeams] = useState([])
   const [games, setGames] = useState([])
   const [championId, setChampionId] = useState(null)
@@ -57,7 +59,7 @@ export default function Home() {
           <Standings className="size-8 text-brand shrink-0" />
           טבלת הליגה
         </h1>
-        <p className="page-subtitle mt-1">דירוג קבוצות עונת 2025-26</p>
+        <p className="page-subtitle mt-1">דירוג קבוצות{seasonName && ` עונת ${seasonName}`}</p>
       </motion.div>
 
       {error && (

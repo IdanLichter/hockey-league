@@ -10,9 +10,11 @@ import { Users, Trophy, Target, Shield, ChevronDown, ChevronUp, Star, RefreshCw,
 import { Teams as TeamsIcon } from "@/components/icons/HockeyIcons"
 import { motion } from "framer-motion"
 import TeamLogo from "@/components/TeamLogo"
+import { useSeasonName } from "@/App"
 
 export default function Teams() {
   const { profile } = useAuth()
+  const seasonName = useSeasonName()
   const isLinkedPlayer = !!profile?.player_id
   const [teams, setTeams] = useState([])
   const [players, setPlayers] = useState([])
@@ -79,7 +81,9 @@ export default function Teams() {
               <TeamsIcon className="w-7 h-7 text-brand" /> קבוצות
             </h1>
             <p className="page-subtitle mt-1">
-              {isSenior ? `${visible.length} קבוצות בליגה • עונת 2025-26` : `${visible.length} קבוצות • ${AGE_LABEL[ageTab]}`}
+              {isSenior
+                ? `${visible.length} קבוצות בליגה${seasonName ? ` • עונת ${seasonName}` : ''}`
+                : `${visible.length} קבוצות • ${AGE_LABEL[ageTab]}`}
             </p>
           </div>
           {isLinkedPlayer && (
