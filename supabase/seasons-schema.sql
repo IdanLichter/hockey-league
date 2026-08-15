@@ -221,15 +221,23 @@ create policy "game stats current season only" on public.game_stats
 
 create or replace function public.close_season(p_next_name text, p_next_starts date default null)
 returns uuid language plpgsql volatile security definer set search_path = public as $$
-declare v_cur uuid; v_next uuid;
+declare v_cur uuid; v_next uuid; v_planned uuid;
 begin
   if not public.is_admin() then raise exception 'not authorized to close the season'; end if;
   if coalesce(btrim(p_next_name), '') = '' then raise exception 'next season name required'; end if;
 
   v_cur := public.current_season_id();
   if v_cur is null then raise exception 'no current season configured'; end if;
-  if exists (select 1 from public.seasons where name = btrim(p_next_name)) then
-    raise exception 'a season named % already exists', btrim(p_next_name);
+
+  -- A season the LM already drafted next year's fixtures into is PROMOTED, not
+  -- refused for having a taken name — every drafted game goes live untouched
+  -- because nothing is copied or moved. Any other name collision is still an
+  -- error.
+  select id into v_planned from public.seasons
+   where name = btrim(p_next_name) and status = 'planned';
+
+  if v_planned is null and exists (select 1 from public.seasons where name = btrim(p_next_name)) then
+    raise exception 'a season named % already exists and is not a planned season', btrim(p_next_name);
   end if;
 
   -- Snapshot the live aggregates as this season's permanent record.
@@ -267,9 +275,17 @@ begin
      set status = 'archived', ends_on = coalesce(ends_on, current_date)
    where id = v_cur;
 
-  insert into public.seasons (name, status, starts_on)
-  values (btrim(p_next_name), 'active', coalesce(p_next_starts, current_date))
-  returning id into v_next;
+  if v_planned is not null then
+    update public.seasons
+       set status = 'active',
+           starts_on = coalesce(starts_on, p_next_starts, current_date)
+     where id = v_planned
+    returning id into v_next;
+  else
+    insert into public.seasons (name, status, starts_on)
+    values (btrim(p_next_name), 'active', coalesce(p_next_starts, current_date))
+    returning id into v_next;
+  end if;
 
   insert into public.league_settings (key, value, updated_at)
   values ('current_season_id', v_next::text, now())
@@ -277,13 +293,27 @@ begin
 
   -- Reset the live aggregates. Games are NOT deleted; they keep the old
   -- season_id and drop out of the live views on their own.
+  --
+  -- The `id <> nil-uuid` quals are NOT dead weight: PostgREST sessions preload
+  -- the `safeupdate` library (ALTER ROLE authenticator SET
+  -- session_preload_libraries), which rejects any UPDATE/DELETE whose PLAN has
+  -- no filter with "UPDATE requires a WHERE clause" — 400 at the REST layer.
+  -- SECURITY DEFINER does not exempt us: the library is loaded for the session,
+  -- not the current_user. `where id is not null` does NOT work, because on
+  -- PG17 the planner drops IS NOT NULL quals on NOT NULL columns and the plan
+  -- ends up bare again. A sentinel comparison survives planning.
   update public.teams set wins=0, losses=0, ties=0, points=0,
-                          goals_for=0, goals_against=0, own_goals_received=0;
-  update public.players set goals=0, games_played=0, blue_cards=0, red_cards=0;
+                          goals_for=0, goals_against=0, own_goals_received=0
+   where id <> '00000000-0000-0000-0000-000000000000'::uuid;
+  update public.players set goals=0, games_played=0, blue_cards=0, red_cards=0
+   where id <> '00000000-0000-0000-0000-000000000000'::uuid;
 
   -- Season-scoped state that should not carry over.
-  delete from public.player_suspensions;   -- bans do not cross seasons
-  delete from public.notifications;        -- all point at last season's rows
+  -- Same safeupdate story — these deletes need a surviving qual too.
+  delete from public.player_suspensions     -- bans do not cross seasons
+   where id <> '00000000-0000-0000-0000-000000000000'::uuid;
+  delete from public.notifications          -- all point at last season's rows
+   where id <> '00000000-0000-0000-0000-000000000000'::uuid;
   delete from public.league_settings where key = 'champion_team_id';
 
   insert into public.league_settings (key, value, updated_at)
