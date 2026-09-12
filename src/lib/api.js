@@ -587,8 +587,23 @@ export async function clearPlannedSeasonFixtures(seasonId) {
 }
 
 /**
- * Games belonging to one season. Admins and league managers can read any season
- * directly; everyone else is limited to the live one by RLS.
+ * Games belonging to one season, for the league manager's season calendar.
+ *
+ * The direct read is RLS-governed: it returns the current season to everyone,
+ * and additionally the 'planned' season to admins and league managers, which is
+ * what lets next year's fixtures be drafted before this one closes. ARCHIVED
+ * seasons are hidden from the live tables for every role — that is deliberate,
+ * and it is what stopped /statistics from rendering last season's numbers to
+ * anyone holding an admin or league-manager claim.
+ *
+ * So a closed season would come back empty here. Fall back to season_games(),
+ * the SECURITY DEFINER reader the archive already uses, so picking a past
+ * season in the calendar still shows its fixtures. It returns `setof games` —
+ * the same row shape as the table read, so callers can't tell the paths apart.
+ *
+ * The fallback costs one extra round trip only when the first read is empty,
+ * which is also the case for a planned season with no fixtures drafted yet —
+ * harmless, since the RPC returns nothing for it either.
  */
 export async function getSeasonGames(seasonId) {
   const { data, error } = await supabase
@@ -597,7 +612,12 @@ export async function getSeasonGames(seasonId) {
     .eq('season_id', seasonId)
     .order('game_date', { ascending: true })
   if (error) throw error
-  return data || []
+  if (data?.length) return data
+
+  const { data: viaRpc, error: rpcError } = await supabase
+    .rpc('season_games', { p_season_id: seasonId })
+  if (rpcError) throw rpcError
+  return [...(viaRpc || [])].sort((a, b) => new Date(a.game_date) - new Date(b.game_date))
 }
 
 /** The season the live site is currently showing. */
