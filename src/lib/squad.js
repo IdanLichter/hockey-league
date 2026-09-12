@@ -17,6 +17,9 @@ import { supabase } from './supabase'
 export const SQUAD_ERRORS = {
   'no valid medical':     'לשחקן אין בדיקה רפואית מאושרת בתוקף',
   'suspended':            'השחקן מורחק בגלל כרטיס אדום ואינו יכול לשחק במשחק הבא',
+  // add_player_to_squad and set_game_availability both raise this once an approved
+  // absence covers the fixture's date — without it the coach just sees a generic failure.
+  'unavailable':          'לשחקן יש היעדרות מאושרת במועד המשחק',
   'age not confirmed':    'יש לאשר שהשחקן/ית עומד/ת בדרישת הגיל להשאלה',
   'loan not youth':       'אפשר להשאיל רק שחקן/ית עד גיל 18, או שוער/ת בכל גיל',
   'team not in this game': 'הקבוצה אינה משתתפת במשחק זה',
