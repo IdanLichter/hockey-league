@@ -195,7 +195,12 @@ export default function TournamentDetail() {
                     {done ? (
                       <span className="text-base font-extrabold tabular-nums text-slate-900 dark:text-white">{g.away_score}<span className="text-slate-300 dark:text-slate-600 mx-1">:</span>{g.home_score}</span>
                     ) : (
-                      <span className="text-[11px] font-semibold text-slate-400">{g.game_date ? format(new Date(g.game_date), "d/M HH:mm") : (statusLabel[g.status] || "")}</span>
+                      /* date and time are two separate LTR runs — without dir=ltr the RTL context prints the time first */
+                      <span className="text-[11px] font-semibold text-slate-400">
+                        {g.game_date
+                          ? <span dir="ltr" className="tabular-nums">{format(new Date(g.game_date), "d/M HH:mm")}</span>
+                          : (statusLabel[g.status] || "")}
+                      </span>
                     )}
                   </div>
                   <div className="flex-1 flex items-center gap-2 min-w-0">

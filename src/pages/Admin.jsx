@@ -300,8 +300,9 @@ function CoachGamesView({ games, teamsMap, coachTeamIds }) {
                 <div className="flex items-center gap-2 min-w-0">
                   <TeamLogo team={teamsMap[game.home_team_id]} size={7} />
                   <span className="font-semibold text-xs text-slate-900 dark:text-white truncate max-w-[72px] sm:max-w-none">{teamsMap[game.home_team_id]?.name}</span>
-                  {/* RTL: away score first so each number sits beside its team (see rtl-score gotcha) */}
-                  <span className="text-xs font-bold text-slate-500 dark:text-slate-400 px-1 tabular-nums">{done ? `${game.away_score} : ${game.home_score}` : 'נגד'}</span>
+                  {/* RTL: away score first so each number sits beside its team (see rtl-score gotcha).
+                      dir=ltr — the spaces around the colon are neutrals and would otherwise swap the digits. */}
+                  <span dir="ltr" className="text-xs font-bold text-slate-500 dark:text-slate-400 px-1 tabular-nums">{done ? `${game.away_score} : ${game.home_score}` : 'נגד'}</span>
                   <span className="font-semibold text-xs text-slate-900 dark:text-white truncate max-w-[72px] sm:max-w-none">{teamsMap[game.away_team_id]?.name}</span>
                   <TeamLogo team={teamsMap[game.away_team_id]} size={7} />
                 </div>
@@ -594,10 +595,11 @@ function GamesAdmin({ games, teams, players, teamsMap, gameStats, tournaments = 
                     <TeamLogo team={teamsMap[game.home_team_id]} size={7} />
                     <span className="font-semibold text-xs text-slate-900 dark:text-white truncate max-w-[80px] sm:max-w-none">{teamsMap[game.home_team_id]?.name}</span>
                   </div>
-                  {/* RTL: away first, home last so each score renders beside its team (home is on the right). */}
+                  {/* RTL: away first, home last so each score renders beside its team (home is on the right).
+                      dir=ltr — the spaces around the colon are neutrals and would otherwise swap the digits. */}
                   <div className="text-center px-2">
                     {game.status === 'completed' ? (
-                      <span className="font-bold text-sm text-slate-900 dark:text-white tabular-nums">{game.away_score} : {game.home_score}</span>
+                      <span dir="ltr" className="font-bold text-sm text-slate-900 dark:text-white tabular-nums">{game.away_score} : {game.home_score}</span>
                     ) : (
                       <span className="text-[10px] font-semibold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-2 py-0.5 rounded-md">
                         {game.status === 'scheduled' ? 'מתוכנן' : game.status === 'postponed' ? 'נדחה' : game.status}

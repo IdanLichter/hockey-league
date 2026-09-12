@@ -78,6 +78,11 @@ $$;
 
 -- ---------------------------------------------------------------------------
 -- Fan-out for one (kind, game, date). Returns how many notifications it created.
+--
+-- ⚠ HISTORICAL — the body below is NOT what is deployed. officials-contact.sql holds
+-- the current send_game_reminder (it gained the follower_game_alert branch, an officials
+-- status filter, and on 2026-09-12 the can_register_for_game eligibility filter plus the
+-- player_teams-aware coach digest). Running this file would regress all of that.
 -- ---------------------------------------------------------------------------
 create or replace function public.send_game_reminder(p_kind text, p_game uuid, p_for date)
 returns int language plpgsql security definer set search_path = public as $$

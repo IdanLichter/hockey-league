@@ -35,7 +35,7 @@ function SeasonsList() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <div className="animate-spin rounded-full h-10 w-10 border-2 border-orange-500 border-t-transparent" />
+        <div className="animate-spin rounded-full h-10 w-10 border-2 border-brand border-t-transparent" />
       </div>
     )
   }
@@ -57,7 +57,7 @@ function SeasonsList() {
     <div className="p-4 sm:p-6 lg:p-8 max-w-5xl mx-auto space-y-5">
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
         <h1 className="page-title flex items-center gap-2.5">
-          <Crate className="w-7 h-7 text-orange-500" /> ארכיון עונות
+          <Crate className="w-7 h-7 text-brand" /> ארכיון עונות
         </h1>
         <p className="page-subtitle mt-1">צפייה בנתוני עונות קודמות</p>
       </motion.div>
@@ -74,7 +74,7 @@ function SeasonsList() {
             <motion.div key={season.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}>
               <Link to={`/archive/${season.id}`} className="card-hover p-5 block">
                 <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-orange-400 to-amber-500 flex items-center justify-center shadow-md">
+                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-brand to-amber-500 flex items-center justify-center shadow-md">
                     <Trophy className="w-6 h-6 text-white" />
                   </div>
                   <div className="flex-1">
@@ -124,7 +124,7 @@ function SeasonDetail({ seasonId }) {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <div className="animate-spin rounded-full h-10 w-10 border-2 border-orange-500 border-t-transparent" />
+        <div className="animate-spin rounded-full h-10 w-10 border-2 border-brand border-t-transparent" />
       </div>
     )
   }
@@ -147,11 +147,11 @@ function SeasonDetail({ seasonId }) {
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-5xl mx-auto space-y-5">
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
-        <Link to="/archive" className="text-xs font-semibold text-orange-500 hover:text-orange-600 mb-2 inline-block">
+        <Link to="/archive" className="text-xs font-semibold text-brand hover:text-brand-hover mb-2 inline-block">
           ← חזרה לארכיון
         </Link>
         <h1 className="page-title flex items-center gap-2.5">
-          <Trophy className="w-7 h-7 text-orange-500" /> עונת {season?.name}
+          <Trophy className="w-7 h-7 text-brand" /> עונת {season?.name}
         </h1>
       </motion.div>
 
@@ -276,10 +276,12 @@ function SeasonDetail({ seasonId }) {
               <div key={game.id} className="flex items-center justify-between px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
                 <div className="flex items-center gap-3 flex-1 min-w-0">
                   <span className="font-semibold text-sm text-slate-900 dark:text-white truncate">{game.home_team_name}</span>
-                  {/* RTL: away first, home last so each score renders beside its team (home is on the right). */}
+                  {/* RTL: away first, home last so each score renders beside its team (home is on the right).
+                      dir=ltr because the spaces around the colon are bidi-neutral: without it the two digit
+                      runs swap and every score sits next to the wrong team. */}
                   <div className="text-center px-2">
                     {game.status === 'completed' ? (
-                      <span className="font-bold text-sm text-slate-900 dark:text-white tabular-nums">{game.away_score} : {game.home_score}</span>
+                      <span dir="ltr" className="font-bold text-sm text-slate-900 dark:text-white tabular-nums">{game.away_score} : {game.home_score}</span>
                     ) : (
                       <span className="text-[10px] text-slate-400">—</span>
                     )}

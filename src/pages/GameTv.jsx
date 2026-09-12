@@ -27,6 +27,27 @@ const TV = {
   note:  "clamp(0.75rem, min(3vh, 3vw), 1.5rem)",
 }
 
+/* Each side is its own element, so the digits never reorder against the RTL layout.
+ * Declared at module scope on purpose: the clock re-renders this page 4x a second, and
+ * a component defined inside the render body is a new type every tick — React would
+ * remount the crest each frame and never let the load-error state below stick. */
+function Side({ team, score }) {
+  // A crest URL can go dead (team re-uploads, storage object removed). Without onError
+  // the TV shows a broken-image glyph on a hall wall; fall back to the empty spacer.
+  const [imgError, setImgError] = useState(false)
+  useEffect(() => { setImgError(false) }, [team?.logo_url])
+
+  return (
+    <div className="flex-1 min-w-0 flex flex-col items-center gap-[2vh]">
+      {team?.logo_url && !imgError
+        ? <img src={team.logo_url} alt="" onError={() => setImgError(true)} style={{ height: TV.crest, width: TV.crest }} className="object-contain" />
+        : <div style={{ height: TV.crest }} />}
+      <p style={{ fontSize: TV.name }} className="font-bold text-white/80 truncate max-w-full px-2">{team?.name || "—"}</p>
+      <p style={{ fontSize: TV.score }} className="leading-none font-extrabold text-white tabular-nums">{score}</p>
+    </div>
+  )
+}
+
 export default function GameTv() {
   const { id } = useParams()
   const [game, setGame] = useState(null)
@@ -74,17 +95,6 @@ export default function GameTv() {
   if (!game) {
     return <div className="fixed inset-0 z-[100] bg-[#0E2350] flex items-center justify-center text-white/60 text-2xl">טוען…</div>
   }
-
-  // Each side is its own element, so the digits never reorder against the RTL layout.
-  const Side = ({ team, score }) => (
-    <div className="flex-1 min-w-0 flex flex-col items-center gap-[2vh]">
-      {team?.logo_url
-        ? <img src={team.logo_url} alt="" style={{ height: TV.crest, width: TV.crest }} className="object-contain" />
-        : <div style={{ height: TV.crest }} />}
-      <p style={{ fontSize: TV.name }} className="font-bold text-white/80 truncate max-w-full px-2">{team?.name || "—"}</p>
-      <p style={{ fontSize: TV.score }} className="leading-none font-extrabold text-white tabular-nums">{score}</p>
-    </div>
-  )
 
   return (
     <div className="fixed inset-0 z-[100] bg-[#0E2350] flex flex-col items-center justify-center select-none overflow-hidden">

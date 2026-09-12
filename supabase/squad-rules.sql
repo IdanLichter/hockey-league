@@ -11,10 +11,14 @@
 --   row 15 חוסר אפשרות להוסיף שחקן עם כרטיס אדום
 --   row 33 ולידאציה של גיל השחקן  (coach confirmation — see below)
 --
--- On row 33: there is no birth date in the schema (players.age is an integer filled in
--- for 6 of 98 players), so "14 או כיתה ח, המוקדם מביניהם" cannot be computed. Per the
--- product decision the coach confirms it instead, and the confirmation is recorded on
--- the row so there is an audit trail of who vouched for the player.
+-- On row 33: players.birth_date was added later, so the age IS computable now — the
+-- coach's confirmation is the FALLBACK for a player with no DOB on file, not the rule.
+-- The confirmation is still recorded on the row, so there is an audit trail of who
+-- vouched for the player. (birth_date is revoked from `anon`; see
+-- players-birth-date-privacy.sql.)
+--
+-- 2026-09-12: both functions below also gate on public.is_unavailable — see
+-- player-unavailability.sql.
 
 alter table public.game_availability
   add column if not exists age_confirmed boolean not null default false;
@@ -25,18 +29,12 @@ alter table public.game_availability
 -- ---------------------------------------------------------------------------
 create or replace function public.set_game_availability(p_game_id uuid, p_status text)
 returns void language plpgsql security definer set search_path = public as $$
-declare v_player uuid;
+declare v_player uuid; v_game_day date;
 begin
   v_player := public.my_player_id();
   if v_player is null then raise exception 'no linked player'; end if;
   if p_status not in ('available','unavailable') then raise exception 'bad status'; end if;
 
-  -- Row 6. The UI only shows the button on your own team's games, but this RPC is
-  -- reachable directly with any game id, so the rule has to live here — previously it
-  -- did not exist at all and any signed-in player could register for any game.
-  -- player_teams is the roster source of truth for multi-age players; players.team_id
-  -- is the derived primary. An existing row also qualifies, so a loaned player the
-  -- coach added can still change his own answer.
   if not exists (
     select 1 from public.games g
     where g.id = p_game_id
@@ -53,11 +51,15 @@ begin
   end if;
 
   if p_status = 'available' then
-    -- Row 5: a red card blocks the next game.
     if public.is_suspended(v_player) then
       raise exception 'suspended';
     end if;
-    -- B5: no signup without a valid medical (availability-medical-gate.sql).
+    -- A3/F1: injured, abroad, on reserve duty. Tested against the GAME's date, not
+    -- today, so an absence next Saturday does not block the fixture after it.
+    select g.game_date::date into v_game_day from public.games g where g.id = p_game_id;
+    if public.is_unavailable(v_player, coalesce(v_game_day, current_date)) then
+      raise exception 'unavailable';
+    end if;
     if not exists (
       select 1 from public.medical_certificates
       where player_id = v_player and status = 'approved'
@@ -82,51 +84,61 @@ grant execute on function public.set_game_availability(uuid, text) to authentica
 -- (the judge owns the sheet once the game is running).
 -- ---------------------------------------------------------------------------
 create or replace function public.add_player_to_squad(
-  p_game_id       uuid,
-  p_player_id     uuid,
-  p_team_id       uuid,
-  p_note          text    default null,
-  p_age_confirmed boolean default false
-) returns void language plpgsql security definer set search_path = public as $$
+  p_game_id uuid, p_player_id uuid, p_team_id uuid,
+  p_note text default null, p_age_confirmed boolean default false
+) returns void
+language plpgsql security definer set search_path = public as $$
 declare
-  g record;
-  v_not_started boolean;
+  g record; p record;
+  v_not_started boolean; v_is_loan boolean; v_age int;
 begin
   select id, home_team_id, away_team_id, game_date, status
     into g from public.games where id = p_game_id;
   if g.id is null then raise exception 'game not found'; end if;
 
-  -- The team must actually be in this game, and it is required: a loaned goalkeeper is
-  -- on neither roster, so nothing else says which side he is turning out for.
   if p_team_id is null or p_team_id not in (g.home_team_id, g.away_team_id) then
     raise exception 'team not in this game';
   end if;
 
-  if not exists (select 1 from public.players where id = p_player_id) then
-    raise exception 'player not found';
-  end if;
+  select id, team_id, "position", birth_date into p from public.players where id = p_player_id;
+  if p.id is null then raise exception 'player not found'; end if;
 
   v_not_started := (g.game_date > now()) and (g.status in ('scheduled', 'postponed'));
 
   if public.is_admin() or public.is_league_manager() or public.is_judge() then
-    null;                                        -- officials may add at any time
+    null;
   elsif public.is_coach_of(p_team_id) then
     if not v_not_started then raise exception 'game already started'; end if;
   else
     raise exception 'not authorized';
   end if;
 
-  -- Row 33 — the coach vouches for eligibility; the database cannot.
-  if not p_age_confirmed then
-    raise exception 'age not confirmed';
+  -- is he one of this team's own players, or is he being borrowed?
+  v_is_loan := not (
+    p.team_id = p_team_id
+    or exists (select 1 from public.player_teams pt
+               where pt.player_id = p_player_id and pt.team_id = p_team_id)
+  );
+
+  if v_is_loan then
+    v_age := public.player_age(p.birth_date);
+    if p."position" = 'Goalkeeper' then
+      null;                                   -- a borrowed keeper may be any age
+    elsif v_age is not null then
+      if v_age >= 18 then raise exception 'loan not youth'; end if;
+    elsif not p_age_confirmed then
+      raise exception 'age not confirmed';    -- no DOB on file → the coach vouches
+    end if;
   end if;
 
-  -- Row 15
-  if public.is_suspended(p_player_id) then
-    raise exception 'suspended';
+  if public.is_suspended(p_player_id) then raise exception 'suspended'; end if;
+
+  -- A3/F1 — same gate as self-registration; the coach must not be able to name a
+  -- player the player himself could not sign up.
+  if public.is_unavailable(p_player_id, g.game_date::date) then
+    raise exception 'unavailable';
   end if;
 
-  -- Row 14
   if not exists (
     select 1 from public.medical_certificates
     where player_id = p_player_id and status = 'approved'
@@ -141,12 +153,8 @@ begin
     (p_game_id, p_player_id, 'available', (select auth.uid()), p_team_id,
      nullif(btrim(coalesce(p_note, '')), ''), true, now())
   on conflict (game_id, player_id) do update
-    set status        = 'available',
-        added_by      = excluded.added_by,
-        team_id       = excluded.team_id,
-        note          = excluded.note,
-        age_confirmed = true,
-        updated_at    = now();
+    set status = 'available', added_by = excluded.added_by, team_id = excluded.team_id,
+        note = excluded.note, age_confirmed = true, updated_at = now();
 end;
 $$;
 revoke all on function public.add_player_to_squad(uuid, uuid, uuid, text, boolean) from public, anon;

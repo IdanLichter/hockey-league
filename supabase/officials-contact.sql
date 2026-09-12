@@ -76,10 +76,36 @@ grant execute on function public.apply_as_official(uuid, text) to authenticated;
 -- AMENDED 2026-08-15 (migration `officials_assigned_status_collapse`): the original wrote
 -- `status = 'approved'`, which dropped 'assigned' along with 'applied' and so reported
 -- "0 judges, 0 medics" for games that had both. Counts both confirmed statuses now.
--- NOTE: the live definition has since gained a `follower_game_alert` branch not shown
--- in the body below — recreate from pg_get_functiondef, not from this file.
+-- AMENDED 2026-09-12 (migration `reminders_skip_ineligible_players`): the recipient loop
+-- filtered on team membership and "hasn't answered" only, so a suspended player, or one
+-- with no approved medical, was nagged every single day to do something the registration
+-- gate would refuse. And coach_digest's "pending" count both included those same players
+-- AND scoped its roster on p.team_id alone — missing the player_teams multi-age members
+-- the recipient loop above it already included. Both fixed below.
+--
+-- This is the CURRENT deployed body (it also carries the follower_game_alert branch).
+
+-- The three conditions the registration gate itself applies, in one place so the
+-- reminders and the gate cannot drift apart. NOT granted to authenticated: it would
+-- answer "does player X have a valid medical?" for anyone who asked.
+create or replace function public.can_register_for_game(p_player uuid, p_game uuid)
+returns boolean language sql stable security definer set search_path = public as $$
+  select not coalesce(public.is_suspended(p_player), false)
+     and not coalesce(public.is_unavailable(
+           p_player,
+           coalesce((select g.game_date::date from public.games g where g.id = p_game),
+                    current_date)), false)
+     and exists (
+       select 1 from public.medical_certificates mc
+        where mc.player_id = p_player
+          and mc.status = 'approved'
+          and (mc.expires_at is null or mc.expires_at >= current_date))
+$$;
+revoke execute on function public.can_register_for_game(uuid, uuid) from public, anon, authenticated;
+
 create or replace function public.send_game_reminder(p_kind text, p_game uuid, p_for date)
-returns int language plpgsql security definer set search_path = public as $$
+returns integer
+language plpgsql security definer set search_path = public as $$
 declare
   g       record;
   rec     record;
@@ -115,6 +141,9 @@ begin
                          where pt.player_id = p.id
                            and pt.team_id in (g.home_team_id, g.away_team_id))
             )
+        -- A2: suspended, medically unapproved, or on an approved absence — the gate
+        -- would refuse him, so the reminder is only noise.
+        and public.can_register_for_game(p.id, g.id)
         and (p_kind = 'register_reminder'
              or not exists (select 1 from public.game_availability ga
                             where ga.game_id = g.id and ga.player_id = p.id))
@@ -137,14 +166,22 @@ begin
       from public.user_roles ur
       where ur.role = 'coach' and ur.team_id in (g.home_team_id, g.away_team_id)
     loop
+      -- A2, two fixes. The roster is now the same set the recipient loop above uses —
+      -- players.team_id OR player_teams — so a multi-age squad member is no longer
+      -- invisible to his own coach's digest. And "pending" means players who could
+      -- still answer: counting a suspended or medical-less player as "טרם הגיב" told
+      -- the coach to go chase someone the server will refuse.
       select count(*) filter (where ga.status = 'available'),
              count(*) filter (where ga.status = 'unavailable'),
-             count(*) filter (where ga.id is null)
+             count(*) filter (where ga.id is null
+                                and public.can_register_for_game(p.id, g.id))
         into v_yes, v_no, v_pending
         from public.players p
         left join public.game_availability ga
                on ga.game_id = g.id and ga.player_id = p.id
-       where p.team_id = rec.team_id;
+       where p.team_id = rec.team_id
+          or exists (select 1 from public.player_teams pt
+                     where pt.player_id = p.id and pt.team_id = rec.team_id);
 
       insert into public.game_reminder_log (game_id, kind, user_id, sent_for)
       values (p_game, p_kind, rec.user_id, p_for) on conflict do nothing;
@@ -191,6 +228,16 @@ begin
           rec.user_id, 'lm_officials_digest', null, 'game', p_game::text,
           base || jsonb_build_object('judges', coalesce(v_judges, 0),
                                      'medics', coalesce(v_medics, 0)));
+        n := n + 1;
+      end if;
+    end loop;
+  elsif p_kind = 'follower_game_alert' then
+    for rec in select user_id from public.game_followers(p_game) loop
+      insert into public.game_reminder_log (game_id, kind, user_id, sent_for)
+      values (p_game, p_kind, rec.user_id, p_for) on conflict do nothing;
+      if found then
+        perform public.create_notification(
+          rec.user_id, 'follow_game_alert', null, 'game', p_game::text, base);
         n := n + 1;
       end if;
     end loop;

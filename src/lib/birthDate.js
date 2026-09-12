@@ -49,11 +49,21 @@ export async function setPlayerBirthDate(playerId, birthDate) {
   }
 }
 
-/** My own player card's DOB (null if I'm not linked to a player). */
-export async function getMyBirthDate(playerId) {
+/**
+ * One player's DOB, read per-row.
+ *
+ * Deliberately NOT part of the bulk player fetch: `birth_date` is revoked from the `anon`
+ * role so minors' dates of birth are not public, which means the wide public list must
+ * not name the column at all. A signed-in caller who needs one DOB — the owner on his
+ * account page, a coach sizing up a loan — asks for exactly that row.
+ */
+export async function getPlayerBirthDate(playerId) {
   if (!playerId) return null
   const { data, error } = await supabase
     .from('players').select('birth_date').eq('id', playerId).maybeSingle()
   if (error) return null
   return data?.birth_date ?? null
 }
+
+/** My own player card's DOB (null if I'm not linked to a player). */
+export const getMyBirthDate = getPlayerBirthDate

@@ -1,6 +1,6 @@
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { addPlayerToSquad } from "@/lib/squad"
-import { canBeBorrowed } from "@/lib/birthDate"
+import { canBeBorrowed, getPlayerBirthDate } from "@/lib/birthDate"
 import { UserPlus, Loader2, X } from "lucide-react"
 
 /**
@@ -46,10 +46,30 @@ export default function AddSquadPlayer({ gameId, teamId, teamName, players = [],
   const picked = players.find(p => p.id === playerId) || null
   // Borrowing = the player isn't one of this team's own. Only then does the age rule bite.
   const isLoan = !!picked && picked.team_id !== teamId
-  const borrow = isLoan ? canBeBorrowed(picked) : { ok: true, reason: "own" }
+
+  // DOB is NOT in the bulk player list — it is revoked from `anon` so minors' dates of
+  // birth are not public, so the wide fetch cannot even name the column. Read the one row
+  // we actually need, and only when a loan is on the table.
+  const [dobs, setDobs] = useState({})          // playerId → birth_date | null
+  const [dobLoading, setDobLoading] = useState(false)
+  useEffect(() => {
+    if (!picked || !isLoan || picked.id in dobs) return
+    let alive = true
+    setDobLoading(true)
+    getPlayerBirthDate(picked.id)
+      .then(d => { if (alive) setDobs(m => ({ ...m, [picked.id]: d ?? null })) })
+      .finally(() => { if (alive) setDobLoading(false) })
+    return () => { alive = false }
+  }, [picked, isLoan, dobs])
+
+  const pickedWithDob = picked ? { ...picked, birth_date: dobs[picked.id] ?? null } : null
+  const borrow = isLoan ? canBeBorrowed(pickedWithDob) : { ok: true, reason: "own" }
+  // While the DOB is still in flight we know nothing — don't flash the fallback checkbox
+  // and don't let the form be submitted on a guess.
+  const dobPending = isLoan && (dobLoading || !(picked.id in dobs))
   // The checkbox is a FALLBACK, needed only when we have no DOB to judge by.
-  const needsTick = isLoan && borrow.reason === "no-dob"
-  const blocked = isLoan && !borrow.ok && borrow.reason !== "no-dob"
+  const needsTick = isLoan && !dobPending && borrow.reason === "no-dob"
+  const blocked = isLoan && !dobPending && !borrow.ok && borrow.reason !== "no-dob"
 
   const reset = () => { setPlayerId(""); setNote(""); setAgeOk(false); setErr(null) }
 
@@ -111,7 +131,9 @@ export default function AddSquadPlayer({ gameId, teamId, teamName, players = [],
           ourselves. With a date of birth on the card there is nothing to confirm. */}
       {isLoan && (
         <p className={`text-[11px] leading-relaxed ${blocked ? "text-red-600 dark:text-red-400" : "text-slate-500 dark:text-slate-400"}`}>
-          {borrow.reason === "goalkeeper"
+          {dobPending
+            ? "בודק/ת תאריך לידה…"
+            : borrow.reason === "goalkeeper"
             ? "שוער/ת — מותר להשאיל בכל גיל"
             : borrow.reason === "youth"
               ? `בן/בת ${borrow.age} — מותר להשאיל (עד גיל 18)`
@@ -131,7 +153,7 @@ export default function AddSquadPlayer({ gameId, teamId, teamName, players = [],
 
       {err && <p className="text-[11px] text-red-600 dark:text-red-400">{err}</p>}
 
-      <button type="submit" disabled={saving || !playerId || blocked || (needsTick && !ageOk)}
+      <button type="submit" disabled={saving || !playerId || dobPending || blocked || (needsTick && !ageOk)}
         className="w-full flex items-center justify-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg bg-brand text-white hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed">
         {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <UserPlus className="w-3.5 h-3.5" />}
         הוספה לסגל

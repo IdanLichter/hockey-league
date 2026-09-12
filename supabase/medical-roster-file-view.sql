@@ -6,17 +6,29 @@
 --      admin/LM UI can open a short-lived signed URL to it.
 
 -- 1. Storage read access ---------------------------------------------------------
-alter policy "medical read self/coach/admin" on storage.objects
-  using (
-    (bucket_id = 'medical'::text) and (
-      ((storage.foldername(name))[1] = (my_player_id())::text)
-      or is_admin()
-      or is_league_manager()
-      or (exists (
-        select 1 from players pl
-        where (pl.id)::text = (storage.foldername(objects.name))[1]
-          and is_coach_of(pl.team_id)
-      ))
+--
+-- AMENDED 2026-09-12 (migration `medical_storage_read_player_teams_branch`): the coach
+-- branch resolved "coach of this player" through players.team_id only, so a youth-team
+-- coach whose player's primary card sits on the senior side got a 403 on the very
+-- certificate he is meant to review. is_coach_of_player() covers players.team_id AND
+-- player_teams (defined in player-unavailability.sql).
+--
+-- The folder segment is compared as TEXT against players.id and never cast to uuid: an
+-- object whose first path segment is not a uuid would raise on the cast and take the
+-- whole policy evaluation down with it.
+drop policy if exists "medical read self/coach/admin" on storage.objects;
+create policy "medical read self/coach/admin" on storage.objects
+  for select to authenticated using (
+    bucket_id = 'medical'
+    and (
+      (storage.foldername(name))[1] = (public.my_player_id())::text
+      or coalesce(public.is_admin(), false)
+      or coalesce(public.is_league_manager(), false)
+      or exists (
+        select 1 from public.players pl
+        where pl.id::text = (storage.foldername(objects.name))[1]
+          and coalesce(public.is_coach_of_player(pl.id), false)
+      )
     )
   );
 

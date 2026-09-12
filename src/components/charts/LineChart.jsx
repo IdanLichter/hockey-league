@@ -30,6 +30,10 @@ export default function LineChart({ series = [], xTicks = [], unit = '', vbH = 2
   const { dark } = useTheme()
   const svgRef = useRef(null)
   const [hover, setHover] = useState(null)
+  // A dead crest URL leaves an SVG <image> drawing nothing at all — the end-of-line
+  // label loses its identity cue. <image> does fire an error event, so track the
+  // failures and fall back to the coloured initial disc below (same shape as TeamLogo).
+  const [crestFailed, setCrestFailed] = useState({})
 
   const drawable = series.filter((s) => s.points && s.points.length)
   if (!drawable.length) return null
@@ -154,8 +158,9 @@ export default function LineChart({ series = [], xTicks = [], unit = '', vbH = 2
             <g key={`end-${s.id}`} pointerEvents="none">
               <line x1={ex} y1={sy(s.points[s.points.length - 1].y)} x2={labelX - 2} y2={cy} stroke={s.color} strokeWidth="1" opacity="0.5" />
               <clipPath id={`lc-${s.id}`}><circle cx={cx} cy={cy} r="7" /></clipPath>
-              {s.team?.logo_url ? (
-                <image href={s.team.logo_url} x={labelX} y={cy - 7} width="14" height="14" clipPath={`url(#lc-${s.id})`} preserveAspectRatio="xMidYMid slice" />
+              {s.team?.logo_url && !crestFailed[s.id] ? (
+                <image href={s.team.logo_url} x={labelX} y={cy - 7} width="14" height="14" clipPath={`url(#lc-${s.id})`} preserveAspectRatio="xMidYMid slice"
+                       onError={() => setCrestFailed((f) => ({ ...f, [s.id]: true }))} />
               ) : (
                 <>
                   <circle cx={cx} cy={cy} r="7" fill={s.color} />

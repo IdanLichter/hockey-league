@@ -1,3 +1,16 @@
+-- ⚠⚠ SUPERSEDED — DO NOT RUN ⚠⚠
+--
+-- This file predates the soft season rollover (seasons-schema.sql / close_season()).
+-- Its four bare DELETE / UPDATE statements would resurrect a retired season destroyer:
+-- archiving is now done by snapshotting and flipping a season pointer, with RLS hiding
+-- other seasons — NOTHING is deleted. Replaying this against production would wipe live
+-- rows that the current design expects to still be there.
+--
+-- Kept for history only. If you need the current behaviour, read the DEPLOYED
+-- close_season() via pg_get_functiondef, not this file.
+--
+-- ---------------------------------------------------------------------------
+
 -- ============================================================================
 -- archive_and_reset_season: the season rollover, done atomically.
 --

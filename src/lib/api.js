@@ -112,10 +112,19 @@ export async function uploadTeamLogo(teamId, file) {
   return url
 }
 
+// Every players column EXCEPT birth_date. This list is deliberate, not laziness avoided:
+// `birth_date` is revoked from the `anon` role (minors' DOB must not be public), and a
+// bare `select('*')` asks Postgres for privilege on EVERY column — so a wildcard here
+// would 403 the whole public player list for logged-out visitors. Anyone who genuinely
+// needs a DOB reads it per-row while signed in (see lib/birthDate.js).
+export const PLAYER_PUBLIC_COLUMNS =
+  'id,first_name,last_name,jersey_number,position,team_id,is_referee,is_core,age,' +
+  'goals,games_played,blue_cards,red_cards,photo_url,created_at'
+
 export async function getPlayers(orderBy = 'goals', ascending = false) {
   const { data, error } = await supabase
     .from('players')
-    .select('*')
+    .select(PLAYER_PUBLIC_COLUMNS)
     .order(orderBy, { ascending })
   if (error) throw error
   const players = data || []

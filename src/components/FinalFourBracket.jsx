@@ -248,8 +248,10 @@ function GameResult({ game }) {
         ? <span className="text-fg-subtle">מ׳ {game.series_game}</span>
         : <span />}
       <span className="text-fg-subtle">{format(new Date(game.game_date), "d/M")}</span>
+      {/* Score is away:home. The spaces around the dash are bidi-neutral, so under RTL
+          the two digit runs swap (5 - 2 would read 2 - 5) — dir=ltr pins the order. */}
       {game.status === "completed"
-        ? <span className="font-bold text-fg-strong tabular-nums">{game.away_score} - {game.home_score}</span>
+        ? <span dir="ltr" className="font-bold text-fg-strong tabular-nums">{game.away_score} - {game.home_score}</span>
         : <span className="text-fg-muted font-medium">מתוכנן</span>
       }
     </div>

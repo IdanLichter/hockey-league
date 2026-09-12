@@ -2,6 +2,11 @@
 -- migration `availability_requires_valid_medical`. Updates set_game_availability from
 -- game-availability.sql to reject "available" unless the player holds a valid approved
 -- medical certificate (not expired; legacy null-expiry rows grandfathered).
+--
+-- ⚠ HISTORICAL — the body below is NOT what is deployed. squad-rules.sql superseded it
+-- (roster + red-card checks), and player-unavailability.sql added the is_unavailable
+-- gate on 2026-09-12. squad-rules.sql holds the current body. Running this file would
+-- silently strip three checks off the live function.
 create or replace function public.set_game_availability(p_game_id uuid, p_status text)
 returns void language plpgsql security definer set search_path = public as $$
 declare v_player uuid;

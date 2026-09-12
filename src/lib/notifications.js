@@ -97,6 +97,16 @@ const actorName = (n) => n.actor?.display_name?.trim() || 'מישהו'
 // "בית נגד חוץ" for the scheduled game reminders.
 const vs = (d) => `${d.home_team || ''} נגד ${d.away_team || ''}`.trim()
 
+// F1 — player availability constraints. The kind is stored as a stable English token so
+// the DB and the native clients agree on it; only the label is Hebrew.
+const UNAVAILABILITY_KIND = {
+  injury: 'פציעה', abroad: 'שהות בחו״ל', reserve_duty: 'מילואים', other: 'סיבה אחרת',
+}
+const kindLabel = (k) => UNAVAILABILITY_KIND[k] || 'אי-זמינות'
+// Dates read LTR inside an RTL sentence, so keep each run whole (RTL bidi gotcha).
+const day = (v) => (v ? new Date(v).toLocaleDateString('he-IL') : '')
+const span = (d) => (d.ends_on ? `${day(d.starts_on)}–${day(d.ends_on)}` : `מ־${day(d.starts_on)}`)
+
 // What actually changed about the fixture. Leads with the NEW value — that is the thing
 // the reader has to act on; the old one is only there to make the change legible.
 function movedSummary(d) {
@@ -128,7 +138,7 @@ export function notificationText(n) {
     case 'role_granted':   return `קיבלת תפקיד: ${ROLE_LABEL[d.role] || d.role || ''}`
     case 'claim_request':  return `${d.claimant || 'משתמש'} מבקש/ת להתחבר לשחקן ${d.player_name || ''}`
     case 'content_report': return `דווח תוכן${d.reason ? ` — ${d.reason}` : ''}`
-    case 'game_result':    return `תוצאה: ${d.home_team || ''} ${d.home_score ?? ''}:${d.away_score ?? ''} ${d.away_team || ''}`
+    case 'game_result':    return `תוצאה: ${d.home_team || ''} ${d.away_score ?? ''}:${d.home_score ?? ''} ${d.away_team || ''}`
     case 'game_change_request':  return `${actorName(n)} מבקש/ת שינוי במשחק ${d.home_team || ''} נגד ${d.away_team || ''}${d.reason ? ` — ${d.reason}` : ''}`
     case 'game_change_opponent': return `${actorName(n)} מבקש/ת שינוי מועד — יש לבחור מועד שמתאים לך${d.reason ? ` (${d.reason})` : ''}`
     case 'game_change_approved': return `בקשתך לשינוי המשחק ${d.home_team || ''} נגד ${d.away_team || ''} אושרה 🎉${d.decision_note ? ` — ${d.decision_note}` : ''}`
@@ -150,6 +160,10 @@ export function notificationText(n) {
     case 'medical_expiring_player': return `האישור הרפואי של ${d.player_name || 'שחקן'} יפוג בעוד ${d.days_left ?? ''} ימים`
     // The manager reviewed the file himself and rejected it — losing a valid
     // medical means no registering, so the reason has to travel with it.
+    // F1 — an absence a player reported for himself, waiting on his coach
+    case 'unavailability_reported': return `${d.player_name || actorName(n)} דיווח/ה על אי-זמינות (${kindLabel(d.kind)}) ${span(d)} — ממתין לאישורך`
+    case 'unavailability_approved': return `דיווח אי-הזמינות שלך (${kindLabel(d.kind)}) ${span(d)} אושר ✅${d.decision_note ? ` — ${d.decision_note}` : ''}`
+    case 'unavailability_rejected': return `דיווח אי-הזמינות שלך (${kindLabel(d.kind)}) ${span(d)} נדחה${d.decision_note ? ` — ${d.decision_note}` : ''}`
     case 'medical_revoked':      return `האישור הרפואי ${d.player_name ? `של ${d.player_name} ` : ''}בוטל${d.reason ? ` — ${d.reason}` : ''}`
     case 'medical_date_changed': return `תאריך הבדיקה עודכן — האישור בתוקף עד ${d.expires_at ? new Date(d.expires_at).toLocaleDateString('he-IL') : ''}`
     case 'tournament_invite':          return `קבוצת ${d.team_name || ''} הוזמנה לטורניר ${d.tournament_name || ''}`
@@ -215,6 +229,9 @@ export function notificationIcon(n) {
     case 'medical_approved':     return '🩺'
     case 'medical_rejected':     return '⛔'
     case 'medical_expiring':     return '⏰'
+    case 'unavailability_reported': return '🚑'
+    case 'unavailability_approved': return '✅'
+    case 'unavailability_rejected': return '⛔'
     case 'medical_revoked':      return '⛔'
     case 'medical_date_changed': return '🩺'
     case 'medical_expiring_player': return '⏰'
@@ -265,7 +282,7 @@ export function notificationHref(n) {
     case 'lm_officials_digest':
     case 'lm_broadcast':
     case 'game_moved':
-    case 'follow_game_alert':
+    case 'follow_game_alert':      return n.entity_id ? `/games/${n.entity_id}` : '/games'
     case 'app_update':            return '/app'
     case 'goal_scored':           return n.entity_id ? `/games/${n.entity_id}` : '/games'
     // reviewers land on the /admin review tabs
@@ -282,7 +299,11 @@ export function notificationHref(n) {
     case 'medical_approved':
     case 'medical_rejected':
     case 'medical_expiring':       return '/me'
-    case 'medical_expiring_player': return '/admin?tab=medical'
+    case 'medical_expiring_player': return '/admin?tab=claims'
+    // F1 — the reviewer lands on the player whose absence it is; the player on his own page
+    case 'unavailability_reported': return n.entity_id ? `/players/${n.entity_id}` : '/admin'
+    case 'unavailability_approved':
+    case 'unavailability_rejected': return '/me'
     case 'medical_revoked':
     case 'medical_date_changed':   return '/me'
     case 'tournament_invite':

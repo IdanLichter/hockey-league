@@ -135,7 +135,7 @@ export default function LiveGame({ gameId, home, away, initial = null }) {
   if (loading) {
     return (
       <div className="card p-6 flex items-center justify-center min-h-[160px]">
-        <div className="animate-spin rounded-full h-8 w-8 border-2 border-orange-500 border-t-transparent" />
+        <div className="animate-spin rounded-full h-8 w-8 border-2 border-brand border-t-transparent" />
       </div>
     )
   }
@@ -148,9 +148,9 @@ export default function LiveGame({ gameId, home, away, initial = null }) {
   const waiting = running && stale  // clock frozen: the judge's heartbeat went silent
 
   return (
-    <div className="card relative overflow-hidden p-5 sm:p-8 ring-1 ring-orange-500/40">
+    <div className="card relative overflow-hidden p-5 sm:p-8 ring-1 ring-brand/40">
       {/* brand accent strip */}
-      <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-l from-orange-500 to-orange-400" />
+      <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-l from-brand to-brand-hover" />
 
       {/* status row: live pulse (right, RTL) + period (left) */}
       <div className="flex items-center justify-between mb-4">
@@ -168,7 +168,7 @@ export default function LiveGame({ gameId, home, away, initial = null }) {
           </span>
         )}
         {live.period && (
-          <span className="stat-pill bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300">
+          <span className="stat-pill bg-brand/10 text-brand dark:bg-brand/20 dark:text-brand-light">
             {live.period}
           </span>
         )}
@@ -179,7 +179,7 @@ export default function LiveGame({ gameId, home, away, initial = null }) {
       <div className="flex items-center gap-2 sm:gap-4">
         <TeamPanel team={home} score={live.home_score} fallbackName="בית" />
         <div className="shrink-0 flex flex-col items-center gap-2">
-          <div className={`font-mono font-extrabold tabular-nums leading-none text-5xl sm:text-8xl ${running && !waiting ? "text-orange-500" : "text-slate-500 dark:text-slate-400"}`}>
+          <div className={`font-mono font-extrabold tabular-nums leading-none text-5xl sm:text-8xl ${running && !waiting ? "text-brand" : "text-slate-500 dark:text-slate-400"}`}>
             {clockString(remaining)}
           </div>
           <span className={`text-xs font-semibold uppercase tracking-wide ${waiting ? "text-amber-600 dark:text-amber-400" : "text-slate-500 dark:text-slate-400"}`}>

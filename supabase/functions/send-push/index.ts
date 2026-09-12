@@ -70,6 +70,15 @@ function bodyPreview(n: NotificationRow): string {
 // because the edge function cannot import from the Vite bundle.
 const vs = (d: Record<string, any>) => `${d.home_team ?? ""} נגד ${d.away_team ?? ""}`.trim();
 
+// F1 — player availability constraints. Mirrors src/lib/notifications.js.
+const UNAVAILABILITY_KIND: Record<string, string> = {
+  injury: "פציעה", abroad: "שהות בחו״ל", reserve_duty: "מילואים", other: "סיבה אחרת",
+};
+const unavailKind = (k: string) => UNAVAILABILITY_KIND[k] ?? "אי-זמינות";
+const unavailDay = (v: any) => (v ? new Date(v).toLocaleDateString("he-IL") : "");
+const unavailSpan = (d: Record<string, any>) =>
+  d.ends_on ? `${unavailDay(d.starts_on)}–${unavailDay(d.ends_on)}` : `מ־${unavailDay(d.starts_on)}`;
+
 function movedSummary(d: Record<string, any>): string {
   const when = d.game_date
     ? new Date(d.game_date).toLocaleString("he-IL", { day: "numeric", month: "numeric", hour: "2-digit", minute: "2-digit" })
@@ -113,6 +122,11 @@ function notificationText(n: NotificationRow, actorName: string): string {
     case "medical_rejected":     return `האישור הרפואי שלך נדחה — יש להעלות מחדש`;
     case "medical_expiring":     return `האישור הרפואי שלך יפוג בעוד ${d.days_left ?? ""} ימים — מומלץ לחדש`;
     case "medical_expiring_player": return `האישור הרפואי של ${d.player_name ?? "שחקן"} יפוג בעוד ${d.days_left ?? ""} ימים`;
+    // F1 — player availability constraints (player_unavailability). Kind is a stable
+    // English token in the DB; only the label is Hebrew, so web and native agree.
+    case "unavailability_reported": return `${d.player_name ?? actorName} דיווח/ה על אי-זמינות (${unavailKind(d.kind)}) ${unavailSpan(d)} — ממתין לאישורך`;
+    case "unavailability_approved": return `דיווח אי-הזמינות שלך (${unavailKind(d.kind)}) ${unavailSpan(d)} אושר ✅${d.decision_note ? ` — ${d.decision_note}` : ""}`;
+    case "unavailability_rejected": return `דיווח אי-הזמינות שלך (${unavailKind(d.kind)}) ${unavailSpan(d)} נדחה${d.decision_note ? ` — ${d.decision_note}` : ""}`;
     case "medical_revoked":      return `האישור הרפואי ${d.player_name ? `של ${d.player_name} ` : ""}בוטל${d.reason ? ` — ${d.reason}` : ""}`;
     case "medical_date_changed": return `תאריך הבדיקה עודכן — האישור בתוקף עד ${d.expires_at ? new Date(d.expires_at).toLocaleDateString("he-IL") : ""}`;
     case "game_change_opponent": return `${actorName} מבקש/ת שינוי מועד — יש לבחור מועד שמתאים לך${d.reason ? ` (${d.reason})` : ""}`;
@@ -182,6 +196,9 @@ function notificationHref(n: NotificationRow): string {
     case "medical_rejected":
     case "medical_expiring":       return "/me";
     case "medical_expiring_player": return "/admin";
+    case "unavailability_reported": return n.entity_id ? `/players/${n.entity_id}` : "/admin";
+    case "unavailability_approved":
+    case "unavailability_rejected": return "/me";
     case "medical_revoked":
     case "medical_date_changed":   return "/me";
     case "tournament_invite":
