@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react"
 import { Link } from "react-router-dom"
 import { getGames, getTeams, getPlayers, getReferees, getGameStatsByGameId } from "@/lib/api"
-import { Calendar, Clock, MapPin, Trophy, Shield, X, ChevronDown, ArrowLeft, RefreshCw, AlertTriangle, Users } from "lucide-react"
+import { Calendar, Clock, MapPin, Trophy, Shield, X, ChevronDown, ArrowLeft, RefreshCw, AlertTriangle, Users, Utensils } from "lucide-react"
 import { Crossed } from "@/components/icons/HockeyIcons"
 import { motion, AnimatePresence } from "framer-motion"
 import { format } from "date-fns"
@@ -236,6 +236,12 @@ export default function Games() {
           <div className="flex items-center gap-3 mt-3 pt-3 border-t border-slate-100 dark:border-slate-700/50 text-xs text-slate-500 dark:text-slate-400 flex-wrap">
             <span className="flex items-center gap-1"><Calendar className="w-3.5 h-3.5" />{format(new Date(game.game_date), "d/M/yyyy")}</span>
             <span className="flex items-center gap-1"><MapPin className="w-3.5 h-3.5" />{game.venue || '—'}</span>
+            {/* Kiosk — only when someone has actually said. null stays silent. */}
+            {game.kiosk_open != null && (
+              <span className={`flex items-center gap-1 font-semibold ${game.kiosk_open ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-500 dark:text-slate-400'}`}>
+                <Utensils className="w-3.5 h-3.5" />{game.kiosk_open ? 'דוכן פתוח' : 'אין דוכן'}
+              </span>
+            )}
             {ref && <span className="flex items-center gap-1"><Shield className="w-3.5 h-3.5" />{ref}</span>}
             <span className="mr-auto font-semibold text-slate-500 dark:text-slate-400">{open ? 'סגור' : 'פרטים'}</span>
           </div>

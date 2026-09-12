@@ -1,36 +1,77 @@
 import { useState, useMemo, useEffect } from "react"
-import { addPlayerToSquad } from "@/lib/squad"
-import { canBeBorrowed, getPlayerBirthDate } from "@/lib/birthDate"
-import { UserPlus, Loader2, X } from "lucide-react"
+import { addPlayerToSquad, getTeamMemberIds } from "@/lib/squad"
+import { canBeBorrowed, getPlayerBirthDate, getPlayerBirthDates, ageFromBirthDate, YOUTH_MAX_AGE } from "@/lib/birthDate"
+import { UserPlus, Loader2, X, Users } from "lucide-react"
 
 /**
  * Manual squad addition (sheet rows 7, 8, 13). A coach adds a loaned goalkeeper or a
  * one-time youth call-up before kick-off; a judge may do it once the game is running.
  *
- * The player list is every player card in the league, grouped by their own team, so a
- * loan from another club is picked the same way as a teammate — the server records
- * which side he is turning out for. Players already in the squad are filtered out.
+ * The default list is ELIGIBLE players, not the whole league: a coach who opened this got
+ * all ~100 cards in the league and had to hunt. Eligible = this team's own roster, plus —
+ * from other clubs — whoever the loan rule can actually admit: a goalkeeper of any age, or
+ * a player whose date of birth proves he is under 18. Everyone else sits behind
+ * "הצג את כל השחקנים", because with no DOB on file nobody can tell from here whether the
+ * loan is legal — only the coach can, and that is exactly what he is vouching for.
  *
- * The age rule applies only to a LOAN — someone who isn't one of this team's own players.
- * A borrowed player must be under 18, or a goalkeeper of any age. It is computed from the
- * date of birth on the player card, so there is normally nothing to confirm; the coach's
- * checkbox appears only where no DOB is on file, which would otherwise make every loan of
- * an unregistered player impossible. The server re-checks all of it.
+ * Filtering on eligibility rather than on an age group is deliberate: every team in this
+ * league is registered 'senior', including the two squads *named* נוער, so an age-group
+ * filter would hide precisely the youth players it was meant to show. This list also
+ * widens on its own as birth dates arrive, with no further work.
+ *
+ * Own-roster membership is read from player_teams as well as players.team_id, matching
+ * the server: a player whose primary card sits on another age group's team is still one
+ * of this team's own, and must not be treated as a loan.
+ *
+ * The age rule applies only to a LOAN. It is computed from the date of birth on the player
+ * card, so there is normally nothing to confirm; the coach's confirmation appears only
+ * where no DOB is on file, which would otherwise make every loan of an unregistered player
+ * impossible. The server re-checks all of it.
  */
 export default function AddSquadPlayer({ gameId, teamId, teamName, players = [], excludeIds, onAdded }) {
   const [open, setOpen] = useState(false)
   const [playerId, setPlayerId] = useState("")
   const [note, setNote] = useState("")
   const [ageOk, setAgeOk] = useState(false)
+  const [showAll, setShowAll] = useState(false)
+  const [memberIds, setMemberIds] = useState(new Set())
   const [saving, setSaving] = useState(false)
   const [err, setErr] = useState(null)
 
+  const [dobs, setDobs] = useState({})          // playerId → birth_date | null
+  const [dobLoading, setDobLoading] = useState(false)
+
+  // Both lookups are needed only once the coach actually opens the form, and both are
+  // cheap enough to do in one go: the roster is one small query, and the DOB map is one
+  // request instead of a round trip per row while he scrolls the list.
+  useEffect(() => {
+    if (!open) return
+    let alive = true
+    getTeamMemberIds(teamId).then(s => { if (alive) setMemberIds(s) })
+    getPlayerBirthDates().then(map => {
+      // Merge UNDER whatever a per-row read already established — that one is the
+      // authoritative answer for the player currently picked.
+      if (alive) setDobs(m => ({ ...map, ...m }))
+    })
+    return () => { alive = false }
+  }, [open, teamId])
+
+  // One of this team's own players — by primary card or by roster row, same as the server.
+  const isOwn = (p) => p.team_id === teamId || memberIds.has(p.id)
+  // Can he be borrowed on what we know right now? A keeper always; anyone else only with a
+  // DOB that proves it. "Don't know" is NOT eligible — it is the coach's call, behind the
+  // toggle, and the confirmation there says so.
+  const provenEligible = (p) =>
+    p.position === "Goalkeeper" || (ageFromBirthDate(dobs[p.id]) ?? 99) < YOUTH_MAX_AGE
+
   // Grouped by the player's own team so "בהשאלה מ…" is obvious at a glance.
-  const grouped = useMemo(() => {
+  const { grouped, hiddenCount } = useMemo(() => {
     const skip = excludeIds instanceof Set ? excludeIds : new Set(excludeIds || [])
     const byTeam = new Map()
+    let hidden = 0
     for (const p of players) {
       if (skip.has(p.id)) continue
+      if (!showAll && !isOwn(p) && !provenEligible(p)) { hidden++; continue }
       const label = p.teamName || "ללא קבוצה"
       if (!byTeam.has(label)) byTeam.set(label, [])
       byTeam.get(label).push(p)
@@ -39,19 +80,19 @@ export default function AddSquadPlayer({ gameId, teamId, teamName, players = [],
       list.sort((a, b) => `${a.first_name} ${a.last_name}`.localeCompare(`${b.first_name} ${b.last_name}`, "he"))
     }
     // the coach's own team first, then the rest alphabetically
-    return [...byTeam.entries()].sort(([a], [b]) =>
+    const entries = [...byTeam.entries()].sort(([a], [b]) =>
       a === teamName ? -1 : b === teamName ? 1 : a.localeCompare(b, "he"))
-  }, [players, excludeIds, teamName])
+    return { grouped: entries, hiddenCount: hidden }
+  }, [players, excludeIds, teamName, showAll, memberIds, dobs])
 
   const picked = players.find(p => p.id === playerId) || null
   // Borrowing = the player isn't one of this team's own. Only then does the age rule bite.
-  const isLoan = !!picked && picked.team_id !== teamId
+  const isLoan = !!picked && !isOwn(picked)
 
   // DOB is NOT in the bulk player list — it is revoked from `anon` so minors' dates of
-  // birth are not public, so the wide fetch cannot even name the column. Read the one row
-  // we actually need, and only when a loan is on the table.
-  const [dobs, setDobs] = useState({})          // playerId → birth_date | null
-  const [dobLoading, setDobLoading] = useState(false)
+  // birth are not public, so the wide public fetch cannot even name the column. The map
+  // above normally has it; this is the fallback for the one row that actually decides the
+  // form, so a failed or stale bulk read can never turn into a wrong answer.
   useEffect(() => {
     if (!picked || !isLoan || picked.id in dobs) return
     let alive = true
@@ -123,6 +164,25 @@ export default function AddSquadPlayer({ gameId, teamId, teamName, players = [],
         ))}
       </select>
 
+      {/* Say what was filtered out and why — a coach who can't find a player he knows
+          exists must not be left thinking the app lost him. */}
+      {(hiddenCount > 0 || showAll) && (
+        <div className="flex items-start justify-between gap-2 text-[11px]">
+          <span className="flex items-start gap-1 text-slate-500 dark:text-slate-400">
+            <Users className="w-3 h-3 mt-0.5 shrink-0" />
+            <span>
+              {showAll
+                ? "מוצגים כל שחקני הליגה — להשאלה מקבוצה אחרת נדרש אישורך"
+                : `מוצגים ${teamName}, שוערים, ושחקנים שידוע שהם עד גיל ${YOUTH_MAX_AGE} · ${hiddenCount} מוסתרים`}
+            </span>
+          </span>
+          <button type="button" onClick={() => { setShowAll(v => !v); if (showAll) setPlayerId("") }}
+            className="shrink-0 font-semibold text-brand hover:underline">
+            {showAll ? "חזרה לרשימה המסוננת" : "הצג את כל השחקנים"}
+          </button>
+        </div>
+      )}
+
       <input value={note} onChange={e => setNote(e.target.value)} maxLength={80}
         placeholder="הערה (למשל: שוער בהשאלה)" aria-label="הערה"
         className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand/30" />
@@ -143,11 +203,16 @@ export default function AddSquadPlayer({ gameId, teamId, teamName, players = [],
         </p>
       )}
 
+      {/* Named, not generic: this is the coach personally standing behind one specific
+          player's eligibility, so the text has to say whose and against which rule. */}
       {needsTick && (
         <label className="flex items-start gap-2 text-[11px] text-slate-600 dark:text-slate-300 cursor-pointer">
           <input type="checkbox" checked={ageOk} onChange={e => setAgeOk(e.target.checked)}
             className="mt-0.5 accent-brand" />
-          <span>אני מאשר/ת שהשחקן/ית עומד/ת בדרישת הגיל להשאלה (עד גיל 18, או שוער/ת)</span>
+          <span>
+            אני מאשר/ת ש<strong className="font-bold">{picked.first_name} {picked.last_name}</strong> עומד/ת
+            בתנאי ההשאלה: עד גיל {YOUTH_MAX_AGE}, או שוער/ת בכל גיל. אין תאריך לידה בכרטיס השחקן, ולכן האישור באחריותי.
+          </span>
         </label>
       )}
 

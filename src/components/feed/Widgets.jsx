@@ -8,7 +8,7 @@ import TeamLogo from "@/components/TeamLogo"
 const medal = (i) =>
   i === 0 ? 'bg-amber-400 text-amber-950' :
   i === 1 ? 'bg-slate-300 dark:bg-slate-500 text-slate-800 dark:text-white' :
-  i === 2 ? 'bg-orange-300 dark:bg-orange-700 text-orange-900 dark:text-white' :
+  i === 2 ? 'bg-bronze-300 dark:bg-bronze-700 text-bronze-900 dark:text-white' :
   'bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400'
 
 function WidgetHeader({ icon, title }) {

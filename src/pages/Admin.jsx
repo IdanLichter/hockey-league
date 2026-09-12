@@ -22,6 +22,7 @@ import { motion } from "framer-motion"
 import TeamLogo from "@/components/TeamLogo"
 import { AGE_GROUPS, DEFAULT_AGE, AGE_LABEL, ageOf } from "@/lib/ageGroups"
 import { getPlayerTeams, buildMemberMaps, setPlayerMemberships } from "@/lib/playerTeams"
+import { getPlayerBirthDate, setPlayerBirthDate, ageFromBirthDate } from "@/lib/birthDate"
 import { getTournaments, createTournament, updateTournament, deleteTournament, requestTournament, getMyTournamentRequests, reviewTournament, cancelTournamentRequest } from "@/lib/tournaments"
 import { format } from "date-fns"
 import { useSeasonMode } from "@/App"
@@ -34,6 +35,8 @@ import MedicalReview from "@/components/admin/MedicalReview"
 import MedicalRosterAdmin from "@/components/admin/MedicalRosterAdmin"
 import ReadinessAdmin from "@/components/admin/ReadinessAdmin"
 import SuspensionsAdmin from "@/components/admin/SuspensionsAdmin"
+import BirthDatesAdmin from "@/components/admin/BirthDatesAdmin"
+import UnavailabilityAdmin from "@/components/admin/UnavailabilityAdmin"
 import { getVenues } from "@/lib/venues"
 import OfficialsAdmin from "@/components/admin/OfficialsAdmin"
 import VenuesAdmin from "@/components/admin/VenuesAdmin"
@@ -45,7 +48,7 @@ import GameChangeRequestsReview from "@/components/admin/GameChangeRequestsRevie
 import WhatsNew from "@/components/admin/WhatsNew"
 import ClustersAdmin from "@/components/admin/ClustersAdmin"
 import { SortBar, sortItems } from "@/components/admin/SortBar"
-import { Award, Images, HeartPulse, Gavel, MapPin, BellRing, Ban, CalendarDays } from "lucide-react"
+import { Award, Images, HeartPulse, Gavel, MapPin, BellRing, Ban, CalendarDays, Cake, CalendarOff } from "lucide-react"
 import { BRAND_ORANGE } from '@/lib/brand'
 
 const tabs = [
@@ -60,6 +63,8 @@ const tabs = [
   { id: "medical", label: "מעקב רפואי", icon: HeartPulse },
   { id: "readiness", label: "מוכנות להתראות", icon: BellRing },
   { id: "suspensions", label: "הרחקות", icon: Ban },
+  { id: "unavailability", label: "היעדרויות", icon: CalendarOff },
+  { id: "birthdates", label: "תאריכי לידה", icon: Cake },
   { id: "officials", label: "בעלי תפקיד", icon: Gavel },
   { id: "venues", label: "מגרשים", icon: MapPin },
   { id: "reports", label: "דיווחים", icon: Flag },
@@ -78,13 +83,18 @@ export default function Admin() {
   const canManage = isAdmin || isCoach || isJudgeRole || isLeagueManager
   const coachScoped = !isAdmin && isCoach          // team-scope the players/claims tabs
   const scopedTabIds = new Set([
-    ...(isCoach ? ["players", "claims", "tournaments", "games"] : []),
+    // A coach gets "birthdates" because he is the person who actually KNOWS his
+    // squad's dates of birth — 73 of 97 cards have none, and until they arrive every
+    // loan falls back to a manual vouch.
+    // "unavailability" is the coach's own squad admin — he is the one a player's
+    // self-report is addressed to, and the one who files an injury on his behalf.
+    ...(isCoach ? ["players", "claims", "tournaments", "games", "birthdates", "unavailability"] : []),
     ...(isJudgeRole ? ["games"] : []),
     // "claims" holds the player-card review queue — row 29 requires the league manager
     // to approve players, and approve_player_submission already permits him.
     // "calendar" is the league manager's — laying out the season's fixtures,
     // including a season that has not started yet, is their job.
-    ...(isLeagueManager ? ["tournaments", "teams", "claims", "game_requests", "medical", "readiness", "suspensions", "officials", "venues", "calendar"] : []),
+    ...(isLeagueManager ? ["tournaments", "teams", "claims", "game_requests", "medical", "readiness", "suspensions", "officials", "venues", "calendar", "birthdates", "unavailability"] : []),
   ])
   // Full tournament management (create/edit/delete + approve requests) vs. the
   // coach's request-only view of the same tab.
@@ -217,6 +227,8 @@ export default function Admin() {
               {currentTab === "medical" && <MedicalRosterAdmin />}
               {currentTab === "readiness" && <ReadinessAdmin />}
               {currentTab === "suspensions" && <SuspensionsAdmin players={players} teamsMap={teamsMap} />}
+              {currentTab === "unavailability" && <UnavailabilityAdmin players={players} teamsMap={teamsMap} membersByPlayer={membersByPlayer} coachTeamIds={coachScoped ? coachTeamIds : null} />}
+              {currentTab === "birthdates" && <BirthDatesAdmin players={players} teamsMap={teamsMap} membersByPlayer={membersByPlayer} coachTeamIds={coachScoped ? coachTeamIds : null} />}
               {currentTab === "officials" && <OfficialsAdmin games={games} teamsMap={teamsMap} />}
               {currentTab === "venues" && <VenuesAdmin />}
               {currentTab === "reports" && <ReportsReview />}
@@ -335,7 +347,7 @@ function GamesAdmin({ games, teams, players, teamsMap, gameStats, tournaments = 
     home_team_id: '', away_team_id: '', game_date: '', venue: '',
     home_score: '', away_score: '', status: 'scheduled',
     game_type: 'ליגה', playoff_round: '', series_game: '', notes: '',
-    referee_id: '', referee_type: 'player', tournament_id: ''
+    referee_id: '', referee_type: 'player', tournament_id: '', kiosk_open: ''
   })
   const [refFilter, setRefFilter] = useState('all')
   const [sort, setSort] = useState({ key: 'date', dir: 'desc' })
@@ -364,7 +376,7 @@ function GamesAdmin({ games, teams, players, teamsMap, gameStats, tournaments = 
       home_team_id: '', away_team_id: '', game_date: '', venue: '',
       home_score: '', away_score: '', status: 'scheduled',
       game_type: 'ליגה', playoff_round: '', series_game: '', notes: '',
-      referee_id: '', referee_type: 'player', tournament_id: ''
+      referee_id: '', referee_type: 'player', tournament_id: '', kiosk_open: ''
     })
     setEditingGame(null)
     setShowForm(false)
@@ -385,7 +397,9 @@ function GamesAdmin({ games, teams, players, teamsMap, gameStats, tournaments = 
       notes: game.notes || '',
       referee_id: game.referee_id || '',
       referee_type: game.referee_type || 'player',
-      tournament_id: game.tournament_id || ''
+      tournament_id: game.tournament_id || '',
+      // Tri-state: '' is "nobody has said", which is NOT the same as "closed".
+      kiosk_open: game.kiosk_open == null ? '' : String(game.kiosk_open),
     })
     setEditingGame(game.id)
     setShowForm(true)
@@ -403,6 +417,7 @@ function GamesAdmin({ games, teams, players, teamsMap, gameStats, tournaments = 
         referee_id: form.referee_id || null,
         referee_type: form.referee_id ? form.referee_type : null,
         tournament_id: form.tournament_id || null,
+        kiosk_open: form.kiosk_open === '' ? null : form.kiosk_open === 'true',
       }
       if (editingGame) {
         await updateGame(editingGame, payload)
@@ -555,6 +570,17 @@ function GamesAdmin({ games, teams, players, teamsMap, gameStats, tournaments = 
             <div>
               <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1 block">הערות</label>
               <input type="text" value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} className="filter-input w-full" placeholder="הערות..." />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1 block">דוכן אוכל במגרש</label>
+              {/* Tri-state on purpose. "לא ידוע" is the default and shows nothing on the
+                  game page — a player deciding whether to bring food from home must not
+                  be told the kiosk is shut when in truth nobody has checked. */}
+              <select value={form.kiosk_open} onChange={e => setForm({ ...form, kiosk_open: e.target.value })} className="filter-select w-full">
+                <option value="">לא ידוע</option>
+                <option value="true">פתוח</option>
+                <option value="false">סגור</option>
+              </select>
             </div>
           </div>
           <div className="flex gap-2 pt-1">
@@ -838,7 +864,7 @@ function PlayersAdmin({ players, teams, teamsMap, membersByPlayer = new Map(), r
   const baseForm = () => ({
     first_name: '', last_name: '', jersey_number: '', position: 'Field Player',
     team_id: lockedTeamId, teamByAge: emptyByAge(), is_referee: false, is_core: false,
-    goals: 0, games_played: 0, blue_cards: 0, red_cards: 0
+    goals: 0, games_played: 0, blue_cards: 0, red_cards: 0, birth_date: ''
   })
 
   const [showForm, setShowForm] = useState(false)
@@ -848,6 +874,22 @@ function PlayersAdmin({ players, teams, teamsMap, membersByPlayer = new Map(), r
   const [sort, setSort] = useState({ key: 'name', dir: 'asc' })
   const [feedback, setFeedback] = useState(null) // { type: 'ok' | 'err', text } — makes save success/failure impossible to miss
   const [form, setForm] = useState(baseForm())
+  // The DOB as it stands in the database, so an untouched field costs no RPC call.
+  const [origBirthDate, setOrigBirthDate] = useState('')
+
+  // birth_date is NOT in the bulk player fetch (it's revoked from `anon`, so the public
+  // list must not name the column at all) — the editor reads the one row it is about.
+  useEffect(() => {
+    if (!editingPlayer) return
+    let alive = true
+    getPlayerBirthDate(editingPlayer).then(d => {
+      if (!alive) return
+      setOrigBirthDate(d || '')
+      // Don't clobber a value the user already started typing while the row loaded.
+      setForm(f => (f.birth_date ? f : { ...f, birth_date: d || '' }))
+    }).catch(() => {})
+    return () => { alive = false }
+  }, [editingPlayer])
 
   const playerSortOptions = [
     { key: 'name', label: 'שם', dir: 'asc' },
@@ -866,6 +908,7 @@ function PlayersAdmin({ players, teams, teamsMap, membersByPlayer = new Map(), r
 
   const resetForm = () => {
     setForm(baseForm())
+    setOrigBirthDate('')
     setEditingPlayer(null)
     setShowForm(false)
   }
@@ -892,7 +935,9 @@ function PlayersAdmin({ players, teams, teamsMap, membersByPlayer = new Map(), r
       games_played: player.games_played || 0,
       blue_cards: player.blue_cards || 0,
       red_cards: player.red_cards || 0,
+      birth_date: '',   // filled in by the effect above once the row is read
     })
+    setOrigBirthDate('')
     setEditingPlayer(player.id)
     setShowForm(true)
   }
@@ -922,21 +967,32 @@ function PlayersAdmin({ players, teams, teamsMap, membersByPlayer = new Map(), r
         blue_cards: Number(form.blue_cards) || 0,
         red_cards: Number(form.red_cards) || 0,
       }
+      let savedId = editingPlayer
       if (multiAge) {
         // Memberships are the source of truth; setPlayerMemberships also
         // normalises players.team_id to the senior (else first) selected team.
-        let playerId = editingPlayer
         if (editingPlayer) await updatePlayer(editingPlayer, scalar)
-        else playerId = (await createPlayer(scalar)).id
-        await setPlayerMemberships(playerId, selectedTeamIds, teamsMap)
+        else savedId = (await createPlayer(scalar)).id
+        await setPlayerMemberships(savedId, selectedTeamIds, teamsMap)
       } else {
         const payload = { ...scalar, team_id: form.team_id }
         if (editingPlayer) await updatePlayer(editingPlayer, payload)
-        else await createPlayer(payload)
+        else savedId = (await createPlayer(payload)).id
+      }
+      // The DOB goes through set_player_birth_date, NOT the table write above: `players`
+      // RLS does not admit a coach write, and the RPC is what carries his authorisation.
+      // Its failure must not read as "the player wasn't saved" — the rest already was.
+      let dobWarning = ''
+      if (savedId && (form.birth_date || '') !== origBirthDate) {
+        try { await setPlayerBirthDate(savedId, form.birth_date || null) }
+        catch (e2) { dobWarning = ` — אך תאריך הלידה לא נשמר: ${e2.message}` }
       }
       resetForm()
       await reload()
-      setFeedback({ type: 'ok', text: `✓ ${savedName} ${wasEditing ? 'עודכן/ה' : 'נוסף/ה לליגה'} בהצלחה` })
+      setFeedback({
+        type: dobWarning ? 'err' : 'ok',
+        text: `✓ ${savedName} ${wasEditing ? 'עודכן/ה' : 'נוסף/ה לליגה'} בהצלחה${dobWarning}`,
+      })
     } catch (err) {
       // Translate the common failure (RLS / wrong account) into an actionable Hebrew message
       // instead of a raw Postgres string that's easy to dismiss.
@@ -1029,6 +1085,17 @@ function PlayersAdmin({ players, teams, teamsMap, membersByPlayer = new Map(), r
                 <option value="Field Player">שחקן שדה</option>
                 <option value="Goalkeeper">שוער</option>
               </select>
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1 block">תאריך לידה</label>
+              <input type="date" dir="ltr" value={form.birth_date} max={new Date().toLocaleDateString('en-CA')}
+                onChange={e => setForm({ ...form, birth_date: e.target.value })}
+                aria-label="תאריך לידה" className="filter-input w-full tabular-nums" />
+              <p className="text-[10px] text-slate-400 mt-1">
+                {form.birth_date
+                  ? `גיל ${ageFromBirthDate(form.birth_date) ?? '—'}`
+                  : 'חסר — נדרש לכלל ההשאלה (עד גיל 18, או שוער/ת)'}
+              </p>
             </div>
             {multiAge ? (
               ageGroupsWithTeams.map(a => (

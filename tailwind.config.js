@@ -31,6 +31,15 @@ const gold = {   // was amber — champion gold
   400: '235 190 80', 500: '229 184 67', 600: '196 154 46', 700: '150 116 32',
   800: '110 84 24', 900: '74 56 18', 950: '48 36 14',
 }
+// Third place. `orange` is remapped to the brand blue above, so the three podium
+// call-sites that reached for orange-* to mean "bronze" all rendered brand blue and
+// third place stopped being distinguishable. A scale of its own, deliberately outside
+// the five remapped raw scales, so the next brand sweep cannot eat it again.
+const bronze = {
+  50: '250 243 237', 100: '243 229 214', 200: '230 203 174', 300: '213 172 132',
+  400: '190 138 92', 500: '166 111 63', 600: '140 91 50', 700: '112 72 40',
+  800: '86 55 31', 900: '62 40 23', 950: '40 26 15',
+}
 const ramp = (m) => Object.fromEntries(Object.entries(m).map(([k, v]) => [k, `rgb(${v})`]))
 
 /** @type {import('tailwindcss').Config} */
@@ -100,6 +109,9 @@ export default {
         pos: 'rgb(var(--pos) / <alpha-value>)',
         neg: 'rgb(var(--neg) / <alpha-value>)',
         gold: 'rgb(var(--gold) / <alpha-value>)',
+        // Podium third place — a full scale like success/danger/warning, because the
+        // medal call-sites need a light fill, a dark fill and readable ink on each.
+        bronze: ramp(bronze),
       },
       // Non-color primitives, aliased to today's exact values so a restyle can round
       // corners / soften shadows / retune type from one place. (Additive — nothing

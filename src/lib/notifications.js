@@ -301,7 +301,8 @@ export function notificationHref(n) {
     case 'medical_expiring':       return '/me'
     case 'medical_expiring_player': return '/admin?tab=claims'
     // F1 — the reviewer lands on the player whose absence it is; the player on his own page
-    case 'unavailability_reported': return n.entity_id ? `/players/${n.entity_id}` : '/admin'
+    // the recipient is the coach the report is waiting on — land him on the queue
+    case 'unavailability_reported': return '/admin?tab=unavailability'
     case 'unavailability_approved':
     case 'unavailability_rejected': return '/me'
     case 'medical_revoked':

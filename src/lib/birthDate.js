@@ -65,5 +65,23 @@ export async function getPlayerBirthDate(playerId) {
   return data?.birth_date ?? null
 }
 
+/**
+ * Every player's DOB at once, as playerId → yyyy-mm-dd | null.
+ *
+ * The squad picker has to judge loan eligibility across the whole league before the coach
+ * has picked anyone, and one round trip per card would be ~100 requests to draw a
+ * dropdown. Unfiltered rather than .in(ids): the id list would be a 4KB query string for
+ * a saving of nothing, since the picker asks about all of them anyway.
+ *
+ * Still authenticated-only — `birth_date` is granted to `authenticated` and revoked from
+ * `anon`, so a logged-out caller gets a 403. Returns {} on any failure; callers must treat
+ * a missing DOB as "unknown", which is what an unregistered player looks like regardless.
+ */
+export async function getPlayerBirthDates() {
+  const { data, error } = await supabase.from('players').select('id,birth_date')
+  if (error) return {}
+  return Object.fromEntries((data || []).map(p => [p.id, p.birth_date ?? null]))
+}
+
 /** My own player card's DOB (null if I'm not linked to a player). */
 export const getMyBirthDate = getPlayerBirthDate

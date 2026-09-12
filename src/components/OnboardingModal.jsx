@@ -1,9 +1,10 @@
 import { useState, useEffect, useMemo } from "react"
-import { X, Search, Loader2, UserPlus, Check } from "lucide-react"
+import { X, Search, Loader2, UserPlus, Check, Cake } from "lucide-react"
 import { useAuth } from "@/lib/AuthContext"
 import { supabase } from "@/lib/supabase"
 import { createClaim } from "@/lib/claims"
 import { getPlayers, getTeams } from "@/lib/api"
+import { getMyBirthDate, setPlayerBirthDate } from "@/lib/birthDate"
 
 /**
  * First-run onboarding prompt: once a freshly signed-in account is resolved and
@@ -14,13 +15,25 @@ import { getPlayers, getTeams } from "@/lib/api"
  * Shown at most once per account per device: a localStorage flag is set on both
  * "skip" and a successful claim, and an existing pending claim / linked player
  * suppresses it too. Mounted globally in Layout, next to <AuthModal/>.
+ *
+ * A player who IS already linked gets the other prompt this file carries: a quiet
+ * bottom-corner request for his date of birth when his card has none. 73 of 97 cards
+ * were created before anyone asked, and the loan rule (under 18, or a goalkeeper)
+ * cannot run without it. Coaches can now fill these in too, so this side is a nudge and
+ * not a demand — no backdrop, nothing blocked, and "later" snoozes it for a month
+ * rather than silencing it forever.
  */
 
 const dismissKey = (uid) => `rink-onboarded:v1:${uid}`
+const dobSnoozeKey = (uid) => `rink-dob-ask:v1:${uid}`
+const DOB_SNOOZE_MS = 30 * 24 * 60 * 60 * 1000
 
 export default function OnboardingModal() {
   const { user, profile, loading } = useAuth()
-  const [phase, setPhase] = useState("hidden") // 'hidden' | 'prompt' | 'sent'
+  const [phase, setPhase] = useState("hidden") // 'hidden' | 'prompt' | 'sent' | 'dob'
+  const [dob, setDob] = useState("")             // the DOB nudge's input
+  const [dobSaving, setDobSaving] = useState(false)
+  const [dobErr, setDobErr] = useState(null)
   const [players, setPlayers] = useState([])
   const [teams, setTeams] = useState({}) // team_id -> { name, color }
   const [loadingList, setLoadingList] = useState(false)
@@ -43,6 +56,20 @@ export default function OnboardingModal() {
       if (!alive || pending) return
       setPhase("prompt")
     })()
+    return () => { alive = false }
+  }, [user, profile, loading])
+
+  // The other side of the same question: the account IS linked to a player, but that
+  // player's card has no date of birth. Read per-row while signed in — the column is
+  // revoked from `anon`, so it is never part of the public player list.
+  useEffect(() => {
+    let alive = true
+    if (loading || !user || !profile?.player_id) return
+    const snoozed = Number(localStorage.getItem(dobSnoozeKey(user.id)) || 0)
+    if (Date.now() - snoozed < DOB_SNOOZE_MS) return
+    getMyBirthDate(profile.player_id).then(d => {
+      if (alive && !d) setPhase(p => (p === "hidden" ? "dob" : p))
+    }).catch(() => {})
     return () => { alive = false }
   }, [user, profile, loading])
 
@@ -93,7 +120,58 @@ export default function OnboardingModal() {
     }
   }
 
+  const snoozeDob = () => {
+    if (user) localStorage.setItem(dobSnoozeKey(user.id), String(Date.now()))
+    setPhase("hidden")
+  }
+
+  const saveDob = async () => {
+    if (!dob || !profile?.player_id) return
+    setDobSaving(true); setDobErr(null)
+    try {
+      await setPlayerBirthDate(profile.player_id, dob)
+      if (user) localStorage.setItem(dobSnoozeKey(user.id), String(Date.now()))
+      setPhase("hidden")
+    } catch (e) { setDobErr(e.message) } finally { setDobSaving(false) }
+  }
+
   if (phase === "hidden") return null
+
+  // Deliberately not a modal: no backdrop, nothing blocked, pinned to the bottom-right
+  // (the chat launcher owns the bottom-left) and clear of the iOS home indicator.
+  if (phase === "dob") {
+    return (
+      <div dir="rtl" style={{ bottom: 'max(1rem, env(safe-area-inset-bottom))' }}
+        className="fixed right-4 left-4 sm:left-auto sm:w-[340px] z-[45] card p-4 shadow-xl space-y-2.5">
+        <div className="flex items-start gap-2">
+          <Cake className="w-4 h-4 text-brand shrink-0 mt-0.5" />
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-bold text-slate-900 dark:text-white">מה תאריך הלידה שלך?</p>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed mt-0.5">
+              הליגה משתמשת בו כדי לקבוע אם אפשר להשאיל אותך לקבוצה אחרת (עד גיל 18,
+              או שוער/ת בכל גיל).
+            </p>
+          </div>
+          <button onClick={snoozeDob} aria-label="סגור"
+            className="shrink-0 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><X className="w-4 h-4" /></button>
+        </div>
+        <input type="date" dir="ltr" value={dob} max={new Date().toLocaleDateString("en-CA")}
+          onChange={e => { setDob(e.target.value); setDobErr(null) }} aria-label="תאריך לידה"
+          className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-2 text-sm text-slate-800 dark:text-slate-100 tabular-nums focus:outline-none focus:ring-2 focus:ring-brand/30" />
+        {dobErr && <p className="text-[11px] text-red-600 dark:text-red-400">{dobErr}</p>}
+        <div className="flex items-center gap-2">
+          <button onClick={saveDob} disabled={!dob || dobSaving}
+            className="flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg bg-brand text-brand-fg hover:bg-brand-hover transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
+            {dobSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />} שמירה
+          </button>
+          <button onClick={snoozeDob}
+            className="text-xs font-semibold px-3 py-1.5 rounded-lg text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+            אחר כך
+          </button>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4" dir="rtl">

@@ -3,7 +3,7 @@ import { useParams, Link } from "react-router-dom"
 import { getGameById, getGameStatsByGameId, getTeams, getPlayers, getReferees, getGames } from "@/lib/api"
 import { getLiveGame } from "@/lib/live"
 import { useAuth } from "@/lib/AuthContext"
-import { ArrowRight, ArrowLeft, Calendar, CalendarClock, Clock, MapPin, Shield, Trophy, Users, Flame, Swords, TrendingUp, RefreshCw, Radio } from "lucide-react"
+import { ArrowRight, ArrowLeft, Calendar, CalendarClock, Clock, MapPin, Shield, Trophy, Users, Flame, Swords, TrendingUp, RefreshCw, Radio, Utensils } from "lucide-react"
 import { motion } from "framer-motion"
 import { format } from "date-fns"
 import TeamLogo from "@/components/TeamLogo"
@@ -294,6 +294,21 @@ export default function GameDetail() {
           <span className="flex items-center gap-1"><MapPin className="w-3.5 h-3.5" />{game.venue || '—'}</span>
           {refName && <span className="flex items-center gap-1"><Shield className="w-3.5 h-3.5" />{refName}</span>}
         </div>
+
+        {/* Food kiosk (דוכן נקניקיות). Tri-state: null renders NOTHING — silence here
+            means nobody has checked, and a player packing (or not packing) food from
+            home is entitled to the difference between "closed" and "unknown". */}
+        {game.kiosk_open != null && (
+          <div className="mt-4">
+            <span className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1.5 rounded-lg border ${
+              game.kiosk_open
+                ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 border-emerald-100 dark:border-emerald-800/50'
+                : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700'}`}>
+              <Utensils className="w-3.5 h-3.5 shrink-0" />
+              {game.kiosk_open ? 'דוכן אוכל פתוח במגרש' : 'אין דוכן אוכל — כדאי להביא מהבית'}
+            </span>
+          </div>
+        )}
 
         {game.notes && (
           <div className="mt-4 p-2.5 bg-amber-50 dark:bg-amber-900/20 rounded-lg text-xs text-amber-700 dark:text-amber-300 border border-amber-100 dark:border-amber-800/50">

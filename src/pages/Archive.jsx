@@ -214,7 +214,7 @@ function SeasonDetail({ seasonId }) {
                     <span className={`inline-flex items-center justify-center w-6 h-6 rounded-md text-xs font-bold ${
                       team.final_rank === 1 ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400' :
                       team.final_rank === 2 ? 'bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300' :
-                      team.final_rank === 3 ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-400' :
+                      team.final_rank === 3 ? 'bg-bronze-100 text-bronze-700 dark:bg-bronze-900/40 dark:text-bronze-400' :
                       'text-slate-400'
                     }`}>
                       {team.final_rank}
@@ -244,7 +244,7 @@ function SeasonDetail({ seasonId }) {
                   <span className={`w-6 h-6 rounded-md text-xs font-bold flex items-center justify-center ${
                     i === 0 ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400' :
                     i === 1 ? 'bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300' :
-                    i === 2 ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-400' :
+                    i === 2 ? 'bg-bronze-100 text-bronze-700 dark:bg-bronze-900/40 dark:text-bronze-400' :
                     'text-slate-400'
                   }`}>
                     {i + 1}

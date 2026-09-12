@@ -22,8 +22,8 @@ export async function getMyAvailability(gameId, playerId) {
 }
 
 /** Set the current user's availability via the self-scoped RPC. Signing up as
- *  "available" requires a valid approved medical certificate AND no active red-card
- *  block; registering at all requires the player to be on one of the two teams in the
+ *  "available" requires a valid approved medical certificate, no active red-card block
+ *  AND no approved absence covering the game's date; registering at all requires the player to be on one of the two teams in the
  *  game. All three are enforced server-side (supabase/squad-rules.sql) — the UI hides
  *  the button, but the RPC is reachable directly. */
 export async function setMyAvailability(gameId, status) {
@@ -32,6 +32,9 @@ export async function setMyAvailability(gameId, status) {
     const msg = error.message || ''
     if (/no valid medical/i.test(msg)) throw new Error('no-valid-medical')
     if (/suspended/i.test(msg)) throw new Error('suspended')
+    // An APPROVED absence (injury / abroad / reserve duty) on the GAME's date — the gate
+    // is date-scoped, so this can fire for one fixture and not the next.
+    if (/unavailable/i.test(msg)) throw new Error('unavailable')
     if (/not in this game/i.test(msg)) throw new Error('not-in-game')
     throw error
   }

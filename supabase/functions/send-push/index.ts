@@ -195,8 +195,11 @@ function notificationHref(n: NotificationRow): string {
     case "medical_approved":
     case "medical_rejected":
     case "medical_expiring":       return "/me";
-    case "medical_expiring_player": return "/admin";
-    case "unavailability_reported": return n.entity_id ? `/players/${n.entity_id}` : "/admin";
+    // the recipient is the COACH, and Admin.jsx never grants him the medical tab —
+    // his medical surface is MedicalReview, which renders inside the claims tab.
+    case "medical_expiring_player": return "/admin?tab=claims";
+    // the recipient is the coach the report is waiting on — land him on the queue
+    case "unavailability_reported": return "/admin?tab=unavailability";
     case "unavailability_approved":
     case "unavailability_rejected": return "/me";
     case "medical_revoked":

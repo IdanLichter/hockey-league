@@ -72,6 +72,46 @@ export async function getActiveSuspension(playerId) {
 }
 
 /**
+ * The active red-card blocks for a set of players, as playerId → row.
+ *
+ * A direct table read, not N× active_suspension(): the SELECT policy on
+ * player_suspensions already admits a coach for his own players (through BOTH
+ * players.team_id and player_teams), so one filtered query returns exactly the squad he
+ * may see, and anyone else's row simply doesn't come back.
+ *
+ * Deliberately NOT active_suspensions() (plural) — that RPC gates on admin / league
+ * manager / judge and raises 'not authorized' for the coach who needs this most.
+ */
+export async function getActiveSuspensionsFor(playerIds) {
+  const ids = [...new Set((playerIds || []).filter(Boolean))]
+  if (!ids.length) return {}
+  const { data, error } = await supabase
+    .from('player_suspensions')
+    .select('id,player_id,reason,games_remaining')
+    .in('player_id', ids)
+    .is('cleared_at', null)
+    .gt('games_remaining', 0)
+  if (error) return {}
+  return Object.fromEntries((data || []).map(r => [r.player_id, r]))
+}
+
+/**
+ * The player ids on a team's roster, from player_teams.
+ *
+ * The loan rule the server enforces asks "is he one of THIS team's own players?" against
+ * players.team_id OR player_teams — so judging it by the primary team_id alone would call
+ * a player on the team's own roster a loan, and demand an age confirmation for a teammate.
+ * player_teams is world-readable, so this needs no privileges of its own.
+ */
+export async function getTeamMemberIds(teamId) {
+  if (!teamId) return new Set()
+  const { data, error } = await supabase
+    .from('player_teams').select('player_id').eq('team_id', teamId)
+  if (error) return new Set()
+  return new Set((data || []).map(r => r.player_id))
+}
+
+/**
  * The full squad for a game: roster players who answered, plus manually added players.
  * The latter are on neither roster, so a players-by-team query cannot find them —
  * which is exactly why this goes through a definer RPC rather than a table read.
