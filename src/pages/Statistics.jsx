@@ -78,7 +78,12 @@ export default function Statistics() {
   }, [gameStats, statGames])
 
   // ---- Tab data (unchanged behaviour) ----
-  const topScorers = players.filter(p => p.position === 'Field Player').sort((a, b) => (b.goals || 0) - (a.goals || 0))
+  // A leaderboard ranks what someone has DONE, so nobody on zero belongs on it:
+  // at the start of a season that produced "1. <player> — 0 שערים" down to fifth
+  // place, which reads as a standing rather than as an empty board. Matches what
+  // the card lists (bluePlayers/redPlayers/blueTeams) have always done.
+  const topScorers = players.filter(p => p.position === 'Field Player' && (p.goals || 0) > 0)
+    .sort((a, b) => (b.goals || 0) - (a.goals || 0))
 
   const topPerTeam = teams.map(team => {
     const best = players.filter(p => p.team_id === team.id && p.position === 'Field Player')
@@ -86,8 +91,11 @@ export default function Statistics() {
     return best ? { ...best, team } : null
   }).filter(Boolean).sort((a, b) => (b.goals || 0) - (a.goals || 0))
 
-  // Canonical clean-sheet computation, now shared from leagueStats.
+  // Canonical clean-sheet computation, now shared from leagueStats. It returns a
+  // record for EVERY goalkeeper, zeros included — `cleanSheetLeaders` below is
+  // the ranked view, and is what both the tab and the award card render.
   const goalkeepers = useMemo(() => goalkeeperCleanSheets(players, statGames), [players, statGames])
+  const cleanSheetLeaders = useMemo(() => goalkeepers.filter(g => g.clean_sheets > 0), [goalkeepers])
 
   const bluePlayers = players.filter(p => (p.blue_cards || 0) > 0).sort((a, b) => b.blue_cards - a.blue_cards)
   const redPlayers = players.filter(p => (p.red_cards || 0) > 0).sort((a, b) => b.red_cards - a.red_cards)
@@ -158,7 +166,7 @@ export default function Statistics() {
   const awardHat = achievements.players.filter(p => p.hatTricks > 0).sort((a, b) => b.hatTricks - a.hatTricks || b.gamesWithGoal - a.gamesWithGoal)
   const awardBig = achievements.players.filter(p => p.bigGames > 0).sort((a, b) => b.bigGames - a.bigGames)
   const awardBrace = achievements.players.filter(p => p.braces > 0).sort((a, b) => b.braces - a.braces)
-  const awardClean = goalkeepers.filter(g => g.clean_sheets > 0)
+  const awardClean = cleanSheetLeaders
   const awardBlue = bluePlayers
 
   // Entity colour follows the fixed team→slot map (same hues as the goal race).
@@ -548,15 +556,15 @@ export default function Statistics() {
 
         {activeTab === "scorers" && (
           <div className="space-y-4">
-            <List title="מלכי השערים" icon={<StickBall className="w-4 h-4 text-brand" />} data={topScorers} tKey="top" empty="אין נתונים"
+            <List title="מלכי השערים" icon={<StickBall className="w-4 h-4 text-brand" />} data={topScorers} tKey="top" empty="טרם נרשמו שערים העונה"
               render={(p, i) => <PlayerRow key={p.id} player={p} index={i} value={`${p.goals || 0} שערים`} />} />
-            <List title="מצטיין מכל קבוצה" icon={<Crown className="w-4 h-4 text-amber-500" />} data={topPerTeam} tKey="perTeam" empty="אין נתונים"
+            <List title="מצטיין מכל קבוצה" icon={<Crown className="w-4 h-4 text-amber-500" />} data={topPerTeam} tKey="perTeam" empty="טרם נרשמו שערים העונה"
               render={(p, i) => <PlayerRow key={p.id} player={p} index={i} value={`${p.goals || 0}`} color="bg-amber-500" />} />
           </div>
         )}
 
         {activeTab === "goalkeepers" && (
-          <List title="שוערי הברזל" icon={<Glove className="w-4 h-4 text-blue-500" />} data={goalkeepers} tKey="gk" empty="אין שוערים"
+          <List title="שוערי הברזל" icon={<Glove className="w-4 h-4 text-blue-500" />} data={cleanSheetLeaders} tKey="gk" empty="טרם נרשמו משחקים ללא ספיגה"
             render={(gk, i) => (
               <Link key={gk.id} to={`/players/${gk.id}`} className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors group">
                 <div className="flex items-center gap-2.5">
