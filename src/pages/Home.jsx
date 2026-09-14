@@ -59,7 +59,7 @@ export default function Home() {
           <Standings className="size-8 text-brand shrink-0" />
           טבלת הליגה
         </h1>
-        <p className="page-subtitle mt-1">דירוג קבוצות{seasonName && ` עונת ${seasonName}`}</p>
+        <p className="page-subtitle mt-1">דירוג קבוצות{seasonName && ` עונת ${seasonName}`} · סביבת בדיקות</p>
       </motion.div>
 
       {error && (
