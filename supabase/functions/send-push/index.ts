@@ -402,6 +402,146 @@ interface PushSub {
   keys: { p256dh: string; auth: string } | null; environment: string | null;
 }
 
+
+// ---- email fallback, digest only ------------------------------------------
+// A coach with no registered device never sees the daily chase, and the whole
+// point of the chase is that it cannot be missed. ONLY coach_open_items falls
+// back to email: mailing every goal and squad change would turn a useful nudge
+// into a mailing list nobody reads. Sent through the same Resend domain the
+// auth mail already uses, so it is a sender players recognise.
+const SITE = "https://rinkhockeyil.com";
+const LOGO = `${SITE}/logos/main-logo.png`;
+
+const Q_TITLE: Record<string, string> = {
+  medical: "אישורים רפואיים", claim: "בקשות שיוך לשחקן",
+  submission: "כרטיסי שחקן חדשים", join: "בקשות הצטרפות לקבוצה",
+  unavailability: "בקשות היעדרות",
+};
+const Q_ACTION: Record<string, string> = {
+  medical: "אישור הבדיקה", claim: "אישור השיוך", submission: "אישור הכרטיס",
+  join: "אישור ההצטרפות", unavailability: "אישור ההיעדרות",
+};
+const Q_TAB: Record<string, string> = {
+  medical: "claims", claim: "claims", submission: "claims",
+  join: "claims", unavailability: "unavailability",
+};
+const esc = (v: unknown) =>
+  String(v ?? "").replace(/[&<>"]/g, (c) =>
+    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c] as string));
+const heDays = (d: number) =>
+  d <= 0 ? "היום" : d === 1 ? "יום אחד" : `<span dir="ltr">${d}</span> ימים`;
+
+function digestEmailHtml(n: NotificationRow, coachName: string): string {
+  const d = n.data ?? {};
+  const items: any[] = Array.isArray(d.items) ? d.items : [];
+  const team = d.team_name ? esc(d.team_name) : "";
+  const groups = new Map<string, any[]>();
+  for (const it of items) {
+    const q = String(it.queue ?? "medical");
+    if (!groups.has(q)) groups.set(q, []);
+    groups.get(q)!.push(it);
+  }
+  const hidden = Math.max(Number(d.total ?? items.length) - items.length, 0);
+
+  const sections = [...groups.entries()].map(([q, rows]) => {
+    const tab = Q_TAB[q] ?? "claims";
+    const body = rows.map((it, i) => {
+      const last = i === rows.length - 1;
+      const nameCell = it.player_id
+        ? `<a href="${SITE}/players/${esc(it.player_id)}" style="font-size:15px;color:#0f1729;font-weight:bold;text-decoration:none;">${esc(it.name)}</a>`
+        : `<span style="font-size:15px;color:#0f1729;font-weight:bold;">${esc(it.name)}</span>`;
+      return `<tr><td dir="rtl" style="padding:13px 16px;text-align:right;${last ? "" : "border-bottom:1px solid #eef0f6;"}">
+        ${nameCell}
+        <div style="font-size:13px;color:#646e8c;margin-top:3px;">ממתין ${heDays(Number(it.days ?? 0))} · <a href="${SITE}/admin?tab=${tab}" style="color:#3b4fc4;text-decoration:none;">${Q_ACTION[q] ?? "לטיפול"}</a></div>
+      </td></tr>`;
+    }).join("");
+    return `<tr><td dir="rtl" style="padding:14px 40px 6px;text-align:right;">
+        <a href="${SITE}/admin?tab=${tab}" style="font-size:15px;font-weight:bold;color:#3b4fc4;text-decoration:none;">${Q_TITLE[q] ?? "ממתין לטיפול"} ›</a>
+      </td></tr>
+      <tr><td style="padding:0 40px;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e3e6f0;border-radius:12px;">${body}</table></td></tr>`;
+  }).join("");
+
+  const more = hidden > 0
+    ? `<tr><td dir="rtl" style="padding:10px 40px 0;text-align:right;"><span style="font-size:13px;color:#646e8c;">ועוד <span dir="ltr">${hidden}</span> פריטים.</span></td></tr>`
+    : "";
+
+  return `<div dir="rtl" style="margin:0;padding:0;background:#f6f7fb;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f6f7fb;padding:28px 12px;font-family:Arial,Helvetica,'Segoe UI',sans-serif;">
+    <tr><td align="center">
+      <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background:#ffffff;border-radius:16px;overflow:hidden;border:1px solid #e3e6f0;box-shadow:0 6px 24px rgba(15,23,41,0.06);">
+        <tr><td style="height:6px;background:#3b4fc4;font-size:0;line-height:0;">&nbsp;</td></tr>
+        <tr><td align="center" style="padding:28px 24px 8px;">
+          <a href="${SITE}" style="text-decoration:none;"><img src="${LOGO}" width="84" height="84" alt="ליגת הוקי הגלגיליות הישראלית" style="display:block;border:0;width:84px;height:84px;border-radius:50%;"></a>
+        </td></tr>
+        <tr><td align="center" style="padding:0 24px 4px;">
+          <a href="${SITE}" style="text-decoration:none;"><span style="font-size:18px;font-weight:bold;color:#0f1729;letter-spacing:-0.2px;">ליגת הוקי הגלגיליות הישראלית</span></a>
+        </td></tr>
+        <tr><td dir="rtl" style="padding:16px 40px 4px;text-align:right;">
+          <h1 style="margin:0 0 10px;font-size:23px;line-height:1.35;color:#0f1729;font-weight:bold;">ממתין לטיפולך</h1>
+          <p style="margin:0 0 4px;font-size:15px;line-height:1.75;color:#2d3752;">שלום ${esc(coachName)}, יש פריטים${team ? ` בקבוצת <strong>${team}</strong>` : ""} שממתינים לאישורך. עד שלא יטופלו, השחקנים האלה לא יוכלו להירשם למשחקים.</p>
+        </td></tr>
+        ${sections}
+        ${more}
+        <tr><td align="center" style="padding:22px 40px 4px;">
+          <table role="presentation" cellpadding="0" cellspacing="0"><tr>
+            <td style="background:#3b4fc4;border-radius:11px;">
+              <a href="${SITE}/admin?tab=${esc(d.tab ?? "claims")}" style="display:inline-block;padding:15px 46px;font-size:16px;font-weight:bold;color:#ffffff;text-decoration:none;font-family:Arial,Helvetica,sans-serif;">מעבר לטיפול</a>
+            </td>
+          </tr></table>
+        </td></tr>
+        <tr><td dir="rtl" style="padding:18px 40px 2px;text-align:right;">
+          <p style="margin:0;font-size:12.5px;line-height:1.7;color:#646e8c;">התזכורת נשלחת מדי יום ב-<span dir="ltr">19:00</span> ותיפסק מעצמה ברגע שלא יישארו פריטים פתוחים.</p>
+          <p style="margin:10px 0 0;font-size:12.5px;line-height:1.7;color:#646e8c;">קיבלת מייל ולא התראה לנייד כי לא רשום לחשבונך מכשיר. <a href="${SITE}/app" style="color:#3b4fc4;text-decoration:none;font-weight:bold;">התקנת האפליקציה</a> ואישור התראות יחליפו את המייל בהתראה.</p>
+        </td></tr>
+        <tr><td style="padding:22px 40px 30px;">
+          <div style="border-top:1px solid #eef0f6;padding-top:20px;text-align:center;">
+            <a href="${SITE}" style="text-decoration:none;"><img src="${LOGO}" width="48" height="48" alt="ליגת הוקי הגלגיליות הישראלית" style="display:block;margin:0 auto 10px;border:0;width:48px;height:48px;border-radius:50%;"></a>
+            <a href="${SITE}" style="text-decoration:none;"><span style="font-size:13px;color:#646e8c;font-weight:bold;">ליגת הוקי הגלגיליות הישראלית</span></a>
+            <div style="font-size:12px;margin-top:9px;">
+              <a href="${SITE}" style="color:#3b4fc4;text-decoration:none;">האתר</a><span style="color:#c8cdde;">&nbsp;·&nbsp;</span>
+              <a href="${SITE}/admin?tab=claims" style="color:#3b4fc4;text-decoration:none;">עמוד הניהול</a><span style="color:#c8cdde;">&nbsp;·&nbsp;</span>
+              <a href="${SITE}/app" style="color:#3b4fc4;text-decoration:none;">האפליקציה</a>
+            </div>
+            <div style="font-size:11px;color:#949cb6;margin-top:12px;">הודעה זו נשלחה באופן אוטומטי — אין להשיב לה.</div>
+          </div>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</div>`;
+}
+
+async function emailDigestFallback(admin: any, n: NotificationRow): Promise<boolean> {
+  if (n.type !== "coach_open_items") return false;
+  const apiKey = Deno.env.get("RESEND_API_KEY");
+  if (!apiKey) { console.log("digest email: RESEND_API_KEY missing"); return false; }
+  try {
+    const { data: u } = await admin.auth.admin.getUserById(n.user_id);
+    const to = u?.user?.email;
+    if (!to) { console.log("digest email: no address for user"); return false; }
+    const { data: prof } = await admin
+      .from("profiles").select("display_name").eq("id", n.user_id).maybeSingle();
+    const name = prof?.display_name ?? "";
+    const d = n.data ?? {};
+    const res = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        from: "ליגת הוקי הגלגיליות הישראלית <noreply@send.rinkhockeyil.com>",
+        to: [to],
+        subject: `ממתין לטיפולך — ${d.summary ?? "פריטים פתוחים"}`,
+        html: digestEmailHtml(n, name),
+        text: `ממתין לטיפולך: ${d.summary ?? ""}. לטיפול: ${SITE}/admin?tab=${d.tab ?? "claims"}`,
+      }),
+    });
+    if (!res.ok) { console.log("digest email failed", res.status, (await res.text()).slice(0, 200)); return false; }
+    return true;
+  } catch (e) {
+    console.log("digest email threw", (e as Error)?.message ?? String(e));
+    return false;
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method !== "POST") return new Response("method not allowed", { status: 405 });
   if (req.headers.get("x-push-secret") !== WEBHOOK_SECRET) {
@@ -460,7 +600,11 @@ Deno.serve(async (req) => {
     console.log("subs query error", error.message);
     return new Response("db error", { status: 500 });
   }
-  if (!subs?.length) return new Response(JSON.stringify({ sent: 0 }), { status: 200 });
+  if (!subs?.length) {
+    // nothing to push to — the digest is the one notification that still has to land
+    const emailed = await emailDigestFallback(admin, n);
+    return new Response(JSON.stringify({ sent: 0, emailed }), { status: 200 });
+  }
 
   // Unread badge count for iOS.
   const { count: badge } = await admin
@@ -502,7 +646,10 @@ Deno.serve(async (req) => {
     await admin.from("push_subscriptions").delete().in("id", toPrune);
   }
 
-  return new Response(JSON.stringify({ sent, pruned: toPrune.length }), {
+  // every device failed (all pruned, or all errored) — same reasoning as above
+  const emailed = sent === 0 ? await emailDigestFallback(admin, n) : false;
+
+  return new Response(JSON.stringify({ sent, pruned: toPrune.length, emailed }), {
     status: 200, headers: { "content-type": "application/json" },
   });
 });
