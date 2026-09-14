@@ -11,6 +11,13 @@
 # hockey-league-dev, so a misconfigured secret cannot redirect them at
 # rinkhockeyil.com. That project is deployed only by scripts/deploy-public.sh, by a
 # human, from `main`.
+#
+# DATABASE CHANGES: the same argument applies to the database, only harder — there is
+# ONE Supabase project, so dev and rinkhockeyil.com share it and a migration lands on
+# real league data the moment it runs. The agent may ADD files under
+# supabase/migrations/ and nothing else; scripts/check-migration.mjs decides whether
+# what it wrote is additive; and the database URL, like the Vercel token, lives only
+# in GitHub's secret store. See docs/LIVE-EDIT-MIGRATIONS.md.
 name: deploy dev
 
 on:
@@ -42,7 +49,15 @@ jobs:
       # The fence, enforced where we actually control it. The agent is told not to
       # touch these paths; this is what happens if it does anyway — the deploy stops
       # and the commit sits on `dev`, harmless, until a human looks at it.
+      #
+      # The one hole in the fence is supabase/migrations/: a push may ADD a file
+      # there. Adding is the only thing allowed. Modifying or deleting an
+      # already-committed migration still refuses the deploy, because migrations are
+      # append-only — one that has already run cannot be un-run by editing the file,
+      # so a rewrite would leave the repo claiming one schema while the live database
+      # has another, silently, with no error anywhere.
       - name: Refuse dangerous paths
+        id: fence
         env:
           BEFORE: ${{ github.event.before }}
           AFTER: ${{ github.sha }}
@@ -59,14 +74,150 @@ jobs:
           fi
           if [ -z "$BASE" ]; then
             echo "No predecessor commit to diff against — nothing to check."
+            echo "migrations=" >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          CHANGED=$(git diff --name-only "$BASE" "$AFTER")
+
+          CHANGED=$(git diff --name-status "$BASE" "$AFTER")
           echo "$CHANGED"
-          if echo "$CHANGED" | grep -Eq '^(supabase/|api/|\.github/|src/lib/api\.js|src/lib/supabase\.js|vercel\.json|.*\.env)'; then
-            echo "::error::A protected path changed on dev — refusing to deploy. A human must review this commit."
+
+          PROTECTED='^(supabase/|api/|\.github/|src/lib/api\.js|src/lib/supabase\.js|vercel\.json|.*\.env)'
+          NEW_MIGRATIONS=""
+          BAD=""
+
+          # --name-status gives "A<TAB>path", "M<TAB>path", "R100<TAB>old<TAB>new".
+          # A newly ADDED file under supabase/migrations/ with a plain filename is the
+          # only exemption; everything else — including a modified or deleted
+          # migration, and anything in a subdirectory or with an odd name — falls
+          # through to the protected check below.
+          while IFS=$'\t' read -r STATUS P1 P2; do
+            [ -z "${STATUS:-}" ] && continue
+            if [ "$STATUS" = "A" ] && printf '%s' "$P1" | grep -Eq '^supabase/migrations/[A-Za-z0-9._-]+\.sql$'; then
+              NEW_MIGRATIONS="${NEW_MIGRATIONS}${P1}"$'\n'
+              continue
+            fi
+            for P in "$P1" "${P2:-}"; do
+              [ -z "$P" ] && continue
+              if printf '%s' "$P" | grep -Eq "$PROTECTED"; then
+                if printf '%s' "$P" | grep -q '^supabase/migrations/'; then
+                  if [ "$STATUS" = "A" ]; then
+                    echo "::error::'$P' must be a plain <name>.sql file directly in supabase/migrations/ (letters, digits, . _ - only) — refusing to deploy."
+                  else
+                    echo "::error::supabase/migrations/ is append-only — '$P' was '$STATUS', not added. Rewriting a migration that has already run desynchronises the repo from the live database."
+                  fi
+                else
+                  echo "::error::A protected path changed on dev ('$P', status '$STATUS') — refusing to deploy. A human must review this commit."
+                fi
+                BAD=1
+              fi
+            done
+          done <<EOF
+          $CHANGED
+          EOF
+
+          if [ -n "$BAD" ]; then
             exit 1
           fi
+
+          {
+            echo "migrations<<__MIGRATIONS_EOF__"
+            printf '%s' "$NEW_MIGRATIONS"
+            echo "__MIGRATIONS_EOF__"
+          } >> "$GITHUB_OUTPUT"
+
+          if [ -n "$(printf '%s' "$NEW_MIGRATIONS" | tr -d '[:space:]')" ]; then
+            echo "New migrations in this push:"
+            printf '%s' "$NEW_MIGRATIONS"
+          fi
+
+      # The allowlist. Nothing reaches the database, and nothing is deployed, unless
+      # every new migration is recognisably additive. Zero dependencies, so this runs
+      # before `npm ci` — a broken lockfile must not be able to skip the gate.
+      - name: Validate new migrations
+        env:
+          MIGRATIONS: ${{ steps.fence.outputs.migrations }}
+        run: |
+          set -euo pipefail
+          if [ -z "$(printf '%s' "${MIGRATIONS:-}" | tr -d '[:space:]')" ]; then
+            echo "No new migration files in this push — nothing to validate."
+            exit 0
+          fi
+          # Read the list into an array (not `mapfile`, which needs bash 4) and sort
+          # it, so migrations apply in filename order regardless of commit order.
+          FILES=()
+          while IFS= read -r F; do
+            [ -n "$F" ] && FILES+=("$F")
+          done < <(printf '%s\n' "$MIGRATIONS" | sed '/^[[:space:]]*$/d' | sort)
+          if [ "${#FILES[@]}" -eq 0 ]; then
+            echo "No new migration files in this push."
+            exit 0
+          fi
+          node scripts/check-migration.mjs "${FILES[@]}"
+
+      # Applied BEFORE the frontend deploy, so the UI never ships expecting a column
+      # that does not exist yet. Each file runs inside one transaction: a migration
+      # that fails half-way leaves nothing behind.
+      - name: Apply migrations to Supabase
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          MIGRATIONS: ${{ steps.fence.outputs.migrations }}
+        run: |
+          set -euo pipefail
+          if [ -z "$(printf '%s' "${MIGRATIONS:-}" | tr -d '[:space:]')" ]; then
+            echo "No new migration files in this push — nothing to apply."
+            exit 0
+          fi
+          if [ -z "${SUPABASE_DB_URL:-}" ]; then
+            echo "::warning::SUPABASE_DB_URL is not set, so the new migrations were NOT applied. The frontend will still deploy. Add the secret (Settings → Secrets and variables → Actions), or apply the files by hand. See docs/LIVE-EDIT-MIGRATIONS.md."
+            exit 0
+          fi
+          if ! command -v psql >/dev/null 2>&1; then
+            echo "::error::psql is not available on this runner — refusing to apply migrations by any other means."
+            exit 1
+          fi
+
+          # Read the list into an array (not `mapfile`, which needs bash 4) and sort
+          # it, so migrations apply in filename order regardless of commit order.
+          FILES=()
+          while IFS= read -r F; do
+            [ -n "$F" ] && FILES+=("$F")
+          done < <(printf '%s\n' "$MIGRATIONS" | sed '/^[[:space:]]*$/d' | sort)
+          if [ "${#FILES[@]}" -eq 0 ]; then
+            echo "No new migration files in this push."
+            exit 0
+          fi
+
+          # The ledger. Without it, re-running this job (a retry, a revert-and-repush)
+          # would apply the same file twice. RLS on and no policy means nothing reads
+          # it through PostgREST; the migration runner connects as the owner and is
+          # unaffected.
+          psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 --single-transaction -q <<'SQL'
+          create table if not exists public.live_edit_migrations (
+            filename   text primary key,
+            sha256     text not null,
+            applied_at timestamptz not null default now()
+          );
+          alter table public.live_edit_migrations enable row level security;
+          revoke all on public.live_edit_migrations from anon, authenticated;
+          SQL
+
+          for FILE in "${FILES[@]}"; do
+            BASENAME=$(basename "$FILE")
+            SHA=$(sha256sum "$FILE" | cut -d' ' -f1)
+            SEEN=$(psql "$SUPABASE_DB_URL" -tAc "select 1 from public.live_edit_migrations where filename = '$BASENAME'")
+            if [ -n "$SEEN" ]; then
+              echo "already applied, skipping: $BASENAME"
+              continue
+            fi
+            echo "applying $BASENAME"
+            # The file and its ledger row go in together, as one transaction, so the
+            # ledger can never claim a migration that did not fully run.
+            {
+              cat "$FILE"
+              printf "\ninsert into public.live_edit_migrations (filename, sha256) values ('%s', '%s');\n" "$BASENAME" "$SHA"
+            } | psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 --single-transaction -f -
+            echo "applied $BASENAME"
+          done
 
       - run: npm ci
       - run: npx vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}

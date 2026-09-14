@@ -1,8 +1,10 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
-import { Wand2, Crosshair, X, Send, Loader2, ChevronDown, ExternalLink, CheckCircle2 } from 'lucide-react'
+import { Wand2, Crosshair, X, Send, Loader2, ChevronDown, ExternalLink, CheckCircle2, History, ArrowRight } from 'lucide-react'
 import { useAuth } from '@/lib/AuthContext'
 import { describeElement, buildPayload, submitLiveEdit, reasonText } from '@/lib/liveEdit'
+import LiveEditProgress from './LiveEditProgress'
+import LiveEditHistory from './LiveEditHistory'
 
 const EASE_OUT = 'easeOut'
 const MS = 0.18
@@ -35,6 +37,8 @@ function Panel() {
   const [showPayload, setShowPayload] = useState(false)
   const [sending, setSending] = useState(false)
   const [result, setResult] = useState(null)
+  const [sentRoute, setSentRoute] = useState('')
+  const [history, setHistory] = useState(false)
 
   // Our own chrome is part of the page while picking, and capturing the panel
   // that is asking the question would be useless to the fixer.
@@ -42,7 +46,7 @@ function Panel() {
 
   const startPick = () => { setResult(null); setRect(null); setPicking(true) }
   const stopPick = () => { setPicking(false); setRect(null) }
-  const close = () => { stopPick(); setOpen(false) }
+  const close = () => { stopPick(); setHistory(false); setOpen(false) }
   const reset = () => { setResult(null); setRequest(''); setPicked(null); setShowPayload(false) }
 
   useEffect(() => {
@@ -118,13 +122,14 @@ function Panel() {
     const onKey = (e) => {
       if (e.key !== 'Escape') return
       if (picking) stopPick()
+      else if (history) setHistory(false) // one step back, not all the way out
       else setOpen(false)
     }
     // Capture phase: a page that stops a keydown from bubbling must not be able
     // to trap the admin inside picking mode.
     document.addEventListener('keydown', onKey, true)
     return () => document.removeEventListener('keydown', onKey, true)
-  }, [open, picking])
+  }, [open, picking, history])
 
   const preview = useMemo(
     () => (showPayload ? buildPayload({ request, picked }) : null),
@@ -138,7 +143,11 @@ function Panel() {
     try {
       // Rebuilt rather than reusing the preview: viewport and console errors may
       // both have moved on while the admin was typing.
-      setResult(await submitLiveEdit(buildPayload({ request, picked })))
+      const payload = buildPayload({ request, picked })
+      // Remembered for the "go look at it" button: by the time the fix lands the
+      // admin may have walked the app somewhere else entirely.
+      setSentRoute(payload.route)
+      setResult(await submitLiveEdit(payload))
     } catch {
       setResult({ ok: false, reason: 'network' })
     } finally {
@@ -223,25 +232,51 @@ function Panel() {
               style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
             >
               <div className="flex items-center gap-2 px-4 h-12 border-b border-line-subtle shrink-0">
-                <Wand2 className="size-4 text-brand" />
-                <h3 className="font-bold text-fg-strong flex-1">עריכה חיה</h3>
+                {history ? (
+                  // Back, not close: RTL means the arrow points the way the eye
+                  // came from.
+                  <button onClick={() => setHistory(false)} aria-label="חזרה" className="p-2 -ms-2 rounded-lg text-fg-muted hover:bg-surface-sunken transition-colors">
+                    <ArrowRight className="size-4" />
+                  </button>
+                ) : (
+                  <Wand2 className="size-4 text-brand" />
+                )}
+                <h3 className="font-bold text-fg-strong flex-1">{history ? 'היסטוריית בקשות' : 'עריכה חיה'}</h3>
+                {!history && (
+                  <button onClick={() => setHistory(true)} className="btn-ghost btn-sm" title="היסטוריה">
+                    <History className="size-3.5" />
+                    היסטוריה
+                  </button>
+                )}
                 <button onClick={close} aria-label="סגור" className="p-2 -me-2 rounded-lg text-fg-muted hover:bg-surface-sunken transition-colors">
                   <X className="size-4" />
                 </button>
               </div>
 
               <div className="p-4 space-y-3 overflow-y-auto">
-                {result?.ok ? (
+                {history ? (
+                  <LiveEditHistory />
+                ) : result?.ok && result.number ? (
+                  // The point of the whole feature: four-odd minutes of silence
+                  // replaced by the actual stage, and then by what changed.
+                  <LiveEditProgress
+                    number={result.number}
+                    issueHref={result.url}
+                    route={sentRoute}
+                    onClose={close}
+                    onReset={reset}
+                  />
+                ) : result?.ok ? (
+                  // No issue number came back, so there is nothing to poll for —
+                  // don't draw a progress ladder we cannot honestly fill in.
                   <div className="space-y-3 text-center py-2">
                     <CheckCircle2 className="size-8 text-pos mx-auto" />
                     <p className="font-bold text-fg-strong">הבקשה נשלחה</p>
-                    <p className="text-sm text-fg-muted">השינוי אמור להופיע באתר הפיתוח בעוד דקה-שתיים.</p>
+                    <p className="text-sm text-fg-muted">אין לנו מספר בקשה למעקב, אבל היא בדרך.</p>
                     {result.url && (
                       <a href={result.url} target="_blank" rel="noopener noreferrer" className="btn-secondary w-full">
                         <ExternalLink className="size-4" />
-                        {/* The digits are an LTR run inside an RTL line — without
-                            dir they swap sides of the '#'. */}
-                        {result.number ? <>בקשה <span dir="ltr">#{result.number}</span></> : 'צפייה בבקשה'}
+                        צפייה בבקשה
                       </a>
                     )}
                     <button onClick={reset} className="btn-ghost btn-sm w-full">בקשה נוספת</button>
@@ -302,7 +337,7 @@ function Panel() {
                 )}
               </div>
 
-              {!result?.ok && (
+              {!result?.ok && !history && (
                 <div className="px-4 pb-4 pt-1 shrink-0">
                   <button onClick={send} disabled={!request.trim() || sending} className="btn-primary w-full">
                     {sending ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}

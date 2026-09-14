@@ -1,3 +1,5 @@
+import { formatDistanceToNow } from 'date-fns'
+import { he } from 'date-fns/locale'
 import { supabase } from './supabase'
 
 /**
@@ -187,4 +189,180 @@ export async function submitLiveEdit(payload) {
   // own 404, or (in dev) the SPA fallback handing back index.html with a 200.
   // Either way "not wired up" is exactly what the admin needs to be told.
   return { ok: false, reason: res.ok || res.status === 404 ? 'not-configured' : `http-${res.status}` }
+}
+
+// ─── Run status ─────────────────────────────────────────────────────────────
+/**
+ * The other half of the round trip. A request takes minutes (agent → push → CI
+ * deploy), so GET /api/live-edit answers with what became of it:
+ *   ?number=N  → { ok: true, items: [item] }   (0 or 1)
+ *   no params  → { ok: true, items: [...20] }
+ *
+ * item = { number, title, request, route, createdAt, closedAt, stage, summary,
+ *          commit: { sha, shortSha, url, files, additions, deletions,
+ *                    changedFiles[] } | null,
+ *          ci: { status, conclusion, url } | null }
+ */
+
+const LADDER = ['queued', 'working', 'pushed', 'deploying', 'done']
+
+// What the admin sees on the ladder. 'done' closes it; 'failed' and 'refused'
+// never appear as steps — a run that ends in either did NOT reach מוכן, and
+// drawing it on the ladder would be the lie this whole view exists to prevent.
+export const STAGE_STEPS = [
+  { stage: 'queued', label: 'נשלח' },
+  { stage: 'working', label: 'הסוכן עובד' },
+  { stage: 'pushed', label: 'הקוד נדחף' },
+  { stage: 'deploying', label: 'נפרס' },
+  { stage: 'done', label: 'מוכן' },
+]
+
+const TERMINAL = new Set(['done', 'failed', 'refused'])
+
+/** Nothing more will happen — polling stops here. */
+export const isTerminalStage = (stage) => TERMINAL.has(stage)
+
+// -1 for anything we don't recognise, including a stage the server grows later.
+// Callers render that as "לא ידוע" rather than guessing a position.
+export const stageIndex = (stage) => LADDER.indexOf(stage)
+
+const STAGE_LABELS = {
+  queued: 'נשלח',
+  working: 'הסוכן עובד',
+  pushed: 'הקוד נדחף',
+  deploying: 'נפרס',
+  done: 'מוכן',
+  failed: 'נכשל',
+  refused: 'לא בוצע',
+}
+
+export const stageLabel = (stage) => STAGE_LABELS[stage] || 'לא ידוע'
+
+const STAGE_BADGES = {
+  done: 'badge-success',
+  failed: 'badge-danger',
+  refused: 'badge-warning',
+  queued: 'badge-neutral',
+  working: 'badge-info',
+  pushed: 'badge-info',
+  deploying: 'badge-info',
+}
+
+export const stageBadge = (stage) => STAGE_BADGES[stage] || 'badge-neutral'
+
+// ─── Reading ────────────────────────────────────────────────────────────────
+
+// The bearer token both directions: reading a run says who is asking, and the
+// endpoint re-checks admin server-side exactly as it does on POST.
+async function authHeaders() {
+  try {
+    const { data } = await supabase.auth.getSession()
+    const token = data?.session?.access_token
+    if (token) return { Authorization: `Bearer ${token}` }
+  } catch { /* unauthenticated is the endpoint's call to make, not ours */ }
+  return {}
+}
+
+/**
+ * Same discipline as submitLiveEdit: never throws, always resolves to the
+ * endpoint's own { ok, ... } shape. Until the GET half is deployed the SPA
+ * fallback answers with index.html and a 200 — which isn't JSON, and means
+ * "nothing is listening", not "no runs".
+ */
+async function getRuns(query) {
+  let res
+  try {
+    res = await fetch(`/api/live-edit${query}`, { headers: await authHeaders() })
+  } catch {
+    return { ok: false, reason: 'network' }
+  }
+
+  let body = null
+  try { body = await res.json() } catch { /* not JSON — handled below */ }
+  if (body && typeof body.ok === 'boolean') return body
+
+  return { ok: false, reason: res.ok || res.status === 404 ? 'not-configured' : `http-${res.status}` }
+}
+
+/** One run. Resolves to { ok: true, item } or { ok: false, reason }. */
+export async function fetchLiveEditRun(number) {
+  const n = Number(number)
+  if (!Number.isFinite(n)) return { ok: false, reason: 'not-found' }
+
+  const body = await getRuns(`?number=${encodeURIComponent(n)}`)
+  if (!body.ok) return body
+
+  const item = Array.isArray(body.items) ? body.items[0] : null
+  return item ? { ok: true, item } : { ok: false, reason: 'not-found' }
+}
+
+/** The 20 newest. Resolves to { ok: true, items } or { ok: false, reason }. */
+export async function fetchLiveEditHistory() {
+  const body = await getRuns('')
+  if (!body.ok) return body
+  return { ok: true, items: Array.isArray(body.items) ? body.items : [] }
+}
+
+const LOAD_REASONS = {
+  'not-configured': "מעקב הבקשות עדיין לא מחובר",
+  unauthorized: 'צריך להתחבר מחדש',
+  forbidden: 'אין לך הרשאה',
+  'not-found': 'הבקשה לא נמצאה',
+  network: 'אין חיבור לשרת',
+}
+
+export const loadReasonText = (reason) => LOAD_REASONS[reason] || 'לא הצלחנו לטעון את המצב'
+
+// ─── Item helpers ───────────────────────────────────────────────────────────
+
+/**
+ * The item carries no issue URL, so derive it from a sibling GitHub link when
+ * there is one — the repo is whatever the server is actually filing into, which
+ * beats hardcoding it here. No link rather than a guessed one.
+ */
+export function issueUrl(item) {
+  if (!item) return null
+  if (typeof item.issueUrl === 'string') return item.issueUrl
+
+  const sibling = item.commit?.url || item.ci?.url || ''
+  const repo = /^(https:\/\/github\.com\/[^/]+\/[^/]+)\//.exec(sibling)
+  return repo && Number.isFinite(Number(item.number)) ? `${repo[1]}/issues/${item.number}` : null
+}
+
+/**
+ * changedFiles entries may be bare paths or GitHub-shaped objects; both have to
+ * render. Anything else is dropped rather than printed as "[object Object]".
+ */
+export function changedFiles(commit) {
+  const list = Array.isArray(commit?.changedFiles) ? commit.changedFiles : []
+  return list
+    .map((f) => {
+      if (typeof f === 'string') return { path: f, additions: null, deletions: null }
+      const path = f?.filename || f?.path || f?.name
+      if (typeof path !== 'string' || !path) return null
+      const add = Number(f?.additions)
+      const del = Number(f?.deletions)
+      return {
+        path,
+        additions: Number.isFinite(add) ? add : null,
+        deletions: Number.isFinite(del) ? del : null,
+      }
+    })
+    .filter(Boolean)
+}
+
+/** mm:ss, for an elapsed count the admin watches tick. */
+export function elapsedText(ms) {
+  const total = Math.max(0, Math.floor((Number(ms) || 0) / 1000))
+  return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')}`
+}
+
+/** In-app navigation only — a route from the server is never allowed off-site. */
+export const safeRoute = (route) =>
+  typeof route === 'string' && /^\/(?!\/)/.test(route) ? route : null
+
+/** "לפני 3 שעות". Same helper the bell and the chat use, same locale. */
+export function relativeTime(iso) {
+  try { return formatDistanceToNow(new Date(iso), { addSuffix: true, locale: he }) }
+  catch { return '' }
 }
