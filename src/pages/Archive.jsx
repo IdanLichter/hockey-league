@@ -9,11 +9,13 @@ import { Crate } from "@/components/icons/HockeyIcons"
 import { motion } from "framer-motion"
 import { format } from "date-fns"
 import TeamLogo from "@/components/TeamLogo"
+import { useSlugId } from "@/lib/slugs"
 
 export default function ArchivePage() {
-  const { seasonId } = useParams()
+  // /archive/2025-26, or the season's UUID for any older link.
+  const { seasonId: routeKey } = useParams()
 
-  if (seasonId) return <SeasonDetail seasonId={seasonId} />
+  if (routeKey) return <SeasonDetail routeKey={routeKey} />
   return <SeasonsList />
 }
 
@@ -72,7 +74,7 @@ function SeasonsList() {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {seasons.map((season, i) => (
             <motion.div key={season.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}>
-              <Link to={`/archive/${season.id}`} className="card-hover p-5 block">
+              <Link to={`/archive/${encodeURIComponent(season.slug || season.id)}`} className="card-hover p-5 block">
                 <div className="flex items-center gap-4">
                   <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-brand to-amber-500 flex items-center justify-center shadow-md">
                     <Trophy className="w-6 h-6 text-white" />
@@ -92,7 +94,9 @@ function SeasonsList() {
   )
 }
 
-function SeasonDetail({ seasonId }) {
+function SeasonDetail({ routeKey }) {
+  // Everything below still works in season UUIDs; only the URL changed.
+  const { id: seasonId, notFound: unknownSeason } = useSlugId('seasons', routeKey)
   const [season, setSeason] = useState(null)
   const [standings, setStandings] = useState([])
   const [playerStats, setPlayerStats] = useState([])
@@ -119,7 +123,10 @@ function SeasonDetail({ seasonId }) {
       .finally(() => setLoading(false))
   }
 
-  useEffect(() => { loadSeason() }, [seasonId])
+  useEffect(() => {
+    if (seasonId) loadSeason()
+    else if (unknownSeason) { setError('העונה לא נמצאה'); setLoading(false) }
+  }, [seasonId, unknownSeason])
 
   if (loading) {
     return (

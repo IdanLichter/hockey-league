@@ -18,6 +18,13 @@
   ],
   "rewrites": [
     { "source": "/api/(.*)", "destination": "/api/$1" },
+
+    { "source": "/games/:id([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/tv", "destination": "/api/resolve?type=games&id=:id&suffix=tv" },
+    { "source": "/players/:id([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})", "destination": "/api/resolve?type=players&id=:id" },
+    { "source": "/teams/:id([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})", "destination": "/api/resolve?type=teams&id=:id" },
+    { "source": "/games/:id([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})", "destination": "/api/resolve?type=games&id=:id" },
+    { "source": "/tournaments/:id([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})", "destination": "/api/resolve?type=tournaments&id=:id" },
+
     {
       "source": "/players/:id",
       "has": [{ "type": "header", "key": "user-agent", "value": ".*(facebookexternalhit|Facebot|Twitterbot|WhatsApp|Slackbot|LinkedInBot|TelegramBot|Discordbot|Pinterest|redditbot|Embedly|vkShare|Applebot|SkypeUriPreview|W3C_Validator).*" }],
@@ -33,6 +40,12 @@
       "has": [{ "type": "header", "key": "user-agent", "value": ".*(facebookexternalhit|Facebot|Twitterbot|WhatsApp|Slackbot|LinkedInBot|TelegramBot|Discordbot|Pinterest|redditbot|Embedly|vkShare|Applebot|SkypeUriPreview|W3C_Validator).*" }],
       "destination": "/api/og?type=games&id=:id"
     },
+    {
+      "source": "/tournaments/:id",
+      "has": [{ "type": "header", "key": "user-agent", "value": ".*(facebookexternalhit|Facebot|Twitterbot|WhatsApp|Slackbot|LinkedInBot|TelegramBot|Discordbot|Pinterest|redditbot|Embedly|vkShare|Applebot|SkypeUriPreview|W3C_Validator).*" }],
+      "destination": "/api/og?type=tournaments&id=:id"
+    },
+
     { "source": "/(.*)", "destination": "/" }
   ]
 }

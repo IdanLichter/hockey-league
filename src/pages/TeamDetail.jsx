@@ -14,12 +14,15 @@ import TeamLogo from "@/components/TeamLogo"
 import TeamEditModal from "@/components/TeamEditModal"
 import TeamCoachRequest from "@/components/TeamCoachRequest"
 import { useSeo } from "@/lib/seo"
+import { useSlugId, entityPath } from "@/lib/slugs"
+import { TeamLink } from "@/components/EntityLinks"
 import { getApprovedMedicalPlayerIds } from "@/lib/medical"
 import { getTeamSubmissions } from "@/lib/playerSubmissions"
 import FollowButton from "@/components/FollowButton"
 
 export default function TeamDetail() {
-  const { id } = useParams()
+  const { id: routeKey } = useParams()
+  const { id, notFound: unknownRoute } = useSlugId('teams', routeKey)
   const { profile, isAdmin, coachTeamIds } = useAuth()
   const [joinState, setJoinState] = useState(null)
   const [joinError, setJoinError] = useState(null)
@@ -37,13 +40,18 @@ export default function TeamDetail() {
   useSeo({
     title: teamName || 'קבוצה',
     description: teamName ? `סגל, תוצאות וסטטיסטיקות של ${teamName} בליגת הוקי הגלגיליות הישראלית` : undefined,
-    path: `/teams/${id}`,
+    path: entityPath('teams', teams.find(t => t.id === id)) || `/teams/${routeKey}`,
   })
 
   // Roles resolve asynchronously in AuthContext, usually *after* the first paint. Without
   // them in the deps a coach landing directly on their own team page loads before
   // coachTeamIds fills in, and the medical indicators silently never appear.
-  useEffect(() => { loadData() }, [id, isAdmin, coachTeamIds.join(',')])
+  useEffect(() => {
+    // `id` is null only while a Hebrew slug is being resolved into the row's
+    // UUID; `unknownRoute` means that resolution came back empty.
+    if (id) loadData()
+    else if (unknownRoute) { setError('הקבוצה לא נמצאה'); setLoading(false) }
+  }, [id, unknownRoute, isAdmin, coachTeamIds.join(',')])
 
   const loadData = async () => {
     try {
@@ -211,7 +219,7 @@ export default function TeamDetail() {
         <div className="p-3 sm:p-4 space-y-1">
           {roster.length === 0 && <p className="text-center text-slate-500 dark:text-slate-400 py-8 text-sm">אין שחקנים</p>}
           {roster.map(player => (
-            <Link key={player.id} to={`/players/${player.id}`}
+            <Link key={player.id} to={entityPath('players', player)}
               className="flex items-center justify-between py-2 px-3 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors text-sm">
               <div className="flex items-center gap-2 min-w-0">
                 {player.is_core && <span className="w-1.5 h-1.5 rounded-full bg-brand shrink-0" />}
@@ -279,7 +287,7 @@ export default function TeamDetail() {
               const isHome = game.home_team_id === id
               const opp = teamsMap[isHome ? game.away_team_id : game.home_team_id]
               return (
-                <Link key={game.id} to={`/games/${game.id}`}
+                <Link key={game.id} to={entityPath('games', game)}
                   className="flex items-center justify-between gap-3 p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors group">
                   <div className="flex items-center gap-2.5 min-w-0">
                     <TeamLogo team={opp} size={8} />
@@ -321,7 +329,10 @@ export default function TeamDetail() {
               : 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300'
             return (
               <div key={game.id} className="flex items-center justify-between gap-3 p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/50">
-                <Link to={`/teams/${opp?.id}`} className="flex items-center gap-2.5 min-w-0 group">
+                {/* TeamLink, not a bare Link: `opp` can be missing (a game whose
+                    opponent row didn't load) and this then renders inert text
+                    instead of a link to nowhere. */}
+                <TeamLink team={opp} className="flex items-center gap-2.5 min-w-0 group">
                   <TeamLogo team={opp} size={8} />
                   <div className="min-w-0">
                     <p className="font-semibold text-sm text-slate-900 dark:text-white truncate group-hover:text-brand transition-colors">{opp?.name || '—'}</p>
@@ -332,7 +343,7 @@ export default function TeamDetail() {
                       )}
                     </p>
                   </div>
-                </Link>
+                </TeamLink>
                 {/* RTL score: away_score first, home_score last so each score lands
                     beside its team (see hockey-league-rtl-score-gotcha memory). */}
                 <span className={`text-sm font-bold px-2 py-1 rounded-md tabular-nums shrink-0 ${resultCls}`} title={result === 'win' ? 'ניצחון' : result === 'loss' ? 'הפסד' : 'תיקו'}>

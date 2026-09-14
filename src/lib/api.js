@@ -1,5 +1,6 @@
 import { supabase } from './supabase'
 import { countsForStats } from './leagueStats'
+import { registerSlugs } from './slugs'
 
 // Fetch every row, paging past PostgREST's 1000-row cap (a plain select silently
 // truncates at 1000). Used for tables that can grow beyond that within a season.
@@ -25,7 +26,7 @@ export async function getTeams(orderBy = 'points', ascending = false) {
     .eq('status', 'active')
     .order(orderBy, { ascending })
   if (error) throw error
-  return data
+  return registerSlugs('teams', data)
 }
 
 // ----- user-created teams (Package 1a) -----
@@ -119,7 +120,7 @@ export async function uploadTeamLogo(teamId, file) {
 // needs a DOB reads it per-row while signed in (see lib/birthDate.js).
 export const PLAYER_PUBLIC_COLUMNS =
   'id,first_name,last_name,jersey_number,position,team_id,is_referee,is_core,age,' +
-  'goals,games_played,blue_cards,red_cards,photo_url,created_at'
+  'goals,games_played,blue_cards,red_cards,photo_url,created_at,slug'
 
 export async function getPlayers(orderBy = 'goals', ascending = false) {
   const { data, error } = await supabase
@@ -140,7 +141,7 @@ export async function getPlayers(orderBy = 'goals', ascending = false) {
       for (const p of players) if (byPlayer[p.id]) p.owner_avatar_url = byPlayer[p.id]
     }
   } catch { /* avatar is enhancement-only; never break the players fetch */ }
-  return players
+  return registerSlugs('players', players)
 }
 
 export async function getGames(orderBy = 'game_date', ascending = false) {
@@ -149,7 +150,7 @@ export async function getGames(orderBy = 'game_date', ascending = false) {
     .select('*')
     .order(orderBy, { ascending })
   if (error) throw error
-  return data
+  return registerSlugs('games', data)
 }
 
 export async function getGameStats() {
@@ -172,6 +173,7 @@ export async function getGameById(id) {
     .eq('id', id)
     .single()
   if (error) throw error
+  registerSlugs('games', [data])
   return data
 }
 
@@ -500,7 +502,7 @@ export async function setLeagueSetting(key, value) {
 export async function getArchivedSeasons() {
   const { data, error } = await supabase
     .from('seasons')
-    .select('id, name, starts_on, ends_on, created_at')
+    .select('id, slug, name, starts_on, ends_on, created_at')
     .eq('status', 'archived')
     .order('ends_on', { ascending: false, nullsFirst: false })
   if (error) throw error

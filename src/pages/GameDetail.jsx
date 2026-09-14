@@ -13,6 +13,7 @@ import GameAvailability from "@/components/GameAvailability"
 import GameBroadcast from "@/components/GameBroadcast"
 import { TeamLink, PlayerLink } from "@/components/EntityLinks"
 import { useSeo } from "@/lib/seo"
+import { useSlugId, entityPath } from "@/lib/slugs"
 import { countsForStats, FRIENDLY_GAME_TYPE } from "@/lib/leagueStats"
 import GameChangeRequestModal from "@/components/GameChangeRequestModal"
 import GameChangeOpponentCard from "@/components/GameChangeOpponentCard"
@@ -46,7 +47,8 @@ function StatPills({ stat }) {
 }
 
 export default function GameDetail() {
-  const { id } = useParams()
+  const { id: routeKey } = useParams()
+  const { id, notFound: unknownRoute } = useSlugId('games', routeKey)
   const { isAdmin, isJudgeRole, profile, coachTeamIds } = useAuth()
   const [game, setGame] = useState(null)
   const [stats, setStats] = useState([])
@@ -72,10 +74,15 @@ export default function GameDetail() {
     description: home && away
       ? `תוצאה, הרכבים וסטטיסטיקות מהמשחק בין ${home.name} ל${away.name} בליגת הוקי הגלגיליות הישראלית`
       : undefined,
-    path: `/games/${id}`,
+    path: entityPath('games', game) || `/games/${routeKey}`,
   })
 
-  useEffect(() => { loadData() }, [id])
+  useEffect(() => {
+    // `id` is null only while a Hebrew slug is being resolved into the row's
+    // UUID; `unknownRoute` means that resolution came back empty.
+    if (id) loadData()
+    else if (unknownRoute) { setError('notfound'); setLoading(false) } // sentinel, see the error branch below
+  }, [id, unknownRoute])
 
   // A coach of either team may have an outstanding change request for this game.
   // Refetch when the game or the viewer's coach scope resolves (auth loads async).
@@ -533,7 +540,7 @@ export default function GameDetail() {
             const opp = wasHome ? g.away_score : g.home_score
             const result = my > opp ? 'win' : my < opp ? 'loss' : 'tie'
             return (
-              <Link key={g.id} to={`/games/${g.id}`} className="flex items-center justify-between gap-3 p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+              <Link key={g.id} to={entityPath('games', g)} className="flex items-center justify-between gap-3 p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
                 <div className="flex items-center gap-2 min-w-0 text-xs text-slate-500 dark:text-slate-400">
                   <Calendar className="w-3.5 h-3.5 shrink-0" />
                   <span>{format(new Date(g.game_date), "d/M/yyyy")}</span>

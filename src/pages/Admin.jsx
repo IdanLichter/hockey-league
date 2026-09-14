@@ -38,6 +38,7 @@ import SuspensionsAdmin from "@/components/admin/SuspensionsAdmin"
 import BirthDatesAdmin from "@/components/admin/BirthDatesAdmin"
 import UnavailabilityAdmin from "@/components/admin/UnavailabilityAdmin"
 import { getVenues } from "@/lib/venues"
+import { entityPath } from "@/lib/slugs"
 import OfficialsAdmin from "@/components/admin/OfficialsAdmin"
 import VenuesAdmin from "@/components/admin/VenuesAdmin"
 import SeasonCalendar from "@/components/admin/SeasonCalendar"
@@ -307,7 +308,7 @@ function CoachGamesView({ games, teamsMap, coachTeamIds }) {
           {mine.map(game => {
             const done = game.status === 'completed' && game.home_score != null && game.away_score != null
             return (
-              <Link key={game.id} to={`/games/${game.id}`}
+              <Link key={game.id} to={entityPath('games', game)}
                 className="flex items-center justify-between px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
                 <div className="flex items-center gap-2 min-w-0">
                   <TeamLogo team={teamsMap[game.home_team_id]} size={7} />

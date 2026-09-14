@@ -2,6 +2,7 @@ import { useState, useEffect } from "react"
 import { useParams } from "react-router-dom"
 import { getGameById, getTeams } from "@/lib/api"
 import { getLiveGame, subscribeLiveGame } from "@/lib/live"
+import { useSlugId } from "@/lib/slugs"
 
 /**
  * Sheet row 21 — אפשר לחבר לטלוויזיה עם כבל ולשדר בטלוויזיה.
@@ -49,13 +50,15 @@ function Side({ team, score }) {
 }
 
 export default function GameTv() {
-  const { id } = useParams()
+  const { id: routeKey } = useParams()
+  const { id } = useSlugId('games', routeKey)
   const [game, setGame] = useState(null)
   const [teams, setTeams] = useState([])
   const [live, setLive] = useState(null)
   const [now, setNow] = useState(() => Date.now())
 
   useEffect(() => {
+    if (!id) return // still resolving a slug into the game's UUID
     let alive = true
     Promise.all([getGameById(id), getTeams(), getLiveGame(id)]).then(([g, t, l]) => {
       if (!alive) return

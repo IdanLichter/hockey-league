@@ -3,6 +3,7 @@ import { Link } from "react-router-dom"
 import { getPendingGameChangeRequests, finalizeGameChange, rejectGameChange } from "@/lib/gameRequests"
 import { Check, X, CalendarClock, RefreshCw, MapPin, ExternalLink, ArrowLeft } from "lucide-react"
 import { format } from "date-fns"
+import { entityPath } from "@/lib/slugs"
 
 /**
  * League-manager / admin FINALIZATION queue (#5). These requests already cleared the
@@ -74,7 +75,7 @@ export default function GameChangeRequestsReview({ teamsMap = {} }) {
                       <span className="font-bold">{who}</span>
                       <span className="text-slate-500 dark:text-slate-400"> ({teamName(r.team_id)}) מבקש/ת לשנות</span>
                     </p>
-                    <Link to={`/games/${r.game_id}`} className="inline-flex items-center gap-1 text-sm font-semibold text-slate-700 dark:text-slate-200 hover:text-brand transition-colors mt-0.5">
+                    <Link to={entityPath('games', r.game_id)} className="inline-flex items-center gap-1 text-sm font-semibold text-slate-700 dark:text-slate-200 hover:text-brand transition-colors mt-0.5">
                       {teamName(g.home_team_id)} <span className="text-slate-400">נגד</span> {teamName(g.away_team_id)}
                       <ExternalLink className="w-3 h-3 opacity-60" />
                     </Link>

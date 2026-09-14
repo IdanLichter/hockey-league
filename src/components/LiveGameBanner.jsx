@@ -3,6 +3,7 @@ import { Link } from "react-router-dom"
 import { ChevronLeft } from "lucide-react"
 import { clockString } from "@/lib/game/format"
 import TeamLogo from "@/components/TeamLogo"
+import { entityPath } from "@/lib/slugs"
 
 /**
  * Compact "watch now" strips for games being officiated live. One row per live
@@ -38,7 +39,7 @@ function LiveRow({ live, home, away }) {
 
   return (
     <Link
-      to={`/games/${live.game_id}`}
+      to={entityPath('games', live.game_id)}
       className="group card-hover relative flex items-center gap-2 sm:gap-3 p-3 sm:p-3.5 overflow-hidden ring-1 ring-red-500/30 hover:ring-red-500/50"
       aria-label="צפו במשחק החי"
     >

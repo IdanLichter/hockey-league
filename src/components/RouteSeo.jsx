@@ -1,12 +1,13 @@
 import { useEffect } from 'react'
 import { useLocation } from 'react-router-dom'
 import {
-  useSeo, NOINDEX_PREFIXES,
+  useSeo, isNoindexPath,
   organizationJsonLd, personJsonLd, teamJsonLd, sportsEventJsonLd,
 } from '@/lib/seo'
 import { upsertJsonLd, removeJsonLd } from '@/components/JsonLd'
 import { trackPageview } from '@/lib/analytics'
 import { supabase } from '@/lib/supabase'
+import { isUuid } from '@/lib/slugs'
 
 // Per-route metadata for the static pages. Detail pages (/players/:id, /teams/:id)
 // call useSeo() themselves with the entity's name; because this component renders
@@ -25,7 +26,7 @@ const ROUTES = {
   '/creators': { title: 'אזור יוצרי תוכן', description: 'אזור יוצרי התוכן של ליגת הוקי הגלגיליות הישראלית' },
   '/archive': { title: 'ארכיון', description: 'עונות קודמות של ליגת הוקי הגלגיליות הישראלית' },
   '/privacy': { title: 'מדיניות פרטיות' },
-  // Private routes. They stay noindex (NOINDEX_PREFIXES) — these titles are for the
+  // Private routes. They stay noindex (isNoindexPath) — these titles are for the
   // browser tab, history and the screen-reader page announcement, which otherwise
   // fell back to the bare site name on every one of them.
   '/judge': { title: 'שולחן השופט' },
@@ -40,7 +41,7 @@ const JSONLD_KEY = 'route'
 
 export default function RouteSeo() {
   const { pathname } = useLocation()
-  const noindex = NOINDEX_PREFIXES.some(p => pathname === p || pathname.startsWith(`${p}/`))
+  const noindex = isNoindexPath(pathname)
   const meta = ROUTES[pathname] || {}
   useSeo({ ...meta, path: pathname, noindex })
 
@@ -63,6 +64,12 @@ export default function RouteSeo() {
       return () => { removeJsonLd(JSONLD_KEY) }
     }
 
+    // The route key is a Hebrew slug now, but every link shared before slugs
+    // existed is still a UUID — so filter on whichever column the key is for.
+    // Without this the `.eq('id', 'יואב-תורגמן')` below 400s on every slug URL
+    // and the page silently loses its structured data.
+    const keyed = (key) => (isUuid(key) ? ['id', key] : ['slug', decodeURIComponent(key)])
+
     const playerId = pathname.match(/^\/players\/([^/]+)$/)?.[1]
     const teamId = pathname.match(/^\/teams\/([^/]+)$/)?.[1]
     const gameId = pathname.match(/^\/games\/([^/]+)$/)?.[1]
@@ -71,28 +78,28 @@ export default function RouteSeo() {
       try {
         if (playerId) {
           const { data: p } = await supabase
-            .from('players').select('id, first_name, last_name, team_id, photo_url')
-            .eq('id', playerId).maybeSingle()
+            .from('players').select('id, slug, first_name, last_name, team_id, photo_url')
+            .eq(...keyed(playerId)).maybeSingle()
           if (!alive || !p) return
           let team = null
           if (p.team_id) {
-            const { data } = await supabase.from('teams').select('id, name').eq('id', p.team_id).maybeSingle()
+            const { data } = await supabase.from('teams').select('id, slug, name').eq('id', p.team_id).maybeSingle()
             team = data
           }
           if (alive) upsertJsonLd(JSONLD_KEY, personJsonLd(p, team))
         } else if (teamId) {
           const { data: t } = await supabase
-            .from('teams').select('id, name, city, founded_year')
-            .eq('id', teamId).maybeSingle()
+            .from('teams').select('id, slug, name, city, founded_year')
+            .eq(...keyed(teamId)).maybeSingle()
           if (alive && t) upsertJsonLd(JSONLD_KEY, teamJsonLd(t))
         } else if (gameId) {
           const { data: g } = await supabase
-            .from('games').select('id, home_team_id, away_team_id, game_date, venue, status')
-            .eq('id', gameId).maybeSingle()
+            .from('games').select('id, slug, home_team_id, away_team_id, game_date, venue, status')
+            .eq(...keyed(gameId)).maybeSingle()
           if (!alive || !g) return
           const ids = [g.home_team_id, g.away_team_id].filter(Boolean)
           const { data: ts } = ids.length
-            ? await supabase.from('teams').select('id, name').in('id', ids)
+            ? await supabase.from('teams').select('id, slug, name').in('id', ids)
             : { data: [] }
           const map = Object.fromEntries((ts || []).map(t => [t.id, t]))
           if (alive) upsertJsonLd(JSONLD_KEY, sportsEventJsonLd(g, map[g.home_team_id], map[g.away_team_id]))

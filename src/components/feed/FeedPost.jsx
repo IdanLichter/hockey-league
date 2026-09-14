@@ -12,6 +12,7 @@ import ModerationMenu from "@/components/feed/ModerationMenu"
 import { RoleBadge, deriveRoleItems } from "@/components/RoleBadges"
 import { TARGET_POST, TARGET_COMMENT } from "@/lib/moderation"
 import { FRIENDLY_GAME_TYPE } from "@/lib/leagueStats"
+import { entityPath } from "@/lib/slugs"
 
 function Avatar({ url, name, className = "w-9 h-9" }) {
   const initial = (name || "?").trim().charAt(0).toUpperCase() || "?"
@@ -23,14 +24,14 @@ function Avatar({ url, name, className = "w-9 h-9" }) {
 /* Wrap children in a link to a team page when the team exists, else render inert. */
 function TeamLink({ team, className = "", children }) {
   if (!team?.id) return <span className={className}>{children}</span>
-  return <Link to={`/teams/${team.id}`} className={className}>{children}</Link>
+  return <Link to={entityPath('teams', team)} className={className}>{children}</Link>
 }
 
 /* Wrap children in a link to a player page when a playerId is known, else render inert.
    Guest scorers and unpaired posters have no player page, so they stay non-clickable. */
 function PlayerLink({ playerId, className = "", children }) {
   if (!playerId) return <span className={className}>{children}</span>
-  return <Link to={`/players/${playerId}`} className={className}>{children}</Link>
+  return <Link to={entityPath('players', playerId)} className={className}>{children}</Link>
 }
 
 const fmtDate = (d) => format(new Date(d), "d/M/yyyy")
@@ -356,7 +357,7 @@ function GameResultPost({ post, playersMap, teamsMap, likedItems, itemLikeCounts
         <div className="flex items-center gap-3 mt-3 pt-3 border-t border-slate-100 dark:border-slate-700/50 text-xs text-slate-500 dark:text-slate-400 flex-wrap">
           <span className="flex items-center gap-1"><MapPin className="w-3.5 h-3.5" />{game.venue || '—'}</span>
           <div className="mr-auto flex items-center gap-2">
-            <Link to={`/games/${game.id}`} className="flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg font-semibold text-brand dark:text-brand-light hover:bg-brand/[0.06] dark:hover:bg-brand/10 transition-colors">
+            <Link to={entityPath('games', game)} className="flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg font-semibold text-brand dark:text-brand-light hover:bg-brand/[0.06] dark:hover:bg-brand/10 transition-colors">
               לעמוד המשחק <ArrowLeft className="w-3.5 h-3.5" />
             </Link>
             {stats.length > 0 && (

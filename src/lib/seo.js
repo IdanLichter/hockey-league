@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { entityPath } from '@/lib/slugs'
 
 // Zero-dependency head manager. Every route calls useSeo() so the document title,
 // description, canonical and robots directive describe the page the user is on
@@ -25,6 +26,16 @@ const DEFAULT_IMAGE = `${SITE_URL}/logos/main-logo.png`
 // a public search result for a betting board on a league site with youth teams
 // is exactly the wrong front door.
 export const NOINDEX_PREFIXES = ['/admin', '/judge', '/me', '/creators', '/reset-password', '/market']
+
+// Same idea, for routes a prefix can't express. /games/:id/tv is the fullscreen
+// board for a TV in the hall — the same fixture as /games/:id, with none of the
+// content. Two indexable URLs for one game is a duplicate Google has to pick
+// between, and it might not pick the one people should land on.
+export const NOINDEX_PATTERNS = [/^\/games\/[^/]+\/tv\/?$/]
+
+export const isNoindexPath = (pathname) =>
+  NOINDEX_PREFIXES.some(p => pathname === p || pathname.startsWith(`${p}/`)) ||
+  NOINDEX_PATTERNS.some(re => re.test(pathname))
 
 function upsertMeta(selector, attr, name, content) {
   let el = document.head.querySelector(selector)
@@ -104,9 +115,9 @@ export function personJsonLd(player, team) {
     '@context': 'https://schema.org',
     '@type': 'Person',
     name,
-    url: `${SITE_URL}/players/${player.id}`,
+    url: `${SITE_URL}${entityPath('players', player)}`,
     ...(player.photo_url ? { image: player.photo_url } : {}),
-    ...(team ? { memberOf: { '@type': 'SportsTeam', name: team.name, url: `${SITE_URL}/teams/${team.id}` } } : {}),
+    ...(team ? { memberOf: { '@type': 'SportsTeam', name: team.name, url: `${SITE_URL}${entityPath('teams', team)}` } } : {}),
   }
 }
 
@@ -117,7 +128,7 @@ export function teamJsonLd(team) {
     '@type': 'SportsTeam',
     name: team.name,
     sport: SPORT,
-    url: `${SITE_URL}/teams/${team.id}`,
+    url: `${SITE_URL}${entityPath('teams', team)}`,
     ...(team.city ? { location: { '@type': 'Place', name: team.city } } : {}),
     ...(team.founded_year ? { foundingDate: String(team.founded_year) } : {}),
     memberOf: { '@type': 'SportsOrganization', name: SITE_NAME, url: `${SITE_URL}/` },
@@ -129,15 +140,15 @@ export function sportsEventJsonLd(game, homeTeam, awayTeam) {
   const home = homeTeam?.name || 'קבוצת הבית'
   const away = awayTeam?.name || 'קבוצת החוץ'
   const competitor = [
-    { '@type': 'SportsTeam', name: home, ...(homeTeam ? { url: `${SITE_URL}/teams/${homeTeam.id}` } : {}) },
-    { '@type': 'SportsTeam', name: away, ...(awayTeam ? { url: `${SITE_URL}/teams/${awayTeam.id}` } : {}) },
+    { '@type': 'SportsTeam', name: home, ...(homeTeam ? { url: `${SITE_URL}${entityPath('teams', homeTeam)}` } : {}) },
+    { '@type': 'SportsTeam', name: away, ...(awayTeam ? { url: `${SITE_URL}${entityPath('teams', awayTeam)}` } : {}) },
   ]
   return {
     '@context': 'https://schema.org',
     '@type': 'SportsEvent',
     name: `${home} נגד ${away}`,
     sport: SPORT,
-    url: `${SITE_URL}/games/${game.id}`,
+    url: `${SITE_URL}${entityPath('games', game)}`,
     eventStatus: game.status === 'cancelled'
       ? 'https://schema.org/EventCancelled'
       : 'https://schema.org/EventScheduled',

@@ -9,6 +9,7 @@ import {
   LogIn, Trophy, Smartphone, UserPlus, Users, Bell,
   CalendarClock, HeartPulse, ChevronLeft, Loader2,
 } from "lucide-react"
+import { entityPath } from '@/lib/slugs'
 
 /**
  * "פעולות מהירות" — a context-aware quick-actions panel that sits under the feed
@@ -100,7 +101,7 @@ export default function QuickActions({ games = [], teamsMap = {} }) {
     if (!playerId) {
       links.push({ key: "claim", label: "שייכו חשבון לשחקן", icon: UserPlus, to: "/me", primary: true })
     } else if (teamId) {
-      links.push({ key: "team", label: "הקבוצה שלי", icon: Users, to: `/teams/${teamId}` })
+      links.push({ key: "team", label: "הקבוצה שלי", icon: Users, to: entityPath('teams', teamId) })
     } else {
       links.push({ key: "findteam", label: "מצא/י קבוצה", icon: Users, to: "/me", primary: true })
     }
@@ -123,7 +124,7 @@ export default function QuickActions({ games = [], teamsMap = {} }) {
       {/* Player alerts — highest priority, attention-styled */}
       {unsignedGame && (
         <AlertRow
-          to={`/games/${unsignedGame.id}`}
+          to={entityPath('games', unsignedGame)}
           icon={CalendarClock}
           tone="amber"
           label="הירשמו למשחק הקרוב"

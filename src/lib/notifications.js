@@ -262,6 +262,12 @@ export function notificationIcon(n) {
 }
 
 // Where clicking the notification takes you.
+//
+// Deliberately still the UUID form. `entity_id` is what the row stores — for
+// rows written months ago as much as for ones written a second ago — and the
+// UUID route resolves everywhere: in-app useSlugId passes it straight through,
+// and a cold load gets a 308 to the slug from api/resolve.js. Translating here
+// would mean a slug lookup per notification in the bell, for no gain.
 export function notificationHref(n) {
   switch (n.type) {
     case 'claim_approved':

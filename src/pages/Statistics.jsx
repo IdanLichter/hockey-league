@@ -22,6 +22,7 @@ import ScatterChart from "@/components/charts/ScatterChart"
 import RadarChart from "@/components/charts/RadarChart"
 import StatTile from "@/components/charts/StatTile"
 import Legend from "@/components/charts/Legend"
+import { entityPath } from "@/lib/slugs"
 
 // game_stats does not exist for every completed game — anything derived from it must
 // carry this caveat (per the data contract for this page). Derived live rather than
@@ -333,7 +334,7 @@ export default function Statistics() {
   }
 
   const PlayerRow = ({ player, index, value, color = "bg-slate-900 dark:bg-brand" }) => (
-    <Link to={`/players/${player.id}`} className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors group">
+    <Link to={entityPath('players', player)} className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors group">
       <div className="flex items-center gap-2.5">
         <span className={`w-6 h-6 rounded-md flex items-center justify-center text-[10px] font-bold ${medal(index)}`}>{index + 1}</span>
         <div>
@@ -412,7 +413,7 @@ export default function Statistics() {
             value={summary.highestTotal}
             label="משחק שיא"
             sub={`${teamName(biggest.home_team_id)} נגד ${teamName(biggest.away_team_id)}`}
-            to={`/games/${biggest.id}`}
+            to={entityPath('games', biggest)}
           />
         )}
       </div>
@@ -566,7 +567,7 @@ export default function Statistics() {
         {activeTab === "goalkeepers" && (
           <List title="שוערי הברזל" icon={<Glove className="w-4 h-4 text-blue-500" />} data={cleanSheetLeaders} tKey="gk" empty="טרם נרשמו משחקים ללא ספיגה"
             render={(gk, i) => (
-              <Link key={gk.id} to={`/players/${gk.id}`} className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors group">
+              <Link key={gk.id} to={entityPath('players', gk)} className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors group">
                 <div className="flex items-center gap-2.5">
                   <span className={`w-6 h-6 rounded-md flex items-center justify-center text-[10px] font-bold ${medal(i)}`}>{i + 1}</span>
                   <div>
@@ -585,7 +586,7 @@ export default function Statistics() {
               render={(p, i) => <PlayerRow key={p.id} player={p} index={i} value={p.blue_cards} color="bg-blue-500" />} />
             <List title="כחולים לפי קבוצה" icon={<Shield className="w-4 h-4 text-blue-500" />} data={blueTeams} tKey="blueT" empty="אין"
               render={(t, i) => (
-                <Link key={t.id} to={`/teams/${t.id}`} className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors group">
+                <Link key={t.id} to={entityPath('teams', t)} className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors group">
                   <div className="flex items-center gap-2.5">
                     <TeamLogo team={t} size={6} />
                     <span className="font-semibold text-sm text-slate-900 dark:text-white group-hover:text-brand transition-colors">{t.name}</span>

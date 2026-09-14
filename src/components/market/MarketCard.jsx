@@ -136,7 +136,7 @@ export default function MarketCard({ market, myShares = {}, conflict = null }) {
     return <div className="mkt-card p-4 opacity-60 cursor-not-allowed">{body}</div>
   }
   return (
-    <Link to={`/market/${market.id}`} className="mkt-card-hover p-4 block">
+    <Link to={`/market/${encodeURIComponent(market.slug || market.id)}`} className="mkt-card-hover p-4 block">
       {body}
     </Link>
   )
