@@ -222,6 +222,21 @@ export async function getTrades(marketId, limit = 60) {
   return (data || []).map(t => ({ ...t, trader: by[t.user_id] || null }))
 }
 
+/**
+ * Ids of every market that has already traded, as a Set.
+ *
+ * An outcome set is frozen the moment the first coin moves — LMSR prices are
+ * computed across the whole field, so a runner added underneath an open position
+ * silently re-prices shares somebody already paid for. The server enforces it;
+ * this read exists so the manager sees the lock before typing a name into a form
+ * that was never going to accept it.
+ */
+export async function getTradedMarketIds() {
+  const { data, error } = await supabase.from('market_trades').select('market_id')
+  if (error) return new Set()
+  return new Set((data || []).map(r => r.market_id))
+}
+
 export async function getLeaderboard() {
   const { data, error } = await supabase.rpc('market_leaderboard')
   if (error) throw error

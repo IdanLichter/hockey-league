@@ -1,11 +1,18 @@
 import { useState, useMemo, useEffect } from 'react'
-import { Loader2, ArrowLeftRight, Lock, TrendingUp, TrendingDown } from 'lucide-react'
+import { Loader2, ArrowLeftRight, Lock, TrendingUp, TrendingDown, Search, X } from 'lucide-react'
 import {
   prices, sharesForCoins, coinsForShares, avgPrice, pct, coins as fmtCoins, buy, sell,
 } from '@/lib/market'
 import { OutcomeFace } from './MarketCard'
 
 const QUICK = [25, 50, 100, 250]
+
+/**
+ * Runners shown before the picker starts hiding the tail behind a search box.
+ * A season market now carries the whole league — 98 rows — and a sticky sidebar
+ * that tall is a scroll, not a choice.
+ */
+const CROWD = 10
 
 /**
  * Buy and sell one outcome.
@@ -24,12 +31,15 @@ export default function TradeTicket({ market, balance, position, onTraded }) {
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState(null)
   const [done, setDone] = useState(null)
+  const [query, setQuery] = useState('')
+  const [showAll, setShowAll] = useState(false)
 
   const tradable = market.status === 'open'
   const outcomes = useMemo(
     () => [...market.outcomes].sort((a, b) => b.price - a.price),
     [market.outcomes]
   )
+  const crowded = outcomes.length > CROWD
 
   // Default to the favourite, and keep the selection valid across refreshes.
   useEffect(() => {
@@ -37,6 +47,19 @@ export default function TradeTicket({ market, balance, position, onTraded }) {
       setSelected(outcomes[0]?.id ?? null)
     }
   }, [market.id, outcomes, selected, market.outcomes])
+
+  // The field, narrowed. A search hit wins over the price ordering, and the
+  // current pick is always drawn even when it sits sixty rows down — otherwise
+  // the form below quietly refers to a runner who is nowhere on screen.
+  const visible = useMemo(() => {
+    if (!crowded) return outcomes
+    const q = query.trim().toLowerCase()
+    const base = q
+      ? outcomes.filter(o => o.label.toLowerCase().includes(q))
+      : showAll ? outcomes : outcomes.slice(0, CROWD)
+    const pick = outcomes.find(o => o.id === selected)
+    return pick && !base.includes(pick) ? [...base, pick] : base
+  }, [outcomes, crowded, query, showAll, selected])
 
   const idx = market.outcomes.findIndex(o => o.id === selected)
   const outcome = idx >= 0 ? market.outcomes[idx] : null
@@ -95,8 +118,24 @@ export default function TradeTicket({ market, balance, position, onTraded }) {
   return (
     <div className="mkt-card p-4 sticky top-20">
       {/* Outcome picker */}
-      <div className="space-y-1.5 mb-4">
-        {outcomes.map(o => {
+      {crowded && (
+        <div className="relative mb-2">
+          <Search className="absolute top-1/2 -translate-y-1/2 start-2.5 w-3.5 h-3.5 text-fg-subtle pointer-events-none" />
+          <input
+            type="text" value={query} onChange={e => setQuery(e.target.value)}
+            placeholder={`חיפוש בין ${outcomes.length} האפשרויות…`}
+            className="w-full bg-surface-inset border border-line rounded-lg ps-8 pe-7 py-2 text-[13px] text-fg-strong placeholder:text-fg-subtle focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand"
+          />
+          {query && (
+            <button type="button" onClick={() => setQuery('')} aria-label="ניקוי חיפוש"
+              className="absolute top-1/2 -translate-y-1/2 end-2 text-fg-subtle hover:text-fg-soft">
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
+      )}
+      <div className={`space-y-1.5 mb-4 ${crowded ? 'max-h-[22rem] overflow-y-auto' : ''}`}>
+        {visible.map(o => {
           const mine = Number(position?.[o.id]?.shares || 0)
           const active = o.id === selected
           return (
@@ -120,6 +159,16 @@ export default function TradeTicket({ market, balance, position, onTraded }) {
             </button>
           )
         })}
+
+        {crowded && query && !visible.some(o => o.label.toLowerCase().includes(query.trim().toLowerCase())) && (
+          <p className="text-[11px] text-fg-subtle text-center py-2">לא נמצאה אפשרות בשם הזה</p>
+        )}
+        {crowded && !query && (
+          <button type="button" onClick={() => setShowAll(v => !v)}
+            className="w-full py-1.5 text-[11px] font-bold text-brand hover:underline">
+            {showAll ? 'הצג רק את המובילים' : `הצג את כל ${outcomes.length} האפשרויות`}
+          </button>
+        )}
       </div>
 
       {!tradable ? (
