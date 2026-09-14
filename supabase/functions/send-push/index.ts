@@ -558,6 +558,16 @@ Deno.serve(async (req) => {
   }
   if (!n?.user_id || !n?.type) return new Response("missing fields", { status: 400 });
 
+  // הוקי מרקט is a game played for play money. A coin grant or a settled market is
+  // worth a line in the bell, but it is not worth buzzing someone's phone — and three
+  // of them landed on two people in one evening. Market events keep their bell row and
+  // never become a push.
+  if (n.type.startsWith("market")) {
+    return new Response(JSON.stringify({ sent: 0, skipped: "market" }), {
+      status: 200, headers: { "content-type": "application/json" },
+    });
+  }
+
   // Resolve the actor's display name (post_like/post_comment read it), matching the bell.
   let actorName = "מישהו";
   if (n.actor_id) {
