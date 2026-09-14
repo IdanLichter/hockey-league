@@ -1,6 +1,7 @@
 import { supabase } from './supabase'
 import { countsForStats } from './leagueStats'
 import { registerSlugs } from './slugs'
+import { sniffImageType, SAFE_IMAGE_TYPES, IMAGE_TYPE_ERROR } from './imageType'
 
 // Fetch every row, paging past PostgREST's 1000-row cap (a plain select silently
 // truncates at 1000). Used for tables that can grow beyond that within a season.
@@ -95,13 +96,32 @@ export async function updateTeamDetails(teamId, fields) {
  * Upload a crest to the public `team-logos` bucket (path "<team_id>/<file>") and
  * point teams.logo_url at its public URL via the set_team_logo RPC. Allowed for
  * the team's coach, an admin, or the creator of a still-pending team. Returns the URL.
+ *
+ * PNG and JPEG ONLY, decided by the file's BYTES.
+ *
+ * This is the last line of defence, not the first — both crest pickers block a
+ * bad file at selection time with a readable message. It lives here because
+ * this function is the one thing every upload path goes through, and the bucket
+ * is what link unfurlers read.
+ *
+ * The extension and content-type are derived from the sniffed type and never
+ * from `file.name` / `file.type`. That is the whole bug: the crests that broke
+ * WhatsApp previews were AVIF files called `.png`, uploaded with the browser's
+ * own (equally wrong) `file.type`, and stored under a label nothing could
+ * trust. A file can lie about what it is; it cannot lie about its first bytes.
+ *
+ * The iOS and Android crest pickers already re-encode to real PNG before
+ * uploading, so this only ever fires for the web.
  */
 export async function uploadTeamLogo(teamId, file) {
-  const ext = (file.name?.split('.').pop() || 'png').toLowerCase()
+  const kind = await sniffImageType(file)
+  if (!SAFE_IMAGE_TYPES.includes(kind)) throw new Error(IMAGE_TYPE_ERROR)
+
+  const ext = kind === 'jpeg' ? 'jpg' : 'png'
   const path = `${teamId}/logo-${Date.now()}.${ext}`
   const { error: upErr } = await supabase.storage
     .from('team-logos')
-    .upload(path, file, { upsert: true, contentType: file.type || undefined })
+    .upload(path, file, { upsert: true, contentType: `image/${kind}` })
   if (upErr) throw upErr
   const { data: pub } = supabase.storage.from('team-logos').getPublicUrl(path)
   const url = pub?.publicUrl

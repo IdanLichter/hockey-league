@@ -1,6 +1,7 @@
 import { useState, useRef } from "react"
 import { X, Loader2, Pencil, Image as ImageIcon } from "lucide-react"
 import { updateTeamDetails, uploadTeamLogo } from "@/lib/api"
+import { isSafeImage, IMAGE_TYPE_MESSAGE, IMAGE_TYPE_ERROR } from "@/lib/imageType"
 import TeamLogo from "@/components/TeamLogo"
 
 const inputCls = "w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand"
@@ -25,11 +26,14 @@ export default function TeamEditModal({ team, onClose, onSaved }) {
   const [error, setError] = useState(null)
   const fileRef = useRef(null)
 
-  const pickLogo = (e) => {
+  // Checked against the file's BYTES, not its extension or the browser's
+  // file.type — both of which happily called an AVIF a PNG and left four teams
+  // with crests that WhatsApp could not render. See lib/imageType.js.
+  const pickLogo = async (e) => {
     const f = e.target.files?.[0]
     if (!f) return
-    if (!f.type?.startsWith("image/")) { setError("קובץ תמונה בלבד"); return }
     if (f.size > 3 * 1024 * 1024) { setError("תמונה עד 3MB"); return }
+    if (!(await isSafeImage(f))) { setError(IMAGE_TYPE_MESSAGE); return }
     setError(null); setLogoFile(f); setLogoPreview(URL.createObjectURL(f))
   }
 
@@ -52,6 +56,10 @@ export default function TeamEditModal({ team, onClose, onSaved }) {
       setError(
         e?.message === "not-authorized" ? "אין לך הרשאה לערוך קבוצה זו"
         : e?.message === "invalid founded year" ? "שנת ייסוד לא תקינה"
+        // Unreachable via the picker, which blocks the file on selection —
+        // mapped anyway so the guard in uploadTeamLogo can never surface as
+        // the generic "something went wrong".
+        : e?.message === IMAGE_TYPE_ERROR ? IMAGE_TYPE_MESSAGE
         : "שגיאה בשמירה, נסו שוב"
       )
     } finally { setSaving(false) }
@@ -77,7 +85,7 @@ export default function TeamEditModal({ team, onClose, onSaved }) {
           <div className="flex items-center gap-4 mb-4">
             <TeamLogo team={previewTeam} size={14} />
             <div>
-              <input ref={fileRef} type="file" accept="image/*" onChange={pickLogo} className="hidden" />
+              <input ref={fileRef} type="file" accept="image/png,image/jpeg" onChange={pickLogo} className="hidden" />
               <button type="button" onClick={() => fileRef.current?.click()}
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-xs font-semibold hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">
                 <ImageIcon className="w-3.5 h-3.5" /> {team.logo_url || logoFile ? "החלפת סמל" : "העלאת סמל"}
