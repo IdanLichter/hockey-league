@@ -124,6 +124,7 @@ function notificationText(n: NotificationRow, actorName: string): string {
     case "medical_expiring_player": return `האישור הרפואי של ${d.player_name ?? "שחקן"} יפוג בעוד ${d.days_left ?? ""} ימים`;
     // F1 — player availability constraints (player_unavailability). Kind is a stable
     // English token in the DB; only the label is Hebrew, so web and native agree.
+    case "coach_open_items": return `ממתין לטיפולך: ${d.summary ?? ""}${(d.oldest_days ?? 0) > 0 ? ` — הוותיק ביותר כבר ${d.oldest_days} ימים` : ""}`;
     case "unavailability_reported": return `${d.player_name ?? actorName} דיווח/ה על אי-זמינות (${unavailKind(d.kind)}) ${unavailSpan(d)} — ממתין לאישורך`;
     case "unavailability_approved": return `דיווח אי-הזמינות שלך (${unavailKind(d.kind)}) ${unavailSpan(d)} אושר ✅${d.decision_note ? ` — ${d.decision_note}` : ""}`;
     case "unavailability_rejected": return `דיווח אי-הזמינות שלך (${unavailKind(d.kind)}) ${unavailSpan(d)} נדחה${d.decision_note ? ` — ${d.decision_note}` : ""}`;
@@ -199,6 +200,7 @@ function notificationHref(n: NotificationRow): string {
     // his medical surface is MedicalReview, which renders inside the claims tab.
     case "medical_expiring_player": return "/admin?tab=claims";
     // the recipient is the coach the report is waiting on — land him on the queue
+    case "coach_open_items": return `/admin?tab=${n.entity_id ?? "claims"}`;
     case "unavailability_reported": return "/admin?tab=unavailability";
     case "unavailability_approved":
     case "unavailability_rejected": return "/me";

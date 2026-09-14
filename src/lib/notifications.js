@@ -161,6 +161,8 @@ export function notificationText(n) {
     // The manager reviewed the file himself and rejected it — losing a valid
     // medical means no registering, so the reason has to travel with it.
     // F1 — an absence a player reported for himself, waiting on his coach
+    // the daily 19:00 chase — one line naming every queue still waiting on this coach
+    case 'coach_open_items': return `ממתין לטיפולך: ${d.summary || ''}${d.oldest_days > 0 ? ` — הוותיק ביותר כבר ${d.oldest_days} ימים` : ''}`
     case 'unavailability_reported': return `${d.player_name || actorName(n)} דיווח/ה על אי-זמינות (${kindLabel(d.kind)}) ${span(d)} — ממתין לאישורך`
     case 'unavailability_approved': return `דיווח אי-הזמינות שלך (${kindLabel(d.kind)}) ${span(d)} אושר ✅${d.decision_note ? ` — ${d.decision_note}` : ''}`
     case 'unavailability_rejected': return `דיווח אי-הזמינות שלך (${kindLabel(d.kind)}) ${span(d)} נדחה${d.decision_note ? ` — ${d.decision_note}` : ''}`
@@ -229,6 +231,7 @@ export function notificationIcon(n) {
     case 'medical_approved':     return '🩺'
     case 'medical_rejected':     return '⛔'
     case 'medical_expiring':     return '⏰'
+    case 'coach_open_items':        return '📋'
     case 'unavailability_reported': return '🚑'
     case 'unavailability_approved': return '✅'
     case 'unavailability_rejected': return '⛔'
@@ -302,6 +305,7 @@ export function notificationHref(n) {
     case 'medical_expiring_player': return '/admin?tab=claims'
     // F1 — the reviewer lands on the player whose absence it is; the player on his own page
     // the recipient is the coach the report is waiting on — land him on the queue
+    case 'coach_open_items': return `/admin?tab=${n.entity_id || 'claims'}`
     case 'unavailability_reported': return '/admin?tab=unavailability'
     case 'unavailability_approved':
     case 'unavailability_rejected': return '/me'
