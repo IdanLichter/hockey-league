@@ -18,6 +18,7 @@ import AuthModal from "./components/AuthModal"
 import OnboardingModal from "./components/OnboardingModal"
 import NotificationBell from "./components/NotificationBell"
 import ChatDrawer from "./components/ChatDrawer"
+import LiveEditPanel from "./components/liveedit/LiveEditPanel"
 
 // Nav uses the hockey icons in `mono`, so the brand-color ball accent becomes
 // currentColor and stays visible on the active tab's solid-brand background.
@@ -262,6 +263,9 @@ export default function Layout({ children }) {
 
       {/* Members-only chat / mailbox (self-gates to members) */}
       <ChatDrawer />
+
+      {/* עריכה חיה — report a UI bug from the page it is on (self-gates to admins) */}
+      <LiveEditPanel />
     </div>
   )
 }

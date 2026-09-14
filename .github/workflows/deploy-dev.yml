@@ -1,0 +1,52 @@
+# Deploys the dev environment whenever anything lands on `dev`.
+#
+# WHY CI RATHER THAN THE AGENT: the live-edit cloud agent pushes to this branch on
+# its own, with no human reviewing the diff. If it also held the deploy credential,
+# one token in a prompt-driven sandbox would be able to publish anywhere in the
+# Vercel team — including the league's public site. Here the token lives in GitHub's
+# secret store, the agent never sees it, and every deploy leaves a log somebody can
+# read afterwards.
+#
+# The project id below is hardcoded on purpose: it pins deploys to
+# hockey-league-dev, so a misconfigured secret cannot redirect them at
+# rinkhockeyil.com. That project is deployed only by scripts/deploy-public.sh, by a
+# human, from `main`.
+name: deploy dev
+
+on:
+  push:
+    branches: [dev]
+
+concurrency:
+  group: deploy-dev
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      VERCEL_ORG_ID: team_LuBaggO3yTGb6EoNmLCZGCXA
+      VERCEL_PROJECT_ID: prj_6yAAd4tRFKL202mdmTlQXYfvng7W
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      # The fence, enforced where we actually control it. The agent is told not to
+      # touch these paths; this is what happens if it does anyway — the deploy stops
+      # and the commit sits on `dev`, harmless, until a human looks at it.
+      - name: Refuse dangerous paths
+        run: |
+          CHANGED=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }} || git diff --name-only HEAD~1 HEAD)
+          echo "$CHANGED"
+          if echo "$CHANGED" | grep -Eq '^(supabase/|api/|\.github/|src/lib/api\.js|src/lib/supabase\.js|vercel\.json|.*\.env)'; then
+            echo "::error::A protected path changed on dev — refusing to deploy. A human must review this commit."
+            exit 1
+          fi
+
+      - run: npm ci
+      - run: npx vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+      - run: npx vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
+      - run: npx vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }}
