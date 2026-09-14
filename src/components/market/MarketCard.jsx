@@ -67,7 +67,11 @@ export default function MarketCard({ market, myShares = {}, conflict = null }) {
   const sorted = [...market.outcomes].sort((a, b) => b.price - a.price)
   const shown = sorted.slice(0, 3)
   const rest = sorted.length - shown.length
-  const held = market.outcomes.filter(o => myShares[o.id]?.shares > 0)
+  // Shares survive settlement as a record of what was held, so a settled market
+  // must not advertise them as an open position: a voided market has already
+  // refunded them and a resolved one has already paid them out.
+  const live = market.status === 'open' || market.status === 'closed'
+  const held = live ? market.outcomes.filter(o => myShares[o.id]?.shares > 0) : []
   const winner = market.resolved_outcome_id
     ? market.outcomes.find(o => o.id === market.resolved_outcome_id)
     : null
