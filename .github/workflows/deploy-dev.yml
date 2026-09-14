@@ -29,6 +29,11 @@ jobs:
       VERCEL_PROJECT_ID: prj_6yAAd4tRFKL202mdmTlQXYfvng7W
     steps:
       - uses: actions/checkout@v4
+        with:
+          # The fence below diffs this push against its predecessor, and the
+          # default depth-1 clone has neither that commit nor HEAD~1 — the step
+          # died with "fatal: bad object" on every push, content irrelevant.
+          fetch-depth: 0
 
       - uses: actions/setup-node@v4
         with:
@@ -38,8 +43,25 @@ jobs:
       # touch these paths; this is what happens if it does anyway — the deploy stops
       # and the commit sits on `dev`, harmless, until a human looks at it.
       - name: Refuse dangerous paths
+        env:
+          BEFORE: ${{ github.event.before }}
+          AFTER: ${{ github.sha }}
         run: |
-          CHANGED=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }} || git diff --name-only HEAD~1 HEAD)
+          set -euo pipefail
+          # A force-push, a new branch, or a squashed history can all leave us
+          # without the "before" commit. Fall back to this commit's parent, and
+          # only skip when there is genuinely nothing to compare against.
+          if [ -n "$BEFORE" ] && [ "$BEFORE" != "0000000000000000000000000000000000000000" ] \
+             && git cat-file -e "$BEFORE^{commit}" 2>/dev/null; then
+            BASE="$BEFORE"
+          else
+            BASE=$(git rev-parse --verify --quiet "$AFTER^") || BASE=""
+          fi
+          if [ -z "$BASE" ]; then
+            echo "No predecessor commit to diff against — nothing to check."
+            exit 0
+          fi
+          CHANGED=$(git diff --name-only "$BASE" "$AFTER")
           echo "$CHANGED"
           if echo "$CHANGED" | grep -Eq '^(supabase/|api/|\.github/|src/lib/api\.js|src/lib/supabase\.js|vercel\.json|.*\.env)'; then
             echo "::error::A protected path changed on dev — refusing to deploy. A human must review this commit."
