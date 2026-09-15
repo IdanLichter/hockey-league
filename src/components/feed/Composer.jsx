@@ -81,7 +81,6 @@ export default function Composer({ onPosted }) {
           />
           {error && <p className="mt-2 text-xs text-red-600 dark:text-red-400 font-medium">{error}</p>}
           <div className="mt-2 flex items-center justify-between">
-            <span className="text-[11px] text-slate-500 dark:text-slate-400">{body.length}/{MAX}</span>
             <button
               onClick={submit}
               disabled={busy || !body.trim()}
@@ -90,6 +89,9 @@ export default function Composer({ onPosted }) {
               {busy && <Loader2 className="w-4 h-4 animate-spin" />}
               פרסם
             </button>
+            {body.length >= MAX - 100 && (
+              <span className="text-[11px] text-slate-500 dark:text-slate-400">{body.length}/{MAX}</span>
+            )}
           </div>
         </div>
       </div>
