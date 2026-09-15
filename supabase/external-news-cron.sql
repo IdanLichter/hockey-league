@@ -45,7 +45,15 @@ begin
     url     := 'https://slpwwoupbbxcgjivcspv.supabase.co/functions/v1/ingest-rink-hockey-news',
     headers := jsonb_build_object('Content-Type', 'application/json',
                                   'Authorization', 'Bearer ' || v_key),
-    body    := '{}'::jsonb   -- no dry_run, no max_age_days → the normal 14-day window
+    body    := '{}'::jsonb,  -- no dry_run, no max_age_days → the normal 14-day window
+    -- net.http_post defaults to a FIVE SECOND timeout. The ingest fetches five
+    -- feeds and makes one Gemini call per new item, so it routinely runs longer:
+    -- the first real invocation came back
+    --   "Timeout of 5000 ms reached. Total time: 5001.963000 ms"
+    -- with a NULL status_code. pg_cron reports the job as succeeded either way, so
+    -- without this the job would have failed silently every single morning.
+    -- (Raised in migration `external_news_cron_timeout`.)
+    timeout_milliseconds := 120000
   );
 end; $$;
 
