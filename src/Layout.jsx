@@ -70,7 +70,7 @@ export default function Layout({ children }) {
   const { user, isAdmin, hasRole, coachTeamIds, isJudgeRole, isContentEditor, isLeagueManager, profile, signOut, openAuth } = useAuth()
 
   const navItems = [
-    { title: "בית", url: "/", icon: NavRink },
+    { title: "המגרש", url: "/", icon: NavRink },
     { title: "טבלה", url: "/standings", icon: NavStandings },
     { title: "משחקים", url: "/games", icon: NavGames },
     { title: "סטטיסטיקות", url: "/statistics", icon: NavStats },
