@@ -16,6 +16,7 @@ import MedicalCertificateCard from "@/components/MedicalCertificateCard"
 import BirthDateCard from "@/components/BirthDateCard"
 import BlockedUsersCard from "@/components/BlockedUsersCard"
 import { RoleBadges, deriveRoleItems } from "@/components/RoleBadges"
+import { entityPath } from "@/lib/slugs"
 
 const sizedUrl = (url, w = 600) => (url ? url.replace(/=w\d+(-h\d+)?.*$/, `=w${w}`) : url)
 
@@ -207,7 +208,7 @@ export default function Profile() {
       {/* Linked player / claim status / guest pairing CTA */}
       {isPlayer ? (
         <div className="card p-4">
-          <Link to={`/players/${player.id}`} className="flex items-center justify-between gap-3 group">
+          <Link to={entityPath('players', player)} className="flex items-center justify-between gap-3 group">
             <div className="flex items-center gap-3 min-w-0">
               <div className="w-10 h-10 rounded-xl bg-emerald-500 text-white flex items-center justify-center shrink-0">
                 <UserCheck className="w-5 h-5" />

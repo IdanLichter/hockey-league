@@ -4,6 +4,7 @@ import { format } from "date-fns"
 import { standingsComparator } from "@/lib/utils"
 import { ageOf, DEFAULT_AGE } from "@/lib/ageGroups"
 import TeamLogo from "@/components/TeamLogo"
+import { entityPath } from "@/lib/slugs"
 
 const medal = (i) =>
   i === 0 ? 'bg-amber-400 text-amber-950' :
@@ -48,7 +49,7 @@ export function StandingsWidget({ teams = [] }) {
           <div key={team.id} className="px-1.5 py-1">
             <div className="flex items-center gap-2.5">
               <span className={`w-5 h-5 rounded-md flex items-center justify-center text-[10px] font-bold shrink-0 ${medal(i)}`}>{i + 1}</span>
-              <Link to={`/teams/${team.id}`} className="flex items-center gap-2.5 flex-1 min-w-0 group">
+              <Link to={entityPath('teams', team)} className="flex items-center gap-2.5 flex-1 min-w-0 group">
                 <TeamLogo team={team} size={6} />
                 <span className="truncate text-sm font-semibold text-slate-900 dark:text-white group-hover:text-brand transition-colors">{team.name}</span>
               </Link>
@@ -85,7 +86,7 @@ export function NextGameWidget({ games = [], teams = [] }) {
           <>
             <div className="flex items-center justify-between gap-2">
               {home ? (
-                <Link to={`/teams/${home.id}`} className="flex items-center gap-2 flex-1 min-w-0 group">
+                <Link to={entityPath('teams', home)} className="flex items-center gap-2 flex-1 min-w-0 group">
                   <TeamLogo team={home} size={8} />
                   <span className="text-sm font-semibold text-slate-900 dark:text-white truncate group-hover:text-brand transition-colors">{home?.name}</span>
                 </Link>
@@ -97,7 +98,7 @@ export function NextGameWidget({ games = [], teams = [] }) {
               )}
               <span className="text-[11px] font-extrabold text-slate-500 dark:text-slate-400 shrink-0">VS</span>
               {away ? (
-                <Link to={`/teams/${away.id}`} className="flex items-center gap-2 flex-1 min-w-0 flex-row-reverse group">
+                <Link to={entityPath('teams', away)} className="flex items-center gap-2 flex-1 min-w-0 flex-row-reverse group">
                   <TeamLogo team={away} size={8} />
                   <span className="text-sm font-semibold text-slate-900 dark:text-white truncate text-left group-hover:text-brand transition-colors">{away?.name}</span>
                 </Link>
@@ -143,11 +144,11 @@ export function LeadersWidget({ players = [], teams = [] }) {
           <div key={p.id} className="flex items-center gap-2.5 px-1.5 py-1">
             <span className={`w-5 h-5 rounded-md flex items-center justify-center text-[10px] font-bold shrink-0 ${medal(i)}`}>{i + 1}</span>
             <div className="flex-1 min-w-0">
-              <Link to={`/players/${p.id}`} className="block group">
+              <Link to={entityPath('players', p)} className="block group">
                 <p className="text-sm font-semibold text-slate-900 dark:text-white truncate group-hover:text-brand transition-colors">{p.first_name} {p.last_name}</p>
               </Link>
               {p.team_id ? (
-                <Link to={`/teams/${p.team_id}`} className="block group">
+                <Link to={entityPath('teams', p.team_id)} className="block group">
                   <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate group-hover:text-brand transition-colors">{teamsMap[p.team_id]?.name || '—'}</p>
                 </Link>
               ) : (

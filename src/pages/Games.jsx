@@ -15,6 +15,7 @@ import LiveGameBanner from "@/components/LiveGameBanner"
 import { useLiveGames } from "@/lib/useLiveGames"
 import { Radio } from "lucide-react"
 import { useSeasonName } from "@/App"
+import { entityPath } from "@/lib/slugs"
 
 export default function Games() {
   const { coachTeamIds } = useAuth()
@@ -336,7 +337,7 @@ export default function Games() {
 
         {/* Always-visible entry to the full game page (live scoreboard, stream, H2H) */}
         <Link
-          to={`/games/${game.id}`}
+          to={entityPath('games', game)}
           className="flex items-center justify-center gap-1.5 px-4 sm:px-5 py-2.5 border-t border-slate-100 dark:border-slate-700/50 text-xs font-semibold text-brand dark:text-brand-light hover:bg-brand/[0.06] dark:hover:bg-brand/10 transition-colors"
         >
           לעמוד המשחק <ArrowLeft className="w-3.5 h-3.5" />

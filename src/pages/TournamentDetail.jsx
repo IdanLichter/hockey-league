@@ -14,6 +14,7 @@ import { format } from "date-fns"
 import TeamLogo from "@/components/TeamLogo"
 import { TeamLink } from "@/components/EntityLinks"
 import { useSeo } from "@/lib/seo"
+import { useSlugId, entityPath } from "@/lib/slugs"
 
 const statusLabel = {
   scheduled: "מתוכנן", in_progress: "משחק חי", waiting_result: "ממתין לתוצאה",
@@ -21,7 +22,8 @@ const statusLabel = {
 }
 
 export default function TournamentDetail() {
-  const { id } = useParams()
+  const { id: routeKey } = useParams()
+  const { id, notFound: unknownRoute } = useSlugId('tournaments', routeKey)
   const { isAdmin, isLeagueManager, coachTeamIds } = useAuth()
   const [tournament, setTournament] = useState(null)
   const [games, setGames] = useState([])
@@ -38,10 +40,15 @@ export default function TournamentDetail() {
     description: tournament?.name
       ? `לוח משחקים, טבלה ותוצאות של ${tournament.name} — טורניר הנוער של ליגת הוקי הגלגיליות הישראלית`
       : undefined,
-    path: `/tournaments/${id}`,
+    path: entityPath('tournaments', tournament) || `/tournaments/${routeKey}`,
   })
 
-  useEffect(() => { load() }, [id])
+  useEffect(() => {
+    // `id` is null only while a Hebrew slug is being resolved into the row's
+    // UUID; `unknownRoute` means that resolution came back empty.
+    if (id) load()
+    else if (unknownRoute) { setError('הטורניר לא נמצא'); setLoading(false) }
+  }, [id, unknownRoute])
 
   const load = async () => {
     try {

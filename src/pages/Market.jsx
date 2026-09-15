@@ -237,7 +237,7 @@ function MyPositions({ markets, positions, balance }) {
   return (
     <div className="space-y-2.5">
       {rows.map(r => (
-        <Link key={r.key} to={`/market/${r.market.id}`} className="mkt-card-hover p-4 block">
+        <Link key={r.key} to={`/market/${encodeURIComponent(r.market.slug || r.market.id)}`} className="mkt-card-hover p-4 block">
           <div className="flex items-start justify-between gap-3 mb-2.5">
             <div className="min-w-0">
               <p className="text-[11px] text-fg-muted truncate">{r.market.title}</p>

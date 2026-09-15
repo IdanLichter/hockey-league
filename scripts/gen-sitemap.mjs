@@ -1,8 +1,12 @@
 // Build-time sitemap generator.
 //
-// Reads teams / players / games from Supabase (anon key) and writes
-// public/sitemap.xml enumerating the static hubs plus every /teams/:id,
-// /players/:id and /games/:id detail URL.
+// Reads teams / players / games / tournaments from Supabase (anon key) and
+// writes public/sitemap.xml enumerating the static hubs plus every detail URL.
+//
+// Detail URLs are the Hebrew SLUG form only (/players/יואב-תורגמן), never the
+// UUID form. The UUID URLs still work — api/resolve.js 308s them — but a
+// sitemap must not list a URL that redirects, and listing both would ask
+// Google to index one page twice.
 //
 // Resilience: any failure (network blip, missing creds) falls back to a
 // hubs-only sitemap and the script ALWAYS exits 0 — a Supabase hiccup must
@@ -54,16 +58,20 @@ const HUBS = [
   ['/privacy', 'yearly', '0.2'],
 ]
 
-async function fetchIds(table) {
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?select=id`, {
+// The slug, falling back to the id for any row the trigger could not slug (a
+// game with no date, say) — those keep their working UUID URL.
+async function fetchKeys(table) {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?select=id,slug`, {
     headers: { apikey: ANON, authorization: `Bearer ${ANON}` },
   })
   if (!res.ok) throw new Error(`${table}: ${res.status} ${res.statusText}`)
   const rows = await res.json()
-  return rows.map(r => r.id).filter(Boolean)
+  return rows.map(r => r.slug || r.id).filter(Boolean)
 }
 
 function urlTag(path, changefreq, priority) {
+  // Percent-encoded, to match what the app puts in <link rel=canonical> and
+  // what og:url reports. Two spellings of one Hebrew URL read as two pages.
   const loc = `${SITE_URL}${path}`
   const extra = changefreq ? `<changefreq>${changefreq}</changefreq>` : ''
   const prio = priority ? `<priority>${priority}</priority>` : ''
@@ -94,13 +102,15 @@ async function main() {
   }
 
   try {
-    const [teams, players, games] = await Promise.all([
-      fetchIds('teams'), fetchIds('players'), fetchIds('games'),
+    const [teams, players, games, tournaments] = await Promise.all([
+      fetchKeys('teams'), fetchKeys('players'), fetchKeys('games'), fetchKeys('tournaments'),
     ])
-    for (const id of teams) urls.push(urlTag(`/teams/${id}`, 'weekly', '0.6'))
-    for (const id of players) urls.push(urlTag(`/players/${id}`, 'weekly', '0.6'))
-    for (const id of games) urls.push(urlTag(`/games/${id}`, 'monthly', '0.5'))
-    write(urls, teams.length + players.length + games.length)
+    const enc = encodeURIComponent
+    for (const k of teams) urls.push(urlTag(`/teams/${enc(k)}`, 'weekly', '0.6'))
+    for (const k of players) urls.push(urlTag(`/players/${enc(k)}`, 'weekly', '0.6'))
+    for (const k of games) urls.push(urlTag(`/games/${enc(k)}`, 'monthly', '0.5'))
+    for (const k of tournaments) urls.push(urlTag(`/tournaments/${enc(k)}`, 'monthly', '0.4'))
+    write(urls, teams.length + players.length + games.length + tournaments.length)
   } catch (err) {
     console.warn(`[gen-sitemap] Supabase read failed (${err.message}) — writing hubs-only sitemap.`)
     write(urls, 0)

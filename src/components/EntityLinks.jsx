@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom"
+import { entityPath } from "@/lib/slugs"
 
 /**
  * Links that degrade to inert text when there is no id to link to.
@@ -10,10 +11,10 @@ import { Link } from "react-router-dom"
 
 export function TeamLink({ team, className = "", children }) {
   if (!team?.id) return <span className={className}>{children}</span>
-  return <Link to={`/teams/${team.id}`} className={className}>{children}</Link>
+  return <Link to={entityPath('teams', team)} className={className}>{children}</Link>
 }
 
 export function PlayerLink({ playerId, className = "", children }) {
   if (!playerId) return <span className={className}>{children}</span>
-  return <Link to={`/players/${playerId}`} className={className}>{children}</Link>
+  return <Link to={entityPath('players', playerId)} className={className}>{children}</Link>
 }

@@ -16,10 +16,15 @@ import TeamMembershipCard from "@/components/TeamMembershipCard"
 import { RoleBadge, deriveRoleItems } from "@/components/RoleBadges"
 import { BRAND_ORANGE } from '@/lib/brand'
 import { useSeo } from '@/lib/seo'
+import { useSlugId, entityPath } from '@/lib/slugs'
 import FollowButton from "@/components/FollowButton"
 
 export default function PlayerDetail() {
-  const { id } = useParams()
+  // The route param is a Hebrew slug (/players/יואב-תורגמן) or, for every link
+  // ever shared before slugs existed, a UUID. useSlugId hands the rest of this
+  // page the UUID either way, so nothing below had to change.
+  const { id: routeKey } = useParams()
+  const { id, notFound: unknownRoute } = useSlugId('players', routeKey)
   const [player, setPlayer] = useState(null)
   const [allPlayers, setAllPlayers] = useState([])
   const [teams, setTeams] = useState([])
@@ -41,10 +46,13 @@ export default function PlayerDetail() {
   useSeo({
     title: playerName || 'שחקן',
     description: playerName ? `סטטיסטיקות, שערים וכרטיסים של ${playerName} בליגת הוקי הגלגיליות הישראלית` : undefined,
-    path: `/players/${id}`,
+    path: entityPath('players', player) || `/players/${routeKey}`,
   })
 
-  useEffect(() => { loadData() }, [id])
+  useEffect(() => {
+    if (id) loadData()
+    else if (unknownRoute) { setError('השחקן לא נמצא'); setLoading(false) }
+  }, [id, unknownRoute])
 
   // Load claim state for this player once it (and the auth user) are known.
   useEffect(() => {
@@ -234,7 +242,7 @@ export default function PlayerDetail() {
             </div>
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1.5">
               {myTeams.length ? myTeams.map(({ team: tm, age }) => (
-                <Link key={tm.id} to={`/teams/${tm.id}`} className="flex items-center gap-2 group w-fit">
+                <Link key={tm.id} to={entityPath('teams', tm)} className="flex items-center gap-2 group w-fit">
                   <TeamLogo team={tm} size={6} />
                   <span className="text-sm font-medium text-slate-500 dark:text-slate-400 group-hover:text-brand transition-colors">{tm.name}</span>
                   {age !== DEFAULT_AGE && (
@@ -379,7 +387,7 @@ export default function PlayerDetail() {
                       <p className="text-sm font-semibold text-slate-900 dark:text-white">
                         {m.kind === 'big_game' ? 'משחק ענק' : 'שלושער'} · {m.goals} שערים
                       </p>
-                      <Link to={m.opp ? `/teams/${m.opp.id}` : '#'} className="text-[11px] text-slate-500 dark:text-slate-400 hover:text-brand transition-colors">
+                      <Link to={m.opp ? entityPath('teams', m.opp) : '#'} className="text-[11px] text-slate-500 dark:text-slate-400 hover:text-brand transition-colors">
                         מול {m.opp?.name || '—'} · {format(new Date(m.game.game_date), "d/M/yyyy")}
                       </Link>
                     </div>
@@ -432,7 +440,7 @@ export default function PlayerDetail() {
             return (
               <div key={stat.id} className="flex items-center justify-between gap-3 p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/50">
                 {/* Opponent + meta (right side in RTL) */}
-                <Link to={opp ? `/teams/${opp.id}` : '#'} className="flex items-center gap-2.5 min-w-0 group">
+                <Link to={opp ? entityPath('teams', opp) : '#'} className="flex items-center gap-2.5 min-w-0 group">
                   <TeamLogo team={opp} size={8} />
                   <div className="min-w-0">
                     <p className="font-semibold text-sm text-slate-900 dark:text-white truncate group-hover:text-brand transition-colors">{opp?.name || '—'}</p>

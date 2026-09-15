@@ -11,6 +11,7 @@ import { Teams as TeamsIcon } from "@/components/icons/HockeyIcons"
 import { motion } from "framer-motion"
 import TeamLogo from "@/components/TeamLogo"
 import { useSeasonName } from "@/App"
+import { entityPath } from "@/lib/slugs"
 
 export default function Teams() {
   const { profile } = useAuth()
@@ -220,7 +221,7 @@ export default function Teams() {
                       ))}
                     </div>
 
-                    <Link to={`/teams/${team.id}`} className="mt-4 flex items-center justify-center gap-1.5 text-xs font-semibold text-brand dark:text-brand-light hover:text-brand-hover dark:hover:text-brand-light py-2.5 border border-brand/10 dark:border-brand/25 rounded-lg transition-colors">
+                    <Link to={entityPath('teams', team)} className="mt-4 flex items-center justify-center gap-1.5 text-xs font-semibold text-brand dark:text-brand-light hover:text-brand-hover dark:hover:text-brand-light py-2.5 border border-brand/10 dark:border-brand/25 rounded-lg transition-colors">
                       עמוד הקבוצה המלא <ArrowLeft className="w-3.5 h-3.5" />
                     </Link>
                   </motion.div>

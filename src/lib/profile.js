@@ -1,4 +1,5 @@
 import { supabase } from './supabase'
+import { PLAYER_PUBLIC_COLUMNS } from './api'
 
 /**
  * "My account" page data + editing. Roles/admin come from AuthContext; this
@@ -23,8 +24,12 @@ export async function getMyProfile() {
 
   let player = null
   if (profile?.player_id) {
+    // Named columns, never select('*'): `birth_date` is granted to neither `anon` nor
+    // ordinary signed-in accounts, and a wildcard asks Postgres for privilege on EVERY
+    // column — so it would 403 this whole fetch and blank the account page. The owner's
+    // own DOB is a separate, authorized read (lib/birthDate.js), rendered by BirthDateCard.
     const { data: pl } = await supabase
-      .from('players').select('*').eq('id', profile.player_id).maybeSingle()
+      .from('players').select(PLAYER_PUBLIC_COLUMNS).eq('id', profile.player_id).maybeSingle()
     player = pl || null
   }
 

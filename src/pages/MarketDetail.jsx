@@ -14,7 +14,11 @@ import { useMarketTheme } from './Market'
 
 export default function MarketDetail() {
   useMarketTheme()
-  const { id } = useParams()
+  // /market/:key — a slug (הוקי-מרקט question) or a UUID from an older link.
+  // Markets are RLS-gated, so this resolves off the list the page already loads
+  // rather than through useSlugId, which would fire a query a blocked viewer
+  // isn't allowed to make anyway.
+  const { id: routeKey } = useParams()
   const { user, loading: authLoading } = useAuth()
 
   const [reason, setReason] = useState(undefined)
@@ -29,17 +33,19 @@ export default function MarketDetail() {
     const r = await getBlockReason()
     setReason(r)
     if (r) return
-    const [w, ms, ps, ts, cs] = await Promise.all([
+    const [w, ms, ps, cs] = await Promise.all([
       getWallet().catch(() => null),
       listMarkets().catch(() => []),
       getMyPositions().catch(() => ({})),
-      getTrades(id).catch(() => []),
       getConflicts().catch(() => new Map()),
     ])
-    const m = ms.find(x => x.id === id)
+    const m = ms.find(x => x.slug === routeKey || x.id === routeKey)
+    // Trades key off the market's UUID, so they can only be fetched once the
+    // slug has been matched — one round trip later than the rest.
+    const ts = m ? await getTrades(m.id).catch(() => []) : []
     setWallet(w); setPositions(ps); setTrades(ts)
-    setConflict(cs.get(id) ?? null); setMarket(m || null); setMissing(!m)
-  }, [id])
+    setConflict(m ? (cs.get(m.id) ?? null) : null); setMarket(m || null); setMissing(!m)
+  }, [routeKey])
 
   useEffect(() => {
     if (authLoading) return

@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from "react"
 import { addPlayerToSquad, getTeamMemberIds } from "@/lib/squad"
-import { canBeBorrowed, getPlayerBirthDate, getPlayerBirthDates, ageFromBirthDate, YOUTH_MAX_AGE } from "@/lib/birthDate"
+import { canBeBorrowed, getPlayerLoanAges, YOUTH_MAX_AGE } from "@/lib/birthDate"
 import { UserPlus, Loader2, X, Users } from "lucide-react"
 
 /**
@@ -38,8 +38,7 @@ export default function AddSquadPlayer({ gameId, teamId, teamName, players = [],
   const [saving, setSaving] = useState(false)
   const [err, setErr] = useState(null)
 
-  const [dobs, setDobs] = useState({})          // playerId → birth_date | null
-  const [dobLoading, setDobLoading] = useState(false)
+  const [ages, setAges] = useState(null)        // playerId → age in years | null; null = not loaded
 
   // Both lookups are needed only once the coach actually opens the form, and both are
   // cheap enough to do in one go: the roster is one small query, and the DOB map is one
@@ -48,11 +47,7 @@ export default function AddSquadPlayer({ gameId, teamId, teamName, players = [],
     if (!open) return
     let alive = true
     getTeamMemberIds(teamId).then(s => { if (alive) setMemberIds(s) })
-    getPlayerBirthDates().then(map => {
-      // Merge UNDER whatever a per-row read already established — that one is the
-      // authoritative answer for the player currently picked.
-      if (alive) setDobs(m => ({ ...map, ...m }))
-    })
+    getPlayerLoanAges().then(map => { if (alive) setAges(map) })
     return () => { alive = false }
   }, [open, teamId])
 
@@ -62,7 +57,7 @@ export default function AddSquadPlayer({ gameId, teamId, teamName, players = [],
   // DOB that proves it. "Don't know" is NOT eligible — it is the coach's call, behind the
   // toggle, and the confirmation there says so.
   const provenEligible = (p) =>
-    p.position === "Goalkeeper" || (ageFromBirthDate(dobs[p.id]) ?? 99) < YOUTH_MAX_AGE
+    p.position === "Goalkeeper" || ((ages?.[p.id] ?? 99) < YOUTH_MAX_AGE)
 
   // Grouped by the player's own team so "בהשאלה מ…" is obvious at a glance.
   const { grouped, hiddenCount } = useMemo(() => {
@@ -83,31 +78,22 @@ export default function AddSquadPlayer({ gameId, teamId, teamName, players = [],
     const entries = [...byTeam.entries()].sort(([a], [b]) =>
       a === teamName ? -1 : b === teamName ? 1 : a.localeCompare(b, "he"))
     return { grouped: entries, hiddenCount: hidden }
-  }, [players, excludeIds, teamName, showAll, memberIds, dobs])
+  }, [players, excludeIds, teamName, showAll, memberIds, ages])
 
   const picked = players.find(p => p.id === playerId) || null
   // Borrowing = the player isn't one of this team's own. Only then does the age rule bite.
   const isLoan = !!picked && !isOwn(picked)
 
-  // DOB is NOT in the bulk player list — it is revoked from `anon` so minors' dates of
-  // birth are not public, so the wide public fetch cannot even name the column. The map
-  // above normally has it; this is the fallback for the one row that actually decides the
-  // form, so a failed or stale bulk read can never turn into a wrong answer.
-  useEffect(() => {
-    if (!picked || !isLoan || picked.id in dobs) return
-    let alive = true
-    setDobLoading(true)
-    getPlayerBirthDate(picked.id)
-      .then(d => { if (alive) setDobs(m => ({ ...m, [picked.id]: d ?? null })) })
-      .finally(() => { if (alive) setDobLoading(false) })
-    return () => { alive = false }
-  }, [picked, isLoan, dobs])
-
-  const pickedWithDob = picked ? { ...picked, birth_date: dobs[picked.id] ?? null } : null
-  const borrow = isLoan ? canBeBorrowed(pickedWithDob) : { ok: true, reason: "own" }
+  // No per-row fallback any more, and none is needed: squad_loan_ages() answers for every
+  // player in one request, for exactly the roles entitled to judge a loan. If it fails we
+  // hold {} — which reads as "no date on file" and routes the coach to the vouch checkbox,
+  // the same defined path as a player who never registered. It never yields a WRONG answer,
+  // only a more cautious one.
+  const pickedWithAge = picked ? { ...picked, age_years: ages?.[picked.id] ?? null } : null
+  const borrow = isLoan ? canBeBorrowed(pickedWithAge) : { ok: true, reason: "own" }
   // While the DOB is still in flight we know nothing — don't flash the fallback checkbox
   // and don't let the form be submitted on a guess.
-  const dobPending = isLoan && (dobLoading || !(picked.id in dobs))
+  const dobPending = isLoan && ages === null
   // The checkbox is a FALLBACK, needed only when we have no DOB to judge by.
   const needsTick = isLoan && !dobPending && borrow.reason === "no-dob"
   const blocked = isLoan && !dobPending && !borrow.ok && borrow.reason !== "no-dob"

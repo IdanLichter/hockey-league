@@ -24,7 +24,18 @@ export default async function handler(req, res) {
   const id = String(req.query.id || '')
   const site = `https://${req.headers.host || 'rinkhockeyil.com'}`
   const absImg = (u) => (!u ? `${site}/logos/main-logo.png` : /^https?:\/\//.test(u) ? u : `${site}${u.startsWith('/') ? '' : '/'}${u}`)
-  const pageUrl = `${site}/${encodeURIComponent(type)}/${encodeURIComponent(id)}`
+
+  // The key is a Hebrew slug (/players/יואב-תורגמן) for every link made since
+  // slugs shipped, and a UUID for every one made before. Match on whichever
+  // column it is for -- filtering the wrong one returns nothing, and a miss
+  // here is silent: the unfurl just degrades to the generic league card.
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)
+  const match = isUuid ? `id=eq.${id}` : `slug=eq.${encodeURIComponent(id)}`
+
+  // Canonical is rebuilt from the row's CURRENT slug, so a bot that arrives on
+  // a UUID or on a superseded slug still reports the one indexable URL.
+  let pageUrl = `${site}/${encodeURIComponent(type)}/${encodeURIComponent(id)}`
+  const canonicalise = (slug) => { if (slug) pageUrl = `${site}/${encodeURIComponent(type)}/${encodeURIComponent(slug)}` }
 
   // Fallback = the league card (same content as the static index.html tags).
   let title = 'ליגת הוקי הגלגיליות הישראלית'
@@ -32,31 +43,40 @@ export default async function handler(req, res) {
   let image = `${site}/logos/main-logo.png`
 
   try {
-    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)
-    if (SUPABASE_ANON && isUuid) {
+    if (SUPABASE_ANON && id) {
       if (type === 'players') {
-        const p = await sbOne(`players?id=eq.${id}&select=first_name,last_name,goals,games_played,photo_url,team:teams(name,logo_url)`)
+        const p = await sbOne(`players?${match}&select=slug,first_name,last_name,goals,games_played,photo_url,team:teams(name,logo_url)`)
         if (p) {
+          canonicalise(p.slug)
           title = `${p.first_name} ${p.last_name}`.trim()
           desc = [p.team?.name, `${p.goals || 0} שערים`, `${p.games_played || 0} משחקים`].filter(Boolean).join(' · ')
           image = absImg(p.photo_url || p.team?.logo_url)
         }
       } else if (type === 'teams') {
-        const t = await sbOne(`teams?id=eq.${id}&select=name,city,logo_url,points,wins,losses,ties`)
+        const t = await sbOne(`teams?${match}&select=slug,name,city,logo_url,points,wins,losses,ties`)
         if (t) {
+          canonicalise(t.slug)
           title = t.name
           desc = [t.city, `${t.points || 0} נק׳`, `${t.wins || 0}נ ${t.ties || 0}ת ${t.losses || 0}ה`].filter(Boolean).join(' · ')
           image = absImg(t.logo_url)
         }
       } else if (type === 'games') {
-        const g = await sbOne(`games?id=eq.${id}&select=game_date,home_score,away_score,status,home:teams!games_home_team_id_fkey(name,logo_url),away:teams!games_away_team_id_fkey(name,logo_url)`)
+        const g = await sbOne(`games?${match}&select=slug,game_date,home_score,away_score,status,home:teams!games_home_team_id_fkey(name,logo_url),away:teams!games_away_team_id_fkey(name,logo_url)`)
         if (g) {
+          canonicalise(g.slug)
           const h = g.home?.name || 'בית', a = g.away?.name || 'חוץ'
           title = `${h} נגד ${a}`
           desc = g.status === 'completed' && g.home_score != null
             ? `${h} ${g.home_score} - ${g.away_score} ${a}`
             : 'משחק בליגת הוקי הגלגיליות הישראלית'
           image = absImg(g.home?.logo_url || g.away?.logo_url)
+        }
+      } else if (type === 'tournaments') {
+        const t = await sbOne(`tournaments?${match}&select=slug,name,age_group,start_date,end_date,status`)
+        if (t) {
+          canonicalise(t.slug)
+          title = t.name
+          desc = 'טורניר בליגת הוקי הגלגיליות הישראלית'
         }
       }
     }

@@ -1,5 +1,7 @@
 import { supabase } from './supabase'
 import { countsForStats } from './leagueStats'
+import { registerSlugs } from './slugs'
+import { sniffImageType, SAFE_IMAGE_TYPES, IMAGE_TYPE_ERROR } from './imageType'
 
 // Fetch every row, paging past PostgREST's 1000-row cap (a plain select silently
 // truncates at 1000). Used for tables that can grow beyond that within a season.
@@ -25,7 +27,7 @@ export async function getTeams(orderBy = 'points', ascending = false) {
     .eq('status', 'active')
     .order(orderBy, { ascending })
   if (error) throw error
-  return data
+  return registerSlugs('teams', data)
 }
 
 // ----- user-created teams (Package 1a) -----
@@ -94,13 +96,32 @@ export async function updateTeamDetails(teamId, fields) {
  * Upload a crest to the public `team-logos` bucket (path "<team_id>/<file>") and
  * point teams.logo_url at its public URL via the set_team_logo RPC. Allowed for
  * the team's coach, an admin, or the creator of a still-pending team. Returns the URL.
+ *
+ * PNG and JPEG ONLY, decided by the file's BYTES.
+ *
+ * This is the last line of defence, not the first — both crest pickers block a
+ * bad file at selection time with a readable message. It lives here because
+ * this function is the one thing every upload path goes through, and the bucket
+ * is what link unfurlers read.
+ *
+ * The extension and content-type are derived from the sniffed type and never
+ * from `file.name` / `file.type`. That is the whole bug: the crests that broke
+ * WhatsApp previews were AVIF files called `.png`, uploaded with the browser's
+ * own (equally wrong) `file.type`, and stored under a label nothing could
+ * trust. A file can lie about what it is; it cannot lie about its first bytes.
+ *
+ * The iOS and Android crest pickers already re-encode to real PNG before
+ * uploading, so this only ever fires for the web.
  */
 export async function uploadTeamLogo(teamId, file) {
-  const ext = (file.name?.split('.').pop() || 'png').toLowerCase()
+  const kind = await sniffImageType(file)
+  if (!SAFE_IMAGE_TYPES.includes(kind)) throw new Error(IMAGE_TYPE_ERROR)
+
+  const ext = kind === 'jpeg' ? 'jpg' : 'png'
   const path = `${teamId}/logo-${Date.now()}.${ext}`
   const { error: upErr } = await supabase.storage
     .from('team-logos')
-    .upload(path, file, { upsert: true, contentType: file.type || undefined })
+    .upload(path, file, { upsert: true, contentType: `image/${kind}` })
   if (upErr) throw upErr
   const { data: pub } = supabase.storage.from('team-logos').getPublicUrl(path)
   const url = pub?.publicUrl
@@ -119,7 +140,7 @@ export async function uploadTeamLogo(teamId, file) {
 // needs a DOB reads it per-row while signed in (see lib/birthDate.js).
 export const PLAYER_PUBLIC_COLUMNS =
   'id,first_name,last_name,jersey_number,position,team_id,is_referee,is_core,age,' +
-  'goals,games_played,blue_cards,red_cards,photo_url,created_at'
+  'goals,games_played,blue_cards,red_cards,photo_url,created_at,slug'
 
 export async function getPlayers(orderBy = 'goals', ascending = false) {
   const { data, error } = await supabase
@@ -140,7 +161,7 @@ export async function getPlayers(orderBy = 'goals', ascending = false) {
       for (const p of players) if (byPlayer[p.id]) p.owner_avatar_url = byPlayer[p.id]
     }
   } catch { /* avatar is enhancement-only; never break the players fetch */ }
-  return players
+  return registerSlugs('players', players)
 }
 
 export async function getGames(orderBy = 'game_date', ascending = false) {
@@ -149,7 +170,7 @@ export async function getGames(orderBy = 'game_date', ascending = false) {
     .select('*')
     .order(orderBy, { ascending })
   if (error) throw error
-  return data
+  return registerSlugs('games', data)
 }
 
 export async function getGameStats() {
@@ -172,6 +193,7 @@ export async function getGameById(id) {
     .eq('id', id)
     .single()
   if (error) throw error
+  registerSlugs('games', [data])
   return data
 }
 
@@ -193,6 +215,10 @@ export async function getPosts() {
     .is('deleted_at', null)
     .is('comments.deleted_at', null) // count only live comments, matching getComments()
     .order('created_at', { ascending: false })
+    // Unbounded before: every feed load (web AND native) fetched every post ever
+    // written. Harmless while posting was rare; the news ingest makes the table
+    // grow on its own, so cap it. 200 is far past what anyone scrolls.
+    .limit(200)
   if (error) throw error
   return (data || []).map(p => ({
     ...p,
@@ -500,7 +526,7 @@ export async function setLeagueSetting(key, value) {
 export async function getArchivedSeasons() {
   const { data, error } = await supabase
     .from('seasons')
-    .select('id, name, starts_on, ends_on, created_at')
+    .select('id, slug, name, starts_on, ends_on, created_at')
     .eq('status', 'archived')
     .order('ends_on', { ascending: false, nullsFirst: false })
   if (error) throw error

@@ -191,11 +191,15 @@ export function buildFeed({
   // ---- HUMAN posts (Stage B2) ----
   for (const p of humanPosts) {
     if (!p || p.deleted_at) continue
+    // An ingested item carries source_name; it gets its own type so the "פוסטים"
+    // filter keeps meaning "what people here wrote" rather than silently mixing
+    // in a wire feed. See supabase/functions/ingest-rink-hockey-news.
+    const isExternal = !!p.source_name
     posts.push({
       id: `post-${p.id}`,
-      type: 'post',
+      type: isExternal ? 'external' : 'post',
       date: p.created_at,
-      rank: 50,
+      rank: isExternal ? 60 : 50,
       data: {
         post: p,
         author: p.author || null,

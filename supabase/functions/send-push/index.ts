@@ -166,6 +166,24 @@ function notificationText(n: NotificationRow, actorName: string): string {
   }
 }
 
+// KEEP THESE AS UUIDs. DO NOT "modernise" them to the Hebrew slugs the website
+// now uses (/players/יואב-תורגמן).
+//
+// This path is not only a web link — it is shipped inside the push payload as
+// `url`, and BOTH native apps parse it and treat the second segment as a row id:
+//   Android  PushRouter.toRoute()            -> Routes.player(<segment>)
+//   iOS      NotificationDestination.parse() -> .player(<segment>)
+// Each then resolves that id against rows it already holds, matching on `.id`.
+// Hand them a slug and the match simply never succeeds: no crash, no error, no
+// log line — just a screen that spins forever. It would look like a broken app,
+// not like a bad link.
+//
+// The UUID form is safe on the web too: rinkhockeyil.com 308-redirects every
+// /players/<uuid> to its slug (api/resolve.js), so browsers and the digest email
+// still land on the pretty URL.
+//
+// Changing this contract means shipping new iOS and Android builds FIRST, and
+// waiting for people to install them — remember the Android app is sideloaded.
 function notificationHref(n: NotificationRow): string {
   const d = n.data ?? {};
   switch (n.type) {

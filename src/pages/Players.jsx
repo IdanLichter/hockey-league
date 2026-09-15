@@ -7,6 +7,7 @@ import { UserCheck, Search, RefreshCw } from "lucide-react"
 import { Player as PlayerIcon } from "@/components/icons/HockeyIcons"
 import { motion } from "framer-motion"
 import PlayerAvatar from "@/components/PlayerAvatar"
+import { entityPath } from "@/lib/slugs"
 
 export default function Players() {
   const [players, setPlayers] = useState([])
@@ -113,7 +114,7 @@ export default function Players() {
       {/* Players Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
         {filtered.map((player, index) => (
-          <Link key={player.id} to={`/players/${player.id}`} className="block">
+          <Link key={player.id} to={entityPath('players', player)} className="block">
           <motion.div
             initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}

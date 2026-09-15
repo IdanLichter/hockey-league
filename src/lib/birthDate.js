@@ -25,11 +25,18 @@ export function ageFromBirthDate(birthDate) {
   return age
 }
 
-/** Can this player be borrowed by another team? Under 18, or a goalkeeper of any age. */
+/**
+ * Can this player be borrowed by another team? Under 18, or a goalkeeper of any age.
+ *
+ * Judges on an AGE, taking either `age_years` or a `birth_date` — the squad picker now
+ * only ever holds the age (see getPlayerLoanAges), while a caller that legitimately has
+ * the date can still pass it. 'no-dob' keeps its name: to the coach it is still "no date
+ * of birth on file", whichever field was missing.
+ */
 export function canBeBorrowed(player) {
   if (!player) return { ok: false, reason: 'unknown' }
   if (player.position === 'Goalkeeper') return { ok: true, reason: 'goalkeeper' }
-  const age = ageFromBirthDate(player.birth_date)
+  const age = player.age_years ?? ageFromBirthDate(player.birth_date)
   if (age == null) return { ok: false, reason: 'no-dob' }   // → coach confirmation
   return age < YOUTH_MAX_AGE
     ? { ok: true, reason: 'youth', age }
@@ -50,37 +57,43 @@ export async function setPlayerBirthDate(playerId, birthDate) {
 }
 
 /**
- * One player's DOB, read per-row.
+ * One player's DOB — for the people entitled to EDIT it: the owner, his coach, a manager.
  *
- * Deliberately NOT part of the bulk player fetch: `birth_date` is revoked from the `anon`
- * role so minors' dates of birth are not public, which means the wide public list must
- * not name the column at all. A signed-in caller who needs one DOB — the owner on his
- * account page, a coach sizing up a loan — asks for exactly that row.
+ * Goes through player_birth_date() rather than reading the column, because the column is
+ * granted to no PostgREST role: `players` is world-readable by policy (`using (true)`),
+ * so a column grant to `authenticated` meant every signed-up account could read all 26
+ * dates on file, 4 of them minors'. The RPC carries the same authorization as
+ * set_player_birth_date — if you may write it, you may read it back.
+ *
+ * Returns null both when there is no date and when the caller is not entitled to it;
+ * every caller already renders "unknown" the same way, and the distinction is not one we
+ * want to hand out.
  */
 export async function getPlayerBirthDate(playerId) {
   if (!playerId) return null
-  const { data, error } = await supabase
-    .from('players').select('birth_date').eq('id', playerId).maybeSingle()
+  const { data, error } = await supabase.rpc('player_birth_date', { p_player: playerId })
   if (error) return null
-  return data?.birth_date ?? null
+  return data ?? null
 }
 
 /**
- * Every player's DOB at once, as playerId → yyyy-mm-dd | null.
+ * Loan eligibility across the league, as playerId → age in whole years (or null).
  *
- * The squad picker has to judge loan eligibility across the whole league before the coach
- * has picked anyone, and one round trip per card would be ~100 requests to draw a
- * dropdown. Unfiltered rather than .in(ids): the id list would be a 4KB query string for
- * a saving of nothing, since the picker asks about all of them anyway.
+ * AGES, not dates. The squad picker has only ever rendered "בן/בת 16" and compared
+ * against 18 — it never needed the date itself, and an exact date of birth is far more
+ * identifying than an age for the 15-year-old it is usually about. So the server derives
+ * the year count and the dates never leave it.
  *
- * Still authenticated-only — `birth_date` is granted to `authenticated` and revoked from
- * `anon`, so a logged-out caller gets a 403. Returns {} on any failure; callers must treat
- * a missing DOB as "unknown", which is what an unregistered player looks like regardless.
+ * Gated to the people who run games — coaches, judges, managers — because they are the
+ * ones the loan rule is addressed to. Everyone else gets {}, which reads as "unknown",
+ * and unknown already has a defined meaning here: the coach vouches with the checkbox.
+ *
+ * One request rather than a round trip per card; the picker judges all ~100 at once.
  */
-export async function getPlayerBirthDates() {
-  const { data, error } = await supabase.from('players').select('id,birth_date')
+export async function getPlayerLoanAges() {
+  const { data, error } = await supabase.rpc('squad_loan_ages')
   if (error) return {}
-  return Object.fromEntries((data || []).map(p => [p.id, p.birth_date ?? null]))
+  return Object.fromEntries((data || []).map(r => [r.player_id, r.age_years ?? null]))
 }
 
 /** My own player card's DOB (null if I'm not linked to a player). */

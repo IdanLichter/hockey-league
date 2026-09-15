@@ -1,4 +1,5 @@
 import { supabase } from './supabase'
+import { registerSlugs } from './slugs'
 
 /**
  * Youth tournaments. There is ONE senior league (בוגרים); tournaments are
@@ -17,7 +18,7 @@ export async function getTournaments() {
     .order('start_date', { ascending: false, nullsFirst: false })
     .order('created_at', { ascending: false })
   if (error) throw error
-  return data || []
+  return registerSlugs('tournaments', data || [])
 }
 
 export async function getTournamentById(id) {

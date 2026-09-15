@@ -5,6 +5,7 @@ import { AGE_LABEL } from "@/lib/ageGroups"
 import { Trophy, Calendar, ChevronLeft, RefreshCw } from "lucide-react"
 import { motion } from "framer-motion"
 import { format } from "date-fns"
+import { entityPath } from "@/lib/slugs"
 
 export const TOURNAMENT_STATUS = {
   upcoming: { label: "מתקרב", cls: "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300" },
@@ -80,7 +81,7 @@ export default function Tournaments() {
             const range = dateRange(t)
             return (
               <motion.div key={t.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}>
-                <Link to={`/tournaments/${t.id}`} className="card card-hover p-4 sm:p-5 flex items-center gap-4">
+                <Link to={entityPath('tournaments', t)} className="card card-hover p-4 sm:p-5 flex items-center gap-4">
                   <div className="w-12 h-12 rounded-2xl bg-brand/10 flex items-center justify-center shrink-0">
                     <Trophy className="w-6 h-6 text-brand" />
                   </div>

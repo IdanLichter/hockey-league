@@ -39,9 +39,13 @@ export default function BirthDatesAdmin({ players = [], teamsMap = {}, membersBy
 
   const load = async () => {
     setError(null)
-    const { data, error: e } = await supabase.from("players").select("id, birth_date")
+    // manageable_birth_dates(), not a table read: `birth_date` is granted to no PostgREST
+    // role, so the only way to a date is a function that checks who is asking. It returns
+    // the whole league to an admin or a league manager, and to a coach exactly the players
+    // he may also SET — his own squad, and nobody else's.
+    const { data, error: e } = await supabase.rpc("manageable_birth_dates")
     if (e) { setError("שגיאה בטעינת תאריכי הלידה"); setDates({}); return }
-    setDates(Object.fromEntries((data || []).map(r => [r.id, r.birth_date])))
+    setDates(Object.fromEntries((data || []).map(r => [r.player_id, r.birth_date])))
   }
   useEffect(() => { load() }, [])
 
