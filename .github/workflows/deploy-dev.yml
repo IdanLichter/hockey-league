@@ -219,7 +219,13 @@ jobs:
             echo "applied $BASENAME"
           done
 
-      - run: npm ci
-      - run: npx vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
-      - run: npx vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
-      - run: npx vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }}
+      # REMOTE BUILD ON PURPOSE. The obvious pipeline here is
+      # `vercel pull` + `vercel build` + `deploy --prebuilt`, and it silently
+      # shipped a white screen: Vercel marks env vars added via `vercel env add`
+      # as Sensitive, and a Sensitive var CANNOT BE READ BACK — `vercel pull`
+      # returns it EMPTY. The runner then built a bundle with an empty
+      # VITE_SUPABASE_URL and the app died on load with "Invalid supabaseUrl".
+      # Building on Vercel's side instead means the real values are injected
+      # where they actually live. This is also what scripts/deploy-public.sh has
+      # always done — the local-build variant was my invention, and it was wrong.
+      - run: npx vercel deploy --prod --yes --token=${{ secrets.VERCEL_TOKEN }}

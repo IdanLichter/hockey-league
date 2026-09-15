@@ -101,25 +101,20 @@ jobs:
           # a Node version difference first shows up.
           node-version: 20
 
-      # `npm ci` installs exactly the lockfile — the same build inputs every time.
-      - name: Install dependencies
-        run: npm ci
-
       # Same three-step Vercel dance as deploy-dev.yml, which is the pattern already
       # proven to work with this token in this org:
-      #   pull   — fetch the PRODUCTION env vars + project settings for the project
-      #            pinned above (this is where VITE_SUPABASE_* come from; without it
-      #            the bundle would build against nothing and the site would load
-      #            blank),
-      #   build  — build here, so a build failure fails THIS run visibly rather than
-      #            somewhere inside Vercel after the deploy was accepted,
-      #   deploy — upload the already-built output and make it production, i.e. put
-      #            it on rinkhockeyil.com.
-      - name: Pull Vercel production settings
-        run: npx vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
-
-      - name: Build
-        run: npx vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
-
+      # ONE STEP, AND THE BUILD HAPPENS ON VERCEL'S SIDE — not here.
+      #
+      # The three-step version (pull → build → deploy --prebuilt) looks better: a
+      # build failure would fail this run visibly. It also took the dev site down
+      # the first time it ran. Vercel marks env vars added through `vercel env add`
+      # as Sensitive, and Sensitive vars CANNOT BE READ BACK — `vercel pull` hands
+      # you empty strings. The runner cheerfully built a bundle with an empty
+      # VITE_SUPABASE_URL, deployed it, and every page died on load with
+      # "Invalid supabaseUrl: Must be a valid HTTP or HTTPS URL". Nothing failed;
+      # it just shipped a blank site.
+      #
+      # Deploying without --prebuilt makes Vercel build it, where the real values
+      # live. scripts/deploy-public.sh has always done exactly this.
       - name: Deploy to rinkhockeyil.com
-        run: npx vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }}
+        run: npx vercel deploy --prod --yes --token=${{ secrets.VERCEL_TOKEN }}
