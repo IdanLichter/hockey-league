@@ -253,6 +253,7 @@ ${FENCE}
 const LIST_LIMIT = 20
 const QUEUED_MS = 45 * 1000        // below this age an uncommented issue is still "queued"
 const COMMENT_PAGES = 3            // x100 comments
+const CLOSE_GRACE_MS = 60 * 1000   // see deriveStage: comment and close are not atomic
 const COMMENT_LOOKUP_LIMIT = 6     // per-issue fallbacks when the bulk pages come up short
 const RUN_PAGES = 2                // x100 workflow runs
 const RUN_LOOKUP_LIMIT = 5         // per-sha fallbacks when the run pages miss
@@ -356,7 +357,20 @@ function deriveStage(issue, sha, hasComment, run, now) {
     if (run.status !== 'completed') return 'deploying'
     return run.conclusion === 'success' ? 'done' : 'failed'
   }
-  if (issue.state === 'closed') return 'refused'
+  if (issue.state === 'closed') {
+    // The agent comments and THEN closes, and GitHub does not surface those two
+    // acts to us at the same instant. In the gap we hold a closed issue with no
+    // comment in hand, which looks identical to a genuine refusal — and reporting
+    // `refused` there is not merely premature, it is the opposite of the truth:
+    // the run that just succeeded gets announced to the admin as declined.
+    //
+    // A refusal is never urgent, so the cheap fix is to be slow about it: for the
+    // first minute after a close we stay on `working`, which is non-terminal, so
+    // the panel keeps polling and lands on the real answer by itself.
+    const closed = Date.parse(issue.closed_at || '')
+    if (!hasComment && Number.isFinite(closed) && now - closed < CLOSE_GRACE_MS) return 'working'
+    return 'refused'
+  }
   if (hasComment) return 'working'
   const created = Date.parse(issue.created_at)
   return Number.isFinite(created) && now - created < QUEUED_MS ? 'queued' : 'working'
@@ -436,8 +450,24 @@ async function commentsFor(issues) {
   // Anything the sweep left short (too many comments in the window, a paged-out
   // reply) is worth a direct look — capped, so a busy repo can't turn this into
   // a call per issue. `comments` is GitHub's own count, so the check is exact.
+  //
+  // …EXCEPT that count is only as fresh as the issue object it rode in on, and
+  // those two facts arrive from different places at different times. A closed
+  // issue whose count still reads 0 makes the sweep look complete when it is not,
+  // and the caller then derives `refused` — telling the admin their request was
+  // declined, seconds before the very same request resolves to `done` on a
+  // refresh. That was a real bug, reported from the panel.
+  //
+  // So a CLOSED issue with nothing recorded is always worth one direct call:
+  // closed-and-silent is the single combination that produces a terminal verdict
+  // the admin reads as bad news, and it is the one we must not get wrong.
+  const unsure = issues.filter(
+    (i) => i.state === 'closed' && !(map.get(i.number)?.length),
+  )
   const short = issues
     .filter((i) => Number(i.comments) > 0 && (map.get(i.number)?.length || 0) < Number(i.comments))
+    .concat(unsure)
+    .filter((i, idx, all) => all.findIndex((x) => x.number === i.number) === idx)
     .slice(0, COMMENT_LOOKUP_LIMIT)
 
   await mapLimit(short, DETAIL_CONCURRENCY, async (i) => {
