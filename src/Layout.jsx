@@ -250,8 +250,11 @@ export default function Layout({ children }) {
         </div>
       )}
 
-      {/* Main content */}
-      <main className="min-h-screen">
+      {/* Main content. min-h-[calc(100vh-4rem)], not min-h-screen: the sticky
+          header above (h-16 = 4rem) already takes up its own space in flow, so
+          "main also wants a full 100vh" forced a scrollbar on every page, even
+          ones with no content to scroll. */}
+      <main className="min-h-[calc(100vh-4rem)]">
         {children}
       </main>
 
