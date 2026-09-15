@@ -34,8 +34,8 @@ const admin = createClient(SB_URL, SB_SERVICE_ROLE, {
 
 // ---- Tuning ---------------------------------------------------------------
 const MAX_AGE_DAYS = 14;        // older than this is not news
-const MAX_NEW_PER_SOURCE = 2;   // a tournament burst trickles in over days
-const MAX_NEW_PER_RUN = 4;      // ...and never floods a single day's feed
+const MAX_NEW_PER_SOURCE = 3;   // a tournament burst trickles in over days
+const MAX_NEW_PER_RUN = 8;      // ...and never floods a single day's feed
 
 const BOT_EMAIL = "news-bot@rinkhockeyil.com";
 const BOT_NAME = "חדשות הוקי גלגיליות";
@@ -45,7 +45,9 @@ type Source = {
   kind: "youtube" | "rss";
   name: string;      // shown on the card as the source chip
   url: string;
-  lead: string;      // Hebrew lead line, so a card reads as Hebrew even untranslated
+  // RSS only: drop an item carrying any of these <category> tags. Some rink-hockey
+  // outlets also cover the other roller sports under the same feed.
+  excludeCategories?: string[];
 };
 
 const SOURCES: Source[] = [
@@ -54,21 +56,36 @@ const SOURCES: Source[] = [
     kind: "youtube",
     name: "WSE Rink Hockey TV",
     url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCjUBgw3RIYYbivfVcXP83Yg",
-    lead: "🎥 סרטון חדש · הערוץ הרשמי של ועדת ההוקי האירופית",
   },
   {
     key: "okliga-tv",
     kind: "youtube",
     name: "OKLIGA.TV",
     url: "https://www.youtube.com/feeds/videos.xml?channel_id=UC6RLLzXQJWy1yCAEysy1Wgw",
-    lead: "🎥 תקציר משחק · OK Liga, הליגה הספרדית",
   },
   {
     key: "wse-news",
     kind: "rss",
     name: "World Skate Europe",
     url: "https://europe.worldskate.org/category/rink-hockey/feed/",
-    lead: "📰 חדשות · איגוד ההוקי האירופי",
+  },
+  {
+    // Coaching and tactics — the one source of its kind that publishes a feed at
+    // all (see docs/rink-hockey-sources.md). Sporadic: months can pass silently.
+    key: "colaianni",
+    kind: "youtube",
+    name: "Andi Colaianni",
+    url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCh-040jKgwZpAMuMxww_V3g",
+  },
+  {
+    // Chilean/LatAm rink hockey, the most prolific source here (near-daily).
+    // Its feed also carries speed skating, artistic skating and skateboarding,
+    // which is what excludeCategories is for.
+    key: "patinesychuecas",
+    kind: "rss",
+    name: "Patines y Chuecas",
+    url: "https://patinesychuecas.com/feed/",
+    excludeCategories: ["Patinaje Artístico", "Patín Carrera", "Skate", "skateboarding"],
   },
 ];
 
@@ -98,7 +115,17 @@ function attr(xml: string, tagName: string, attrName: string): string | null {
   return m ? decodeEntities(m[1]) : null;
 }
 
-type Item = { guid: string; title: string; link: string; published: Date; image: string | null };
+// First <img src> inside the item's HTML body (content:encoded or description).
+function firstImage(xml: string): string | null {
+  const m = xml.match(/<img[^>]+src="([^"]+)"/i);
+  return m ? decodeEntities(m[1]) : null;
+}
+
+function parseCategories(xml: string): string[] {
+  return [...xml.matchAll(/<category>([\s\S]*?)<\/category>/gi)].map((m) => decodeEntities(m[1]));
+}
+
+type Item = { guid: string; title: string; link: string; published: Date; image: string | null; categories: string[] };
 
 function parseFeed(xml: string, src: Source): Item[] {
   // Each block MUST be cut at its own closing tag. Splitting alone leaves every
@@ -124,16 +151,20 @@ function parseFeed(xml: string, src: Source): Item[] {
       link = tag(b, "link");
       guid = tag(b, "guid") || link;
       dateStr = tag(b, "pubDate");
-      // WSE Europe carries no enclosure; og:image scraping per article was judged
-      // not worth the extra request + breakage. These cards render text-only.
-      image = attr(b, "media:content", "url") || attr(b, "enclosure", "url");
+      // Neither WSE Europe nor Patines y Chuecas ships an enclosure, but both
+      // embed the article's lead image in the HTML body — so pull the first <img>
+      // rather than scraping og:image with an extra request per item.
+      image = attr(b, "media:content", "url") || attr(b, "enclosure", "url") || firstImage(b);
     }
     if (!guid || !link || !dateStr) continue;
 
     const published = new Date(dateStr);
     if (Number.isNaN(published.getTime())) continue;
 
-    out.push({ guid: `${src.key}:${guid}`, title, link, published, image });
+    const categories = src.kind === "rss" ? parseCategories(b) : [];
+    if (src.excludeCategories?.some((c) => categories.includes(c))) continue;
+
+    out.push({ guid: `${src.key}:${guid}`, title, link, published, image, categories });
   }
   return out.sort((a, b) => b.published.getTime() - a.published.getTime());
 }
@@ -231,7 +262,13 @@ async function ingestSource(src: Source, authorId: string, budget: number, dryRu
     const headline = hebrew ?? item.title;
     // The link is in the body as well as link_url on purpose: the native apps
     // render body text only, so without it an item would be unopenable there.
-    const body = `${src.lead}\n\n${headline}\n\n${item.link}`;
+    // Headline first. It used to open with a per-source lead sentence ("🎥 סרטון
+    // חדש · …"), which made two videos from the same event look like the same post
+    // twice — the source is already on the card as a chip. The trailing lines are
+    // for the native apps, which render body text only and would otherwise have no
+    // source and no way to open the item; the web card hides everything after the
+    // first paragraph.
+    const body = `${headline}\n\n${src.name}\n${item.link}`;
 
     if (dryRun) {
       preview.push({ guid: item.guid, published: item.published.toISOString(), body, image: item.image });
@@ -270,10 +307,15 @@ Deno.serve(async (req) => {
     // legitimately finds nothing most of the year). Cron never sends it.
     let dryRun = false;
     let maxAgeDays = MAX_AGE_DAYS;
+    let only: string[] | null = null;
     try {
       const body = await req.json();
       dryRun = !!body?.dry_run;
       if (Number.isFinite(body?.max_age_days)) maxAgeDays = Math.min(Number(body.max_age_days), 400);
+      // `only: ["colaianni"]` restricts the run to named sources. Cron never sends
+      // it; it exists so one source can be seeded or debugged without the shared
+      // per-run budget being spent by whichever source is listed first.
+      if (Array.isArray(body?.only) && body.only.length) only = body.only.map(String);
     } catch { /* no body → a normal cron run */ }
 
     const authorId = dryRun ? "dry-run" : await ensureBotAuthor();
@@ -281,6 +323,7 @@ Deno.serve(async (req) => {
     let budget = MAX_NEW_PER_RUN;
 
     for (const src of SOURCES) {
+      if (only && !only.includes(src.key)) continue;
       if (budget <= 0) { report.push({ source: src.key, skipped: "run budget spent" }); continue; }
       try {
         const r = await ingestSource(src, authorId, budget, dryRun, maxAgeDays);

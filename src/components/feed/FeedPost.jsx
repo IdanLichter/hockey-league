@@ -665,7 +665,7 @@ function PostCard({ post, likedPostIds, blockedIds, roleBadges }) {
           </div>
         </div>
       ) : (
-        <p className="text-sm text-slate-700 dark:text-slate-200 whitespace-pre-wrap break-words leading-relaxed">{ext ? postBody.replace(/\n*https?:\/\/\S+\s*$/, "") : postBody}</p>
+        <p className="text-sm text-slate-700 dark:text-slate-200 whitespace-pre-wrap break-words leading-relaxed">{ext ? postBody.split("\n\n")[0] : postBody}</p>
       )}
       {rowError && <p className="text-xs text-red-500 mt-2">{rowError}</p>}
 
@@ -675,7 +675,7 @@ function PostCard({ post, likedPostIds, blockedIds, roleBadges }) {
         <div className="mt-3">
           {extVideoId ? (
             <FeedVideo videoId={extVideoId} poster={ext.image}
-                       title={postBody.split("\n").filter(Boolean)[1] || ext.source} />
+                       title={postBody.split("\n")[0] || ext.source} />
           ) : ext.image && !extImgError ? (
             <a href={ext.link} target="_blank" rel="noopener noreferrer" className="group block relative rounded-xl overflow-hidden bg-slate-900">
               <img src={ext.image} alt="" loading="lazy" onError={() => setExtImgError(true)}

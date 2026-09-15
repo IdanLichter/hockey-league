@@ -9,7 +9,15 @@ search. Rink hockey only — no ice hockey, no inline.
 |---|---|---|---|---|
 | WSE Rink Hockey TV (official WSE committee channel) | `youtube.com/feeds/videos.xml?channel_id=UCjUBgw3RIYYbivfVcXP83Yg` | 15-item window, ~2/wk in season | `media:thumbnail` | EN |
 | OKLIGA.TV (Spanish league) | `…?channel_id=UC6RLLzXQJWy1yCAEysy1Wgw` | 15-item window, per matchday Dec–Jun | `media:thumbnail` | ES |
-| World Skate Europe | `europe.worldskate.org/category/rink-hockey/feed/` | 10-item window; 10 items in 9 days during the Euros | none | EN |
+| World Skate Europe | `europe.worldskate.org/category/rink-hockey/feed/` | 10-item window; 10 items in 9 days during the Euros | first `<img>` in body | EN |
+| Andi Colaianni (coaching / tactics) | `…?channel_id=UCh-040jKgwZpAMuMxww_V3g` | sporadic — months of silence between posts | `media:thumbnail` | ES |
+| Patines y Chuecas (Chile / LatAm) | `patinesychuecas.com/feed/` | the most prolific here — near-daily | first `<img>` in body | ES |
+
+Neither RSS source ships an enclosure, but both embed the article's lead image in
+the HTML body, so the parser takes the first `<img src>` instead of fetching each
+article for its `og:image`. Patines y Chuecas also covers speed skating, artistic
+skating and skateboarding, so items carrying those `<category>` tags are dropped
+(`excludeCategories`) — that filter removes ~2 of every 10 items.
 
 The two YouTube feeds were picked over higher-volume written sources because they
 are the only ones carrying a thumbnail in the feed itself, they're official (no
