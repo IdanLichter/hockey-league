@@ -82,41 +82,75 @@ grant execute on function public.player_birth_date(uuid) to authenticated;
 grant execute on function public.manageable_birth_dates() to authenticated;
 
 -- ---------------------------------------------------------------------------
--- PART 2 — NOT YET APPLIED.
+-- PART 2 — NOT YET APPLIED. RUN THIS WHEN BOTH MOBILE BUILDS ARE **LIVE**.
 --
--- ORDERING MATTERS, and here it spans app stores. The functions above are additive, so
--- Part 1 ships on its own and changes nothing for existing clients. The revoke below is
--- the breaking half, and the SHIPPED mobile apps still read the column directly:
---   iOS 1.4.2      SquadService / AccountService / ManagementService
---   Android 1.4.7  SquadRepository.birthDate + .birthDates, AuthRepository.fetchBirthDate
--- Android degrades quietly (those two SquadRepository calls are inside runCatching, so a
--- 403 reads as "no date" and routes the coach to the vouch checkbox), but
--- AuthRepository.fetchBirthDate is NOT wrapped, and the birth-dates tab would simply go
--- blank on both platforms. An iOS fix is days of review away, and users update when they
--- update — so running this before both builds are OUT and adopted breaks working apps.
+-- "Live" means SHIPPED AND INSTALLABLE, not submitted:
+--   * iOS 1.4.3 (27)      READY_FOR_SALE on the App Store  (scripts/asc_version_state.py)
+--   * Android 1.4.8 (23)  actually distributed, AND league_settings.android_latest_version
+--                         bumped to 23 so the in-app banner tells people to update
+-- Until then the shipped clients (iOS 1.4.2, Android 1.4.6/1.4.7) still read the column
+-- directly and this revoke breaks working apps. Web is already migrated either way.
 --
--- Web is already migrated (this commit) and works either way.
+-- WHY THIS BLOCK ASSERTS INSTEAD OF JUST REVOKING.
+-- The failure mode here is silent: a bare `REVOKE SELECT (birth_date)` is a NO-OP,
+-- because Postgres keeps the TABLE-level grant and that covers every column. You get no
+-- error, and the hole this whole change exists to close stays open. So the revoke and its
+-- proof are one transaction: if `authenticated` still holds SELECT at the end, the
+-- exception rolls the whole thing back and says so. It cannot half-succeed quietly.
 --
--- A bare `REVOKE SELECT (birth_date)` is a NO-OP: Postgres keeps the table-level grant,
--- which covers every column. The table-level privilege has to go and the remaining
--- columns be re-granted individually — the same shape as the anon fix.
+-- Run it as a single statement (it is one transaction).
 -- ---------------------------------------------------------------------------
--- revoke select, insert, update on public.players from authenticated;
+/*
+begin;
+
+-- The table-level privilege has to go first; re-grant every column EXCEPT birth_date.
+revoke select, insert, update on public.players from authenticated;
+
+grant select (
+  id, first_name, last_name, jersey_number, "position", team_id,
+  is_referee, is_core, age, goals, games_played, blue_cards, red_cards,
+  photo_url, created_at, slug
+) on public.players to authenticated;
+
+grant insert (
+  id, first_name, last_name, jersey_number, "position", team_id,
+  is_referee, is_core, age, goals, games_played, blue_cards, red_cards,
+  photo_url, created_at, slug
+) on public.players to authenticated;
+
+grant update (
+  id, first_name, last_name, jersey_number, "position", team_id,
+  is_referee, is_core, age, goals, games_played, blue_cards, red_cards,
+  photo_url, created_at, slug
+) on public.players to authenticated;
+
+-- Proof, in the same transaction as the change it proves.
+do $$
+begin
+  if has_column_privilege('authenticated', 'public.players', 'birth_date', 'SELECT') then
+    raise exception
+      'REVOKE FAILED: authenticated still holds SELECT on players.birth_date — the table-level grant survived, so nothing was actually closed';
+  end if;
+  if not has_column_privilege('authenticated', 'public.players', 'first_name', 'SELECT') then
+    raise exception
+      'OVER-REVOKED: authenticated lost SELECT on first_name — the public player list is now broken for signed-in users';
+  end if;
+  raise notice 'OK: birth_date is no longer readable by authenticated; the other columns survive.';
+end $$;
+
+commit;
+*/
+
+-- AFTERWARDS, confirm from outside the transaction:
+--   select grantee, privilege_type from information_schema.column_privileges
+--   where table_schema='public' and table_name='players' and column_name='birth_date';
+-- `authenticated` must appear with INSERT/REFERENCES/UPDATE but NOT SELECT.
 --
--- grant select (
---   id, first_name, last_name, jersey_number, "position", team_id,
---   is_referee, is_core, age, goals, games_played, blue_cards, red_cards,
---   photo_url, created_at, slug
--- ) on public.players to authenticated;
+-- Then smoke-test the three RPC paths while signed in as a coach: the squad picker still
+-- shows "בן/בת <age>" on a loan, the account page still shows the owner his own date, and
+-- the birth-dates tab still lists his squad. All three go through functions, so all three
+-- should be untouched — that is the point of the change.
 --
--- grant insert (
---   id, first_name, last_name, jersey_number, "position", team_id,
---   is_referee, is_core, age, goals, games_played, blue_cards, red_cards,
---   photo_url, created_at, slug
--- ) on public.players to authenticated;
---
--- grant update (
---   id, first_name, last_name, jersey_number, "position", team_id,
---   is_referee, is_core, age, goals, games_played, blue_cards, red_cards,
---   photo_url, created_at, slug
--- ) on public.players to authenticated;
+-- IF SOMETHING BREAKS: re-granting is instant and safe —
+--   grant select (birth_date) on public.players to authenticated;
+-- That reopens the hole, so treat it as a stopgap while the real cause is found.
