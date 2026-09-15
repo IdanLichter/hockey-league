@@ -215,6 +215,10 @@ export async function getPosts() {
     .is('deleted_at', null)
     .is('comments.deleted_at', null) // count only live comments, matching getComments()
     .order('created_at', { ascending: false })
+    // Unbounded before: every feed load (web AND native) fetched every post ever
+    // written. Harmless while posting was rare; the news ingest makes the table
+    // grow on its own, so cap it. 200 is far past what anyone scrolls.
+    .limit(200)
   if (error) throw error
   return (data || []).map(p => ({
     ...p,

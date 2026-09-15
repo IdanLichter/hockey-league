@@ -132,6 +132,7 @@ export default function Feed() {
     posts: feed.filter(p => matchesFilter(p, "posts")).length,
     results: feed.filter(p => matchesFilter(p, "results")).length,
     highlights: feed.filter(p => matchesFilter(p, "highlights")).length,
+    world: feed.filter(p => matchesFilter(p, "world")).length,
   }), [feed])
 
   const handlePosted = (newPost) => {

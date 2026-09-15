@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react"
+import { loadYouTubeApi } from "@/lib/youtubeApi"
 import { Link } from "react-router-dom"
 import { motion } from "framer-motion"
 import { Video, Radio, Trash2, ExternalLink, Tag, Camera, Square, Eye, Stethoscope } from "lucide-react"
@@ -27,24 +28,6 @@ const KINDS = {
 }
 
 // ---- YouTube IFrame API: load the script once, resolve when window.YT is ready.
-let ytApiPromise = null
-function loadYouTubeApi() {
-  if (typeof window === "undefined") return Promise.reject(new Error("no window"))
-  if (window.YT?.Player) return Promise.resolve(window.YT)
-  if (ytApiPromise) return ytApiPromise
-  ytApiPromise = new Promise((resolve) => {
-    const prev = window.onYouTubeIframeAPIReady
-    window.onYouTubeIframeAPIReady = () => { prev?.(); resolve(window.YT) }
-    if (!document.getElementById("youtube-iframe-api")) {
-      const tag = document.createElement("script")
-      tag.id = "youtube-iframe-api"
-      tag.src = "https://www.youtube.com/iframe_api"
-      document.head.appendChild(tag)
-    }
-  })
-  return ytApiPromise
-}
-
 // Embedded player. YT replaces a child node with an iframe, so we keep a stable
 // host div and append/clear a child around it — safe across videoId changes.
 function YouTubePlayer({ videoId, onReady }) {

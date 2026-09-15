@@ -2,11 +2,13 @@ import { useState, useEffect, useRef } from "react"
 import { Link } from "react-router-dom"
 import { motion, AnimatePresence } from "framer-motion"
 import { format } from "date-fns"
-import { Crown, Flame, Trophy, MapPin, FileText, ChevronDown, Heart, MessageCircle, Send, Loader2, Camera, ExternalLink, BadgeCheck, Check, RefreshCw, ArrowLeft } from "lucide-react"
+import { Crown, Flame, Trophy, MapPin, FileText, ChevronDown, Heart, MessageCircle, Send, Loader2, Camera, ExternalLink, BadgeCheck, Check, RefreshCw, ArrowLeft, Globe } from "lucide-react"
 import TeamLogo from "@/components/TeamLogo"
 import { useAuth } from "@/lib/AuthContext"
 import { likePost, unlikePost, getComments, createComment, editPost, deletePost, editComment, deleteComment } from "@/lib/api"
 import { setPhotoOverride } from "@/lib/photoOverrides"
+import { parseYouTubeId } from "@/lib/video"
+import FeedVideo from "@/components/feed/FeedVideo"
 import ReactionBar from "@/components/feed/ReactionBar"
 import ModerationMenu from "@/components/feed/ModerationMenu"
 import { RoleBadge, deriveRoleItems } from "@/components/RoleBadges"
@@ -502,6 +504,16 @@ function PostCard({ post, likedPostIds, blockedIds, roleBadges }) {
   const [posting, setPosting] = useState(false)
 
   // ---- Moderation (edit / soft-delete) for this post ----
+  // An ingested news item (supabase/functions/ingest-rink-hockey-news) carries a
+  // source, a link and usually a thumbnail. It reuses this card so external news
+  // gets likes, comments and moderation for free.
+  const ext = p.source_name ? { source: p.source_name, link: p.link_url, image: p.image_url } : null
+  const [extImgError, setExtImgError] = useState(false)
+  // Two of the three sources are YouTube channels, so most news items are videos.
+  // They play HERE (muted, while on screen) rather than sending the reader to
+  // youtube.com — see FeedVideo.
+  const extVideoId = ext?.link ? parseYouTubeId(ext.link) : null
+
   const [postBody, setPostBody] = useState(p.body)
   const [editingPost, setEditingPost] = useState(false)
   const [postDraft, setPostDraft] = useState(p.body)
@@ -608,6 +620,10 @@ function PostCard({ post, likedPostIds, blockedIds, roleBadges }) {
               <span title="מקושר לשחקן — לחצו לעמוד השחקן" className="shrink-0 inline-flex items-center gap-0.5 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30 px-1.5 py-0.5 rounded-full">
                 <BadgeCheck className="w-3 h-3" /> שחקן
               </span>
+            ) : ext ? (
+              <span title={`מקור חיצוני · ${ext.source}`} className="shrink-0 inline-flex items-center gap-0.5 text-[10px] font-bold text-sky-700 dark:text-sky-300 bg-sky-50 dark:bg-sky-900/30 px-1.5 py-0.5 rounded-full">
+                <Globe className="w-3 h-3" /> {ext.source}
+              </span>
             ) : (
               <span title="חשבון שאינו מקושר לשחקן" className="shrink-0 text-[10px] font-medium text-slate-500 dark:text-slate-400">אורח/ת</span>
             )}
@@ -649,9 +665,32 @@ function PostCard({ post, likedPostIds, blockedIds, roleBadges }) {
           </div>
         </div>
       ) : (
-        <p className="text-sm text-slate-700 dark:text-slate-200 whitespace-pre-wrap break-words leading-relaxed">{postBody}</p>
+        <p className="text-sm text-slate-700 dark:text-slate-200 whitespace-pre-wrap break-words leading-relaxed">{ext ? postBody.replace(/\n*https?:\/\/\S+\s*$/, "") : postBody}</p>
       )}
       {rowError && <p className="text-xs text-red-500 mt-2">{rowError}</p>}
+
+      {/* External news: thumbnail + link out. onError collapses the image rather
+          than leaving a broken-image box when a CDN thumbnail expires. */}
+      {ext && (
+        <div className="mt-3">
+          {extVideoId ? (
+            <FeedVideo videoId={extVideoId} poster={ext.image}
+                       title={postBody.split("\n").filter(Boolean)[1] || ext.source} />
+          ) : ext.image && !extImgError ? (
+            <a href={ext.link} target="_blank" rel="noopener noreferrer" className="group block relative rounded-xl overflow-hidden bg-slate-900">
+              <img src={ext.image} alt="" loading="lazy" onError={() => setExtImgError(true)}
+                   style={{ aspectRatio: "16 / 9" }}
+                   className="w-full max-h-80 object-cover transition-transform duration-500 group-hover:scale-[1.02]" />
+            </a>
+          ) : null}
+          {ext.link && (
+            <a href={ext.link} target="_blank" rel="noopener noreferrer"
+               className="mt-2 inline-flex items-center gap-1.5 text-xs font-bold text-brand hover:text-brand-hover transition-colors">
+              <ExternalLink className="w-3.5 h-3.5" /> {extVideoId ? "פתיחה ביוטיוב" : "צפייה במקור"}
+            </a>
+          )}
+        </div>
+      )}
 
       {/* Actions */}
       <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-700/50 flex items-center gap-5 text-xs">
@@ -756,6 +795,7 @@ export default function FeedPost({ post, playersMap, teamsMap, roleBadges, liked
     case 'milestone':
       return <MilestonePost post={post} {...rx} />
     case 'post':
+    case 'external':
       return <PostCard post={post} likedPostIds={likedPostIds} blockedIds={blockedIds} roleBadges={roleBadges} />
     default:
       return null
