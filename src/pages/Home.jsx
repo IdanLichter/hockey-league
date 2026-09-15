@@ -10,6 +10,13 @@ import { TeamLink } from "@/components/EntityLinks"
 import FinalFourBracket from "@/components/FinalFourBracket"
 import { useSeasonName } from "@/App"
 
+// The dev deployment says so on the page, so nobody mistakes it for the league's
+// site — and the league's site must never say it. Decided from the hostname at
+// runtime, NOT from a build flag: both environments build from the same commit,
+// so anything baked in at build time ships to both.
+const IS_DEV_SITE =
+  typeof window !== 'undefined' && window.location.hostname !== 'rinkhockeyil.com'
+
 export default function Home() {
   const seasonName = useSeasonName()
   const [teams, setTeams] = useState([])
@@ -59,7 +66,7 @@ export default function Home() {
           <Standings className="size-8 text-brand shrink-0" />
           טבלת הליגה
         </h1>
-        <p className="page-subtitle mt-1">דירוג קבוצות{seasonName && ` עונת ${seasonName}`} · סביבת בדיקות</p>
+        <p className="page-subtitle mt-1">דירוג קבוצות{seasonName && ` עונת ${seasonName}`}{IS_DEV_SITE && ' · סביבת בדיקות'}</p>
       </motion.div>
 
       {error && (
