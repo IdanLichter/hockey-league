@@ -235,13 +235,40 @@ async function ensureBotAuthor(): Promise<string> {
 }
 
 // ---- Ingest ----------------------------------------------------------------
-async function ingestSource(src: Source, authorId: string, budget: number, dryRun: boolean, maxAgeDays: number) {
-  const res = await fetch(src.url, {
-    headers: { "user-agent": "rinkhockeyil-feed-bot/1.0 (+https://rinkhockeyil.com)" },
-  });
-  if (!res.ok) throw new Error(`${src.key}: HTTP ${res.status}`);
+/**
+ * Fetch a feed, retrying transient failures.
+ *
+ * The first unattended cron run (2026-09-16 05:00Z) had ALL THREE YouTube feeds
+ * come back 404 while both RSS feeds succeeded; minutes later every one of them
+ * returned 200 from the same function. So YouTube intermittently refuses requests
+ * from the edge runtime's egress. Without a retry that day's items simply never
+ * arrive — and because the freshness window is finite, an item that is unlucky on
+ * enough consecutive days ages out and is lost silently rather than late.
+ */
+async function fetchFeed(src: Source): Promise<string> {
+  const delays = [0, 1500, 4000];
+  let lastErr: unknown;
+  for (const wait of delays) {
+    if (wait) await new Promise((r) => setTimeout(r, wait));
+    try {
+      const res = await fetch(src.url, {
+        headers: { "user-agent": "rinkhockeyil-feed-bot/1.0 (+https://rinkhockeyil.com)" },
+        // A hung feed must not eat the whole run's budget.
+        signal: AbortSignal.timeout(20_000),
+      });
+      if (res.ok) return await res.text();
+      lastErr = new Error(`${src.key}: HTTP ${res.status}`);
+      // 4xx other than 404/429 is a real, permanent problem — don't burn retries.
+      if (res.status !== 404 && res.status !== 429 && res.status < 500) break;
+    } catch (err) {
+      lastErr = err;
+    }
+  }
+  throw lastErr ?? new Error(`${src.key}: fetch failed`);
+}
 
-  const items = parseFeed(await res.text(), src);
+async function ingestSource(src: Source, authorId: string, budget: number, dryRun: boolean, maxAgeDays: number) {
+  const items = parseFeed(await fetchFeed(src), src);
   const cutoff = Date.now() - maxAgeDays * 86_400_000;
   const fresh = items.filter((i) => i.published.getTime() >= cutoff);
 
