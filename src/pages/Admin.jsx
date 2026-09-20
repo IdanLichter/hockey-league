@@ -982,7 +982,9 @@ function PlayersAdmin({ players, teams, teamsMap, membersByPlayer = new Map(), r
         else savedId = (await createPlayer(scalar)).id
         await setPlayerMemberships(savedId, selectedTeamIds, teamsMap)
       } else {
-        const payload = { ...scalar, team_id: form.team_id }
+        // '' is the empty <select> value, and Postgres rejects it as a uuid (22P02).
+        // A team-less card is legitimate (free agent), so send a real NULL.
+        const payload = { ...scalar, team_id: form.team_id || null }
         if (editingPlayer) await updatePlayer(editingPlayer, payload)
         else savedId = (await createPlayer(payload)).id
       }
@@ -1160,16 +1162,27 @@ function PlayersAdmin({ players, teams, teamsMap, membersByPlayer = new Map(), r
           </div>
 
           <div className="flex flex-wrap items-center gap-2 pt-1">
-            <button onClick={handleSave} disabled={saving || !form.first_name || !form.last_name || !hasTeam}
+            {/* A team is NOT required. Most players have one and the form says so, but a
+                free agent between clubs is a real player card — players.team_id is
+                nullable for exactly that reason — and blocking the button on it made
+                them impossible to enter at all. Only the name is genuinely required. */}
+            <button onClick={handleSave} disabled={saving || !form.first_name || !form.last_name}
               className="flex items-center gap-2 px-5 py-2.5 bg-brand text-white text-sm font-semibold rounded-xl hover:bg-brand-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
               <Save className="w-4 h-4" /> {saving ? 'שומר...' : editingPlayer ? 'עדכן' : 'צור'}
             </button>
             <button onClick={resetForm} className="px-4 py-2.5 text-sm font-semibold text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 transition-colors">
               ביטול
             </button>
-            {(!form.first_name || !form.last_name || !hasTeam) && (
+            {(!form.first_name || !form.last_name) && (
               <span className="text-xs font-medium text-amber-600 dark:text-amber-400">
-                חסר: {[!form.first_name && 'שם פרטי', !form.last_name && 'שם משפחה', !hasTeam && 'קבוצה'].filter(Boolean).join(', ')}
+                חסר: {[!form.first_name && 'שם פרטי', !form.last_name && 'שם משפחה'].filter(Boolean).join(', ')}
+              </span>
+            )}
+            {/* Not an error — a deliberate choice worth confirming out loud, so nobody
+                creates a team-less card by forgetting to pick one. */}
+            {form.first_name && form.last_name && !hasTeam && (
+              <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
+                ללא קבוצה — יישמר כשחקן חופשי
               </span>
             )}
           </div>

@@ -382,14 +382,30 @@ export async function deleteGame(id) {
 }
 
 // --- Players ---
+//
+// Both writers read the row back through PLAYER_PUBLIC_COLUMNS, never a bare
+// `.select()`. A `.select()` with no arguments IS `select=*`, and on `players` that
+// asks Postgres for privilege on every column including `birth_date` — which neither
+// `anon` nor `authenticated` may read. The INSERT itself is permitted; it is the
+// RETURNING that 403s, which is how "לא ניתן להוסיף שחקן" looked like a permissions
+// problem with creating players when it was really a problem with reading them back.
+
+/**
+ * Create a player card.
+ *
+ * `team_id` is OPTIONAL: a free agent with no team is a legitimate player card, and
+ * the column is nullable precisely so the league can hold players between clubs.
+ */
 export async function createPlayer(player) {
-  const { data, error } = await supabase.from('players').insert(player).select().single()
+  const { data, error } = await supabase
+    .from('players').insert(player).select(PLAYER_PUBLIC_COLUMNS).single()
   if (error) throw error
   return data
 }
 
 export async function updatePlayer(id, updates) {
-  const { data, error } = await supabase.from('players').update(updates).eq('id', id).select().single()
+  const { data, error } = await supabase
+    .from('players').update(updates).eq('id', id).select(PLAYER_PUBLIC_COLUMNS).single()
   if (error) throw error
   return data
 }

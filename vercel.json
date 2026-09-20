@@ -46,6 +46,10 @@
       "destination": "/api/og?type=tournaments&id=:id"
     },
 
-    { "source": "/(.*)", "destination": "/" }
+    {
+      "//": "SPA fallback \u2014 but NOT for /assets/. Vercel serves an existing static file before any rewrite, so real bundles are unaffected; this only changes what happens when the file is MISSING. Without the exclusion a stale tab asking for a bundle that a redeploy replaced got 200 + index.html, which the browser reports as \"MIME type ('text/html') is not a supported stylesheet\" \u2014 and a missing JS chunk came back as HTML and died with a syntax error. Now it 404s honestly.",
+      "source": "/((?!assets/).*)",
+      "destination": "/"
+    }
   ]
 }
