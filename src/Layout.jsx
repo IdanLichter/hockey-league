@@ -1,16 +1,17 @@
 import { BRAND_ORANGE } from '@/lib/brand'
 import { Link, useLocation } from "react-router-dom"
-import { useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useSeasonName } from "@/App"
 import {
-  UserCheck,
   Menu,
   X,
   LogOut,
   UserCircle,
   Swords,
   BookOpen,
-  Coins
+  Coins,
+  ChevronDown,
+  MoreHorizontal
 } from "lucide-react"
 import { Rink, Standings, Crossed, Teams, Player, Whistle, Stats, Camera, Edit, Clipboard } from "./components/icons/HockeyIcons"
 import { useAuth } from "./lib/AuthContext"
@@ -32,6 +33,93 @@ const NavStats = (p) => <Stats mono {...p} />
 const NavCamera = (p) => <Camera mono {...p} />
 const NavEdit = (p) => <Edit mono {...p} />
 const NavClipboard = (p) => <Clipboard mono {...p} />
+
+/**
+ * Close a navbar dropdown on outside click, Escape, or route change. Every menu
+ * in the header behaves the same way (and the same way NotificationBell does),
+ * so the behaviour lives here once instead of in each menu.
+ */
+function useDismissable(open, setOpen, wrapRef) {
+  const location = useLocation()
+  useEffect(() => {
+    if (!open) return
+    const onDown = (e) => { if (wrapRef.current && !wrapRef.current.contains(e.target)) setOpen(false) }
+    const onKey = (e) => { if (e.key === "Escape") setOpen(false) }
+    document.addEventListener("mousedown", onDown)
+    document.addEventListener("keydown", onKey)
+    return () => { document.removeEventListener("mousedown", onDown); document.removeEventListener("keydown", onKey) }
+  }, [open, setOpen, wrapRef])
+  // A menu item is a <Link>; navigating away must not leave the panel hanging open.
+  useEffect(() => { setOpen(false) }, [location.pathname, setOpen])
+}
+
+/** Shared panel chrome for the header menus (matches NotificationBell). */
+function MenuPanel({ children, className = "" }) {
+  return (
+    <div className={`absolute mt-2 min-w-[12rem] max-w-[calc(100vw-2rem)] overflow-hidden rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xl z-50 py-1 ${className}`}>
+      {children}
+    </div>
+  )
+}
+
+/** One row inside a header menu. */
+function MenuItem({ item, active, onClick }) {
+  return (
+    <Link
+      to={item.url}
+      onClick={onClick}
+      className={`flex items-center gap-2.5 px-3.5 py-2.5 text-sm font-semibold transition-colors ${
+        active
+          ? "bg-brand/10 text-brand-strong dark:text-brand-light"
+          : "text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white"
+      }`}
+    >
+      <item.icon className="w-4 h-4 shrink-0" aria-hidden="true" />
+      {item.title}
+    </Link>
+  )
+}
+
+/**
+ * The "עוד" nav group. Secondary destinations live here so the visible row stays
+ * a fixed six items no matter how many roles the signed-in user holds — the row
+ * used to grow to 13 items and silently horizontal-scroll its tail out of view.
+ */
+function NavDropdown({ label, icon: Icon, items, isActivePage }) {
+  const [open, setOpen] = useState(false)
+  const wrapRef = useRef(null)
+  useDismissable(open, setOpen, wrapRef)
+
+  if (items.length === 0) return null
+  const anyActive = items.some((i) => isActivePage(i.url))
+
+  return (
+    <div ref={wrapRef} className="relative">
+      <button
+        onClick={() => setOpen((o) => !o)}
+        aria-expanded={open}
+        aria-haspopup="true"
+        className={`inline-flex items-center gap-1.5 px-2 xl:px-3 py-1.5 rounded-lg text-sm font-semibold whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40 ${
+          anyActive || open
+            ? "bg-brand/10 text-brand-strong dark:text-brand-light"
+            : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white"
+        }`}
+      >
+        <Icon className="w-4 h-4 shrink-0" aria-hidden="true" />
+        {label}
+        <ChevronDown className={`w-3.5 h-3.5 shrink-0 transition-transform ${open ? "rotate-180" : ""}`} aria-hidden="true" />
+      </button>
+
+      {open && (
+        <MenuPanel className="start-0">
+          {items.map((item) => (
+            <MenuItem key={item.title} item={item} active={isActivePage(item.url)} onClick={() => setOpen(false)} />
+          ))}
+        </MenuPanel>
+      )}
+    </div>
+  )
+}
 
 /**
  * Navbar avatar with three states (mirrors the /me header + feed avatars):
@@ -63,36 +151,102 @@ function NavAvatar({ profile, email, className = "w-8 h-8" }) {
   )
 }
 
+/**
+ * Signed-in menu behind the avatar: the personal page, the role tools (ניהול /
+ * שיפוט / יוצרי תוכן) and sign-out. Keeping the role entries here is what stops
+ * the nav row from growing for admins, judges and content editors.
+ */
+function AvatarMenu({ user, profile, roleNav, isActivePage, signOut }) {
+  const [open, setOpen] = useState(false)
+  const wrapRef = useRef(null)
+  useDismissable(open, setOpen, wrapRef)
+
+  const anyRoleActive = roleNav.some((i) => isActivePage(i.url))
+
+  return (
+    <div ref={wrapRef} className="relative">
+      <button
+        onClick={() => setOpen((o) => !o)}
+        aria-expanded={open}
+        aria-haspopup="true"
+        aria-label="התפריט שלי"
+        className={`flex items-center gap-1 rounded-full p-0.5 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40 ${
+          anyRoleActive || open ? "ring-2 ring-brand/50" : "hover:ring-2 hover:ring-brand/40 dark:hover:ring-brand/50"
+        }`}
+      >
+        <NavAvatar profile={profile} email={user.email} className="w-8 h-8" />
+        <ChevronDown className={`w-3.5 h-3.5 shrink-0 text-slate-500 dark:text-slate-400 transition-transform ${open ? "rotate-180" : ""}`} aria-hidden="true" />
+      </button>
+
+      {open && (
+        <MenuPanel className="end-0">
+          <MenuItem
+            item={{ title: "הדף שלי", url: "/me", icon: UserCircle }}
+            active={isActivePage("/me")}
+            onClick={() => setOpen(false)}
+          />
+          {roleNav.length > 0 && (
+            <>
+              <div className="my-1 border-t border-slate-100 dark:border-slate-800" />
+              {roleNav.map((item) => (
+                <MenuItem key={item.title} item={item} active={isActivePage(item.url)} onClick={() => setOpen(false)} />
+              ))}
+            </>
+          )}
+          <div className="my-1 border-t border-slate-100 dark:border-slate-800" />
+          <button
+            onClick={() => { setOpen(false); signOut() }}
+            className="w-full flex items-center gap-2.5 px-3.5 py-2.5 text-sm font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white transition-colors"
+          >
+            <LogOut className="w-4 h-4 shrink-0" aria-hidden="true" /> התנתק
+          </button>
+        </MenuPanel>
+      )}
+    </div>
+  )
+}
+
 export default function Layout({ children }) {
   const location = useLocation()
   const seasonName = useSeasonName()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const { user, isAdmin, hasRole, coachTeamIds, isJudgeRole, isContentEditor, isLeagueManager, profile, signOut, openAuth } = useAuth()
 
-  const navItems = [
+  // The header is split into three groups so its width no longer depends on how
+  // many roles you hold: six public destinations always visible, everything else
+  // folded into "עוד", and the role tools kept next to the avatar (where people
+  // already look for "my stuff"). The mobile sheet re-flattens all three.
+  const primaryNav = [
     { title: "המגרש", url: "/", icon: NavRink },
     { title: "טבלה", url: "/standings", icon: NavStandings },
     { title: "משחקים", url: "/games", icon: NavGames },
     { title: "סטטיסטיקות", url: "/statistics", icon: NavStats },
-    { title: "טורנירים", url: "/tournaments", icon: Swords },
     { title: "קבוצות", url: "/teams", icon: NavTeams },
     { title: "שחקנים", url: "/players", icon: NavPlayers },
+  ]
+
+  const moreNav = [
+    { title: "טורנירים", url: "/tournaments", icon: Swords },
+    // Media entry: content editors get the /creators workspace in the role menu
+    // instead, so "מדיה" is hidden for them unless they are also an admin.
+    ...((!isContentEditor || isAdmin) ? [{ title: "מדיה", url: "/media", icon: NavCamera }] : []),
     { title: "מדריך", url: "/guide", icon: BookOpen },
     // הוקי מרקט is signed-in only: the page is gated to 18+ league players
     // anyway, and the public site should not advertise a betting board to the
     // youth-team visitors who make up much of its traffic.
     ...(user ? [{ title: "הוקי מרקט", url: "/market", icon: Coins }] : []),
-    // Media / content-editor entry: plain users & admins keep "מדיה"; content
-    // editors get "יוצרי תוכן" instead. The creators entry is gated on the raw
-    // content_editor role only — an admin who isn't actually a content creator
-    // has no use for the workspace in their nav (the /creators page itself still
-    // admits admins, so a direct link keeps working).
-    ...((!isContentEditor || isAdmin) ? [{ title: "מדיה", url: "/media", icon: NavCamera }] : []),
-    ...(isContentEditor ? [{ title: "יוצרי תוכן", url: "/creators", icon: NavEdit }] : []),
-    // Archive lives in the management screen's season tab (/admin), not the main nav.
-    ...(hasRole("judge") ? [{ title: "שיפוט", url: "/judge", icon: NavWhistle }] : []),
-    ...((isAdmin || coachTeamIds.length > 0 || isJudgeRole || isLeagueManager) ? [{ title: "ניהול", url: "/admin", icon: NavClipboard }] : []),
   ]
+
+  // Role tools — shown inside the avatar menu (desktop) and inline (mobile).
+  // Archive lives in the management screen's season tab (/admin), not the nav.
+  const roleNav = [
+    ...((isAdmin || coachTeamIds.length > 0 || isJudgeRole || isLeagueManager) ? [{ title: "ניהול", url: "/admin", icon: NavClipboard }] : []),
+    ...(hasRole("judge") ? [{ title: "שיפוט", url: "/judge", icon: NavWhistle }] : []),
+    ...(isContentEditor ? [{ title: "יוצרי תוכן", url: "/creators", icon: NavEdit }] : []),
+  ]
+
+  // Flat list for the mobile sheet, which has the vertical room for everything.
+  const navItems = [...primaryNav, ...moreNav, ...roleNav]
 
   const isActivePage = (url) =>
     url === "/"
@@ -119,19 +273,22 @@ export default function Layout({ children }) {
             </div>
           </Link>
 
-          {/* Inline nav (xl+). Below xl the icon-rich hamburger menu is used, so
-              the widened icon+text items never crowd the header. `min-w-0` +
-              `overflow-x-auto` lets a long nav (e.g. managers, who get extra
-              ניהול/שיפוט/יוצרי תוכן items) scroll horizontally inside the header
-              instead of overflowing it. `mx-auto` centers the row when it fits
-              and collapses to 0 when it doesn't, so no item is ever clipped. */}
-          <nav className="hidden xl:flex flex-1 min-w-0 overflow-x-auto nav-scroll">
-            <div className="flex items-center gap-1 mx-auto">
-              {navItems.map((item) => (
+          {/* Inline nav (lg+). Grouping the tail into "עוד" and the role tools into
+              the avatar menu caps the row at seven slots for every visitor, which
+              is what lets it start at lg (1024px) instead of xl — laptops used to
+              fall back to the hamburger. NOTE: no `overflow-x-auto` here, unlike
+              the old 13-item row — a scroll container clips the "עוד" panel, which
+              is absolutely positioned. The row is a fixed seven slots now, so it
+              has nothing left to scroll. */}
+          <nav className="hidden lg:flex flex-1 min-w-0 justify-center">
+            {/* Tighter padding/gap below xl so the seven slots fit a 1024px laptop
+                without overlapping the logo or the avatar cluster. */}
+            <div className="flex items-center gap-0.5 xl:gap-1">
+              {primaryNav.map((item) => (
                 <Link
                   key={item.title}
                   to={item.url}
-                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40 ${
+                  className={`inline-flex items-center gap-1.5 px-2 xl:px-3 py-1.5 rounded-lg text-sm font-semibold whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40 ${
                     isActivePage(item.url)
                       ? "bg-brand/10 text-brand-strong dark:text-brand-light"
                       : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white"
@@ -141,34 +298,27 @@ export default function Layout({ children }) {
                   {item.title}
                 </Link>
               ))}
+              <NavDropdown label="עוד" icon={MoreHorizontal} items={moreNav} isActivePage={isActivePage} />
             </div>
           </nav>
 
           {/* RTL end (left): auth (desktop) / hamburger (mobile).
               Dark-mode toggle lives on the profile page (/me), not here. */}
-          <div className="flex items-center gap-1.5 ms-auto xl:ms-0">
+          <div className="flex items-center gap-1.5 ms-auto lg:ms-0">
             {/* Notifications bell — visible on all sizes for signed-in users, next to the avatar */}
             {user && <NotificationBell />}
 
-            {/* Auth (xl+) */}
-            <div className="hidden xl:flex items-center gap-2">
+            {/* Auth (lg+) — signed-in users get the avatar menu, which also carries
+                the role tools that used to sit in the nav row. */}
+            <div className="hidden lg:flex items-center gap-2">
               {user ? (
-                <>
-                  <Link
-                    to="/me"
-                    title="הדף שלי"
-                    aria-label="הדף שלי"
-                    className="rounded-full shrink-0 hover:ring-2 hover:ring-brand/40 dark:hover:ring-brand/50 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
-                  >
-                    <NavAvatar profile={profile} email={user.email} className="w-8 h-8" />
-                  </Link>
-                  <button
-                    onClick={() => signOut()}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
-                  >
-                    <LogOut className="w-3.5 h-3.5" /> התנתק
-                  </button>
-                </>
+                <AvatarMenu
+                  user={user}
+                  profile={profile}
+                  roleNav={roleNav}
+                  isActivePage={isActivePage}
+                  signOut={signOut}
+                />
               ) : (
                 <button
                   onClick={openAuth}
@@ -179,10 +329,10 @@ export default function Layout({ children }) {
               )}
             </div>
 
-            {/* Hamburger (below xl) */}
+            {/* Hamburger (below lg) */}
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="xl:hidden p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
+              className="lg:hidden p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
               aria-label="תפריט"
             >
               {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
@@ -193,7 +343,7 @@ export default function Layout({ children }) {
 
       {/* Mobile menu overlay */}
       {mobileMenuOpen && (
-        <div className="xl:hidden fixed inset-0 z-50 bg-white dark:bg-slate-900 pt-16 flex flex-col" dir="rtl">
+        <div className="lg:hidden fixed inset-0 z-50 bg-white dark:bg-slate-900 pt-16 flex flex-col" dir="rtl">
           <button
             onClick={() => setMobileMenuOpen(false)}
             className="absolute top-4 end-4 p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
