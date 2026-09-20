@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react"
-import { getProfiles, getAllRoles, grantRole, revokeRole, deleteUser, GRANTABLE_ROLES, ROLE_LABEL, TEAM_SCOPED } from "@/lib/roles"
-import { Award, X, Plus, RefreshCw, Check, Loader2, Search, Trash2 } from "lucide-react"
+import { getProfiles, getAllRoles, grantRole, revokeRole, deleteUser, linkPlayer, GRANTABLE_ROLES, ROLE_LABEL, TEAM_SCOPED } from "@/lib/roles"
+import { Award, X, Plus, RefreshCw, Check, Loader2, Search, Trash2, Link2, Link2Off } from "lucide-react"
 import { useAuth } from "@/lib/AuthContext"
 import { SortBar, sortItems } from "@/components/admin/SortBar"
 
@@ -11,7 +11,9 @@ const ROLE_SORT_OPTIONS = [
 
 /**
  * Admin UI to grant/revoke user roles (player / coach / content_editor / judge),
- * team-scoped for coach & player. This is what makes the role tiers actually apply
+ * team-scoped for coach & player, and to link a user account to a player card
+ * (admin_link_player — the admin-initiated counterpart to the claim queue, for
+ * the player who never files a claim). This is what makes the role tiers actually apply
  * — e.g. granting `judge` lets a non-admin run the live scoreboard. Self-contained;
  * `teamsMap`/`players` are only for names + team scoping.
  */
@@ -26,9 +28,39 @@ export default function RolesAdmin({ teamsMap = {}, players = [] }) {
   const [search, setSearch] = useState("")
   const [sort, setSort] = useState({ key: "name", dir: "asc" })
   const [confirmDelete, setConfirmDelete] = useState(null) // profile id pending deletion
+  const [linkForm, setLinkForm] = useState(null) // { profileId, q, playerId }
 
   const playersMap = useMemo(() => Object.fromEntries(players.map(p => [p.id, p])), [players])
   const teams = useMemo(() => Object.values(teamsMap).filter(Boolean), [teamsMap])
+
+  // player id -> the profile that already owns that card. profiles.player_id is
+  // UNIQUE, so a taken card is offered disabled rather than silently failing.
+  const ownerOf = useMemo(() => {
+    const m = {}
+    for (const p of profiles) if (p.player_id) m[p.player_id] = p
+    return m
+  }, [profiles])
+
+  const playerLabel = (pl) => {
+    const parts = [`${pl.first_name} ${pl.last_name}`]
+    if (pl.jersey_number != null && pl.jersey_number !== "") parts.push(`#${pl.jersey_number}`)
+    const team = teamsMap[pl.team_id]?.name
+    if (team) parts.push(team)
+    return parts.join(" · ")
+  }
+
+  // Options for the open link picker: name/team text filter, Hebrew-aware sort.
+  const linkOptions = useMemo(() => {
+    if (!linkForm) return []
+    const q = (linkForm.q || "").trim().toLowerCase()
+    const list = players.filter(pl => {
+      if (!q) return true
+      const hay = `${pl.first_name} ${pl.last_name} ${teamsMap[pl.team_id]?.name || ""} ${pl.jersey_number ?? ""}`.toLowerCase()
+      return hay.includes(q)
+    })
+    return [...list].sort((a, b) =>
+      `${a.first_name} ${a.last_name}`.localeCompare(`${b.first_name} ${b.last_name}`, "he"))
+  }, [linkForm, players, teamsMap])
 
   // Filter by display name or the linked player's name.
   const filtered = useMemo(() => {
@@ -89,6 +121,34 @@ export default function RolesAdmin({ teamsMap = {}, players = [] }) {
     } finally { setBusy(false) }
   }
 
+  const linkErrorMessage = (e) => (
+    e?.message === "player-already-linked" ? "השחקן כבר משויך לחשבון אחר"
+      : e?.message === "not-authorized" ? "אין לך הרשאה לשייך שחקן"
+        : e?.message === "player-not-found" ? "השחקן לא נמצא"
+          : "שגיאה בשיוך השחקן"
+  )
+
+  const doLink = async () => {
+    if (!linkForm?.playerId) { setError("יש לבחור שחקן"); return }
+    setBusy(true); setError(null)
+    try {
+      await linkPlayer(linkForm.profileId, linkForm.playerId)
+      setLinkForm(null); await load()
+    } catch (e) { setError(linkErrorMessage(e)) }
+    finally { setBusy(false) }
+  }
+
+  const doUnlink = async (profileId) => {
+    setBusy(true); setError(null)
+    try {
+      // null = unlink. The player CARD survives; only the account link and the
+      // 'player' role it granted go away.
+      await linkPlayer(profileId, null)
+      setLinkForm(null); await load()
+    } catch (e) { setError(linkErrorMessage(e)) }
+    finally { setBusy(false) }
+  }
+
   const openForm = (p) => {
     // default a player grant to the linked player's team
     const linkedTeam = p.player_id ? (playersMap[p.player_id]?.team_id || "") : ""
@@ -111,7 +171,7 @@ export default function RolesAdmin({ teamsMap = {}, players = [] }) {
           <h2 className="flex items-center gap-2 text-lg font-bold text-slate-900 dark:text-white">
             <Award className="w-5 h-5 text-brand" /> תפקידים והרשאות
           </h2>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">הענקת תפקידים למשתמשים רשומים. שופט = הרשאה להפעיל את לוח השיפוט.</p>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">הענקת תפקידים למשתמשים רשומים ושיוך חשבון לכרטיס שחקן. שופט = הרשאה להפעיל את לוח השיפוט.</p>
         </div>
         <button onClick={load} className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-600 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
           <RefreshCw className="w-3.5 h-3.5" /> רענון
@@ -155,7 +215,21 @@ export default function RolesAdmin({ teamsMap = {}, players = [] }) {
                     : <div className="w-9 h-9 rounded-full bg-brand text-white flex items-center justify-center text-sm font-bold shrink-0">{initial}</div>}
                   <div className="min-w-0 flex-1">
                     <p className="font-bold text-sm text-slate-900 dark:text-white truncate">{p.display_name || "משתמש"}</p>
-                    <p className="text-[11px] text-slate-500 dark:text-slate-400">{linked ? `משויך ל${linked.first_name} ${linked.last_name}` : "ללא שיוך שחקן"}</p>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400">{linked ? `משויך ל${linked.first_name} ${linked.last_name}` : p.player_id ? "משויך לכרטיס שחקן" : "ללא שיוך שחקן"}</p>
+                      {linkForm?.profileId !== p.id && (
+                        <button onClick={() => { setLinkForm({ profileId: p.id, q: "", playerId: p.player_id || "" }); setError(null) }}
+                          className="inline-flex items-center gap-1 text-[11px] font-semibold text-brand hover:underline">
+                          <Link2 className="w-3 h-3" /> {p.player_id ? "שינוי שיוך" : "שייך שחקן"}
+                        </button>
+                      )}
+                      {p.player_id && (
+                        <button onClick={() => doUnlink(p.id)} disabled={busy}
+                          className="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-400 hover:text-red-500 disabled:opacity-40">
+                          <Link2Off className="w-3 h-3" /> ביטול שיוך
+                        </button>
+                      )}
+                    </div>
                   </div>
                   {user?.id !== p.id && (
                     <button onClick={() => { setConfirmDelete(confirmDelete === p.id ? null : p.id); setError(null) }}
@@ -177,6 +251,45 @@ export default function RolesAdmin({ teamsMap = {}, players = [] }) {
                       <button onClick={() => setConfirmDelete(null)} disabled={busy}
                         className="text-xs font-semibold px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-600 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">ביטול</button>
                     </div>
+                  </div>
+                )}
+
+                {linkForm?.profileId === p.id && (
+                  <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-700 space-y-2">
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                      שיוך החשבון לכרטיס שחקן — מעניק גם תפקיד שחקן בקבוצת הכרטיס.
+                    </p>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <input
+                        type="text"
+                        value={linkForm.q}
+                        onChange={e => setLinkForm(f => ({ ...f, q: e.target.value }))}
+                        placeholder="סינון לפי שם או קבוצה..."
+                        className="filter-input text-xs py-1.5 flex-1 min-w-[10rem]"
+                      />
+                      <select value={linkForm.playerId} onChange={e => setLinkForm(f => ({ ...f, playerId: e.target.value }))}
+                        className="filter-select text-xs py-1.5 flex-1 min-w-[12rem]">
+                        <option value="">בחר שחקן</option>
+                        {linkOptions.map(pl => {
+                          const owner = ownerOf[pl.id]
+                          const taken = owner && owner.id !== p.id
+                          return (
+                            <option key={pl.id} value={pl.id} disabled={taken}>
+                              {playerLabel(pl)}{taken ? ` — משויך ל${owner.display_name || "משתמש"}` : ""}
+                            </option>
+                          )
+                        })}
+                      </select>
+                      <button onClick={doLink} disabled={busy}
+                        className="flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-lg bg-emerald-500 text-white hover:bg-emerald-600 disabled:opacity-50 transition-colors">
+                        {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />} שייך
+                      </button>
+                      <button onClick={() => { setLinkForm(null); setError(null) }}
+                        className="text-xs font-semibold px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-600 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">ביטול</button>
+                    </div>
+                    {linkOptions.length === 0 && (
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400">לא נמצאו שחקנים תואמים</p>
+                    )}
                   </div>
                 )}
 

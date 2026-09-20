@@ -9,9 +9,9 @@ import { supabase } from './supabase'
 
 export const ROLES = ['player', 'coach', 'content_editor', 'judge', 'league_manager', 'medic']
 // Roles the admin can grant from the Roles tab. Excludes 'player': players are
-// defined in the Players tab and linked to an account via claim approval
-// (which sets profiles.player_id) — inserting a bare 'player' user_roles row here
-// does nothing. `ROLES` stays intact for label/badge lookups on existing rows.
+// defined in the Players tab and linked to an account by the "שייך שחקן" picker on
+// each user row (or by claim approval) — both set profiles.player_id AND the role.
+// Inserting a bare 'player' user_roles row here would do nothing. `ROLES` stays intact for label/badge lookups on existing rows.
 export const GRANTABLE_ROLES = ROLES.filter(r => r !== 'player')
 export const ROLE_LABEL = {
   player: 'שחקן',
@@ -50,6 +50,30 @@ export async function grantRole(userId, role, teamId = null) {
 export async function revokeRole(id) {
   const { error } = await supabase.from('user_roles').delete().eq('id', id)
   if (error) throw error
+}
+
+/**
+ * Link a user account to a player card, or unlink it (playerId = null), via the
+ * admin_link_player RPC (admin / league manager only — profiles.player_id is
+ * guarded by guard_profile_player_id()).
+ *
+ * The claim flow (a user asks, an admin approves in the בקשות tab) is still the
+ * normal path. This is the admin-initiated one, for the player who never files a
+ * claim — most of the squad. Linking also grants the team-scoped 'player' role
+ * and closes a matching pending claim, exactly like approve_claim does.
+ */
+export async function linkPlayer(profileId, playerId) {
+  const { error } = await supabase.rpc('admin_link_player', {
+    p_profile_id: profileId,
+    p_player_id: playerId || null,
+  })
+  if (error) {
+    const m = error.message || ''
+    if (/player already linked/i.test(m) || error.code === '23505') throw new Error('player-already-linked')
+    if (/not authorized/i.test(m)) throw new Error('not-authorized')
+    if (/player not found/i.test(m)) throw new Error('player-not-found')
+    throw error
+  }
 }
 
 /**

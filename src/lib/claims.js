@@ -73,7 +73,11 @@ export async function cancelClaim(claimId) {
 export async function getPendingClaims() {
   const { data, error } = await supabase
     .from('player_claims')
-    .select('*, players(*), profiles!player_claims_profile_id_fkey(id, display_name, avatar_url)')
+    // NEVER `players(*)` here: `authenticated` holds column-level SELECT grants on
+    // players and birth_date is deliberately NOT among them (minors' DOBs go through
+    // the gated RPCs). A star expands to birth_date too, so the whole request 403s —
+    // which is exactly how this queue died once. List the columns the queue uses.
+    .select('*, players(id, first_name, last_name, team_id), profiles!player_claims_profile_id_fkey(id, display_name, avatar_url)')
     .eq('status', 'pending')
     .order('created_at', { ascending: true })
   if (error) throw error
