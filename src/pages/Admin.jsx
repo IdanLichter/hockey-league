@@ -353,6 +353,8 @@ function GamesAdmin({ games, teams, players, teamsMap, gameStats, tournaments = 
   const [refFilter, setRefFilter] = useState('all')
   const [sort, setSort] = useState({ key: 'date', dir: 'desc' })
 
+  // `is_referee` is a derived mirror of the judge role (DB trigger), so this is exactly
+  // the people appointed in the תפקידים tab — not a second, hand-kept list.
   const refereeOptions = players.filter(p => p.is_referee)
 
   const gameSortOptions = [
@@ -864,7 +866,7 @@ function PlayersAdmin({ players, teams, teamsMap, membersByPlayer = new Map(), r
   const emptyByAge = () => Object.fromEntries(AGE_GROUPS.map(a => [a.value, '']))
   const baseForm = () => ({
     first_name: '', last_name: '', jersey_number: '', position: 'Field Player',
-    team_id: lockedTeamId, teamByAge: emptyByAge(), is_referee: false, is_core: false,
+    team_id: lockedTeamId, teamByAge: emptyByAge(), is_core: false,
     goals: 0, games_played: 0, blue_cards: 0, red_cards: 0, birth_date: ''
   })
 
@@ -930,7 +932,6 @@ function PlayersAdmin({ players, teams, teamsMap, membersByPlayer = new Map(), r
       position: player.position || 'Field Player',
       team_id: player.team_id || '',
       teamByAge,
-      is_referee: player.is_referee || false,
       is_core: player.is_core || false,
       goals: player.goals || 0,
       games_played: player.games_played || 0,
@@ -960,7 +961,6 @@ function PlayersAdmin({ players, teams, teamsMap, membersByPlayer = new Map(), r
         first_name: form.first_name,
         last_name: form.last_name,
         position: form.position,
-        is_referee: form.is_referee,
         is_core: form.is_core,
         jersey_number: form.jersey_number !== '' ? Number(form.jersey_number) : null,
         goals: Number(form.goals) || 0,
@@ -1121,16 +1121,15 @@ function PlayersAdmin({ players, teams, teamsMap, membersByPlayer = new Map(), r
                 </select>
               </div>
             )}
+            {/* No "שופט" checkbox here on purpose. `players.is_referee` is a DERIVED
+                mirror of the judge role (a BEFORE trigger overwrites whatever a client
+                sends), so a checkbox here would save without error and change nothing.
+                Referees are appointed in the תפקידים tab — one place, one source. */}
             <div className="flex items-center gap-4 pt-5">
               <label className="flex items-center gap-2 text-xs font-semibold text-slate-600 dark:text-slate-400 cursor-pointer">
                 <input type="checkbox" checked={form.is_core} onChange={e => setForm({ ...form, is_core: e.target.checked })}
                   className="rounded border-slate-300 text-brand focus:ring-brand" />
                 שחקן ליבה
-              </label>
-              <label className="flex items-center gap-2 text-xs font-semibold text-slate-600 dark:text-slate-400 cursor-pointer">
-                <input type="checkbox" checked={form.is_referee} onChange={e => setForm({ ...form, is_referee: e.target.checked })}
-                  className="rounded border-slate-300 text-brand focus:ring-brand" />
-                שופט
               </label>
             </div>
           </div>
