@@ -6,6 +6,7 @@ import {
 } from '@/lib/seo'
 import { upsertJsonLd, removeJsonLd } from '@/components/JsonLd'
 import { trackPageview } from '@/lib/analytics'
+import { trackPage } from '@/lib/telemetry'
 import { supabase } from '@/lib/supabase'
 import { isUuid } from '@/lib/slugs'
 
@@ -39,6 +40,19 @@ const ROUTES = {
 // Single keyed <script type="application/ld+json"> managed per route.
 const JSONLD_KEY = 'route'
 
+/**
+ * Collapse a detail route to its shape: /players/יואב-תורגמן → /players/:slug.
+ *
+ * Two reasons. A person's name in a URL is personal data and does not belong in a
+ * telemetry row. And the question the dashboard answers is "which SCREENS get used",
+ * which a thousand distinct player URLs actively obscures.
+ */
+function normalisePath(pathname) {
+  return pathname
+    .replace(/^\/(players|teams|games|tournaments|albums|posts)\/[^/]+/, '/$1/:id')
+    .slice(0, 200)
+}
+
 export default function RouteSeo() {
   const { pathname } = useLocation()
   const noindex = isNoindexPath(pathname)
@@ -50,6 +64,11 @@ export default function RouteSeo() {
   // unless VITE_GA4_ID is set.
   useEffect(() => {
     const raf = requestAnimationFrame(() => trackPageview(pathname))
+    // First-party page view, alongside GA4. Recorded from the same effect so the two
+    // can never disagree about which routes were actually shown. The path is
+    // normalised before it is stored (see normalisePath) — /players/<slug> is a
+    // person's name, and the telemetry tab wants the SHAPE, not the individual.
+    trackPage(normalisePath(pathname))
     return () => cancelAnimationFrame(raf)
   }, [pathname])
 

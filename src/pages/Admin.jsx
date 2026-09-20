@@ -42,6 +42,7 @@ import { entityPath } from "@/lib/slugs"
 import OfficialsAdmin from "@/components/admin/OfficialsAdmin"
 import VenuesAdmin from "@/components/admin/VenuesAdmin"
 import SeasonCalendar from "@/components/admin/SeasonCalendar"
+import TelemetryAdmin from "@/components/admin/TelemetryAdmin"
 import SuggestionsReview from "@/components/admin/SuggestionsReview"
 import RolesAdmin from "@/components/admin/RolesAdmin"
 import ReportsReview from "@/components/admin/ReportsReview"
@@ -49,7 +50,7 @@ import GameChangeRequestsReview from "@/components/admin/GameChangeRequestsRevie
 import WhatsNew from "@/components/admin/WhatsNew"
 import ClustersAdmin from "@/components/admin/ClustersAdmin"
 import { SortBar, sortItems } from "@/components/admin/SortBar"
-import { Award, Images, HeartPulse, Gavel, MapPin, BellRing, Ban, CalendarDays, Cake, CalendarOff } from "lucide-react"
+import { Award, Images, HeartPulse, Gavel, MapPin, BellRing, Ban, CalendarDays, Cake, CalendarOff, Activity } from "lucide-react"
 import { BRAND_ORANGE } from '@/lib/brand'
 
 const tabs = [
@@ -70,6 +71,7 @@ const tabs = [
   { id: "venues", label: "מגרשים", icon: MapPin },
   { id: "reports", label: "דיווחים", icon: Flag },
   { id: "clusters", label: "קבוצות תמונות", icon: Images },
+  { id: "telemetry", label: "טלמטריה", icon: Activity },
   { id: "roles", label: "תפקידים", icon: Award },
   { id: "users", label: "מנהלים", icon: Crown },
 ]
@@ -89,7 +91,10 @@ export default function Admin() {
     // loan falls back to a manual vouch.
     // "unavailability" is the coach's own squad admin — he is the one a player's
     // self-report is addressed to, and the one who files an injury on his behalf.
-    ...(isCoach ? ["players", "claims", "tournaments", "games", "birthdates", "unavailability"] : []),
+    ...(isCoach ? ["players", "claims", "tournaments", "games", "birthdates", "unavailability",
+        // Telemetry is gated server-side on is_admin() OR is_league_manager(); keep the
+        // tab list agreeing with the RPC rather than showing a tab that returns nothing.
+        "telemetry"] : []),
     ...(isJudgeRole ? ["games"] : []),
     // "claims" holds the player-card review queue — row 29 requires the league manager
     // to approve players, and approve_player_submission already permits him.
@@ -234,6 +239,7 @@ export default function Admin() {
               {currentTab === "venues" && <VenuesAdmin />}
               {currentTab === "reports" && <ReportsReview />}
               {currentTab === "clusters" && <ClustersAdmin players={players} />}
+              {currentTab === "telemetry" && <TelemetryAdmin />}
               {currentTab === "roles" && <RolesAdmin teamsMap={teamsMap} players={players} />}
               {currentTab === "users" && <UsersAdmin adminUsers={adminUsers} currentUserEmail={user.email} reload={loadData} />}
             </>
