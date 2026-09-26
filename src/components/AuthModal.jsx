@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react"
+import { APPLE_WEB_ENABLED, signInWithAppleWeb, AppleIcon } from "@/lib/appleWeb"
 import { X, Mail, Lock, User, Loader2, Clock, KeyRound } from "lucide-react"
 import { useAuth } from "@/lib/AuthContext"
 
@@ -219,10 +220,19 @@ export default function AuthModal() {
                   <GoogleIcon /> המשך עם Google
                 </button>
 
+                {APPLE_WEB_ENABLED && (
+                  <button
+                    onClick={() => signInWithAppleWeb().catch(() => setError("ההתחברות עם Apple נכשלה. נסו שוב."))}
+                    className="mt-2 w-full py-2.5 rounded-xl bg-black text-white font-semibold hover:bg-slate-800 dark:bg-white dark:text-black dark:hover:bg-slate-200 transition-colors flex items-center justify-center gap-2"
+                  >
+                    <AppleIcon /> המשך עם Apple
+                  </button>
+                )}
+
                 {/* Each sign-in method is its own account unless linked — the Apple-in-the-
                     app + Google-here split is how a player ends up with two accounts. */}
                 <p className="text-center text-[11px] text-slate-400 dark:text-slate-500 mt-3 leading-relaxed">
-                  כבר נרשמתם באפליקציה? היכנסו כאן באותה דרך (Google / אימייל) — דרך אחרת תיצור חשבון נפרד.
+                  כבר נרשמתם באפליקציה? היכנסו כאן באותה דרך ({APPLE_WEB_ENABLED ? "Google / Apple / אימייל" : "Google / אימייל"}) — דרך אחרת תיצור חשבון נפרד.
                 </p>
               </>
             )}

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react"
 import { Link2, CheckCircle2, Loader2, AlertTriangle } from "lucide-react"
 import { supabase } from "@/lib/supabase"
+import { APPLE_WEB_ENABLED, linkAppleWeb, AppleIcon } from "@/lib/appleWeb"
 
 /**
  * שיטות התחברות — which ways into THIS account exist, plus "connect Google".
@@ -43,7 +44,7 @@ export default function SignInMethodsCard() {
     if (back) {
       const taken = /identity_already_exists|already linked|already exists/i.test(`${back.code} ${back.desc}`)
       setErr(taken
-        ? "חשבון ה-Google הזה כבר רשום אצלנו כמשתמש נפרד. פנו למנהל הליגה והוא יאחד את שני החשבונות."
+        ? "החשבון הזה (Google / Apple) כבר רשום אצלנו כמשתמש נפרד. פנו למנהל הליגה והוא יאחד את שני החשבונות."
         : "החיבור לא הושלם. נסו שוב.")
       // Drop the error params so a refresh doesn't show it again.
       window.history.replaceState(null, "", window.location.pathname)
@@ -68,6 +69,12 @@ export default function SignInMethodsCard() {
     }
   }
 
+  const linkApple = async () => {
+    setBusy(true); setErr(null)
+    try { await linkAppleWeb() }
+    catch { setErr("החיבור נכשל. נסו שוב."); setBusy(false) }
+  }
+
   if (!identities) return null
 
   return (
@@ -87,8 +94,16 @@ export default function SignInMethodsCard() {
 
       <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
         היכנסו תמיד באותה דרך — באתר ובאפליקציה. כל דרך שלא מחוברת כאן יוצרת חשבון חדש ונפרד, בלי כרטיס השחקן שלכם.
-        {!providers.has("apple") && " נכנסתם פעם עם Apple באייפון ויש לכם שם חשבון נוסף? פנו למנהל הליגה לאיחוד."}
+        {!providers.has("apple") && " נכנסתם פעם עם Apple באייפון ויש לכם שם חשבון נוסף? פנו למנהל הליגה לאיחוד — או חברו את Apple מתוך האפליקציה לפני שנרשמים שוב."}
       </p>
+
+      {APPLE_WEB_ENABLED && !providers.has("apple") && (
+        <button onClick={linkApple} disabled={busy}
+          className="flex items-center gap-2 px-4 py-2 rounded-lg border border-slate-200 dark:border-slate-700 text-sm font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors disabled:opacity-50">
+          {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <AppleIcon />}
+          חיבור Apple
+        </button>
+      )}
 
       {!providers.has("google") && (
         <button onClick={linkGoogle} disabled={busy}

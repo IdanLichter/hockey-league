@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react"
 import { Link } from "react-router-dom"
-import { Smartphone, Users, UserCheck, AlertTriangle, RefreshCw, Search, Monitor, Info } from "lucide-react"
-import { getAppUsers } from "@/lib/appUsers"
+import { Smartphone, Users, UserCheck, AlertTriangle, RefreshCw, Search, Monitor, Info, Merge, Loader2, CheckCircle2 } from "lucide-react"
+import { getAppUsers, mergeAccounts } from "@/lib/appUsers"
 import { entityPath } from "@/lib/slugs"
 import { SkeletonPanelRows } from "@/components/skeletons/PageSkeletons"
 
@@ -70,6 +70,10 @@ export default function AppUsersAdmin() {
   const [err, setErr] = useState(null)
   const [filter, setFilter] = useState("all")
   const [q, setQ] = useState("")
+  const [merge, setMerge] = useState(null)     // { a, b, keep } — ids; keep = the survivor
+  const [merging, setMerging] = useState(false)
+  const [mergeErr, setMergeErr] = useState(null)
+  const [mergeDone, setMergeDone] = useState(null) // result text after a merge
 
   const load = async () => {
     setLoading(true); setErr(null)
@@ -107,6 +111,32 @@ export default function AppUsersAdmin() {
     })
   }, [rows, filter, q])
 
+  // Which account should survive by default: the one the APP uses (its session and
+  // push registration survive → the player is never signed out), then the one with
+  // the player card, then the more recently active one.
+  const preferKeep = (a, b) => {
+    const score = r => (hasApp(r) ? 4 : 0) + (r.player_id ? 2 : 0)
+    if (score(a) !== score(b)) return score(a) > score(b) ? a.user_id : b.user_id
+    const t = r => new Date(r.app_last_seen || r.web_last_seen || r.last_sign_in_at || 0).getTime()
+    return t(a) >= t(b) ? a.user_id : b.user_id
+  }
+
+  const openMerge = (a, b) => { setMergeErr(null); setMergeDone(null); setMerge({ a: a.user_id, b: b.user_id, keep: preferKeep(a, b) }) }
+
+  const runMerge = async () => {
+    const dropId = merge.keep === merge.a ? merge.b : merge.a
+    setMerging(true); setMergeErr(null)
+    try {
+      const res = await mergeAccounts(merge.keep, dropId)
+      setMergeDone(res?.lost_email_login
+        ? `אוחד. שימו לב: הכניסה עם האימייל ${res.lost_email_login} והסיסמה שלו כבר לא עובדת — שיכנס/תיכנס מעכשיו עם ${byId[merge.keep]?.email}.`
+        : "אוחד בהצלחה.")
+      setMerge(null)
+      await load()
+    } catch (e) { setMergeErr(e.message) }
+    finally { setMerging(false) }
+  }
+
   return (
     <div className="space-y-5">
       <div className="flex items-center justify-between gap-3 flex-wrap">
@@ -137,6 +167,12 @@ export default function AppUsersAdmin() {
               ״נראה לאחרונה״ מבוסס על התחברויות, התראות ופעילות — תאריכים ישנים יכולים להיות מוקדמים מהאמת.
             </span>
           </p>
+
+          {mergeDone && (
+            <div className="flex items-start gap-2 text-sm rounded-xl bg-emerald-500/10 text-emerald-800 dark:text-emerald-300 px-4 py-3">
+              <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5" /> {mergeDone}
+            </div>
+          )}
 
           <div className="flex items-center gap-2 flex-wrap">
             <div className="flex items-center gap-1 card p-1 flex-wrap">
@@ -193,10 +229,55 @@ export default function AppUsersAdmin() {
                       ייתכן שזה אותו אדם כמו:{" "}
                       {r.duplicate_of.map(id => byId[id]).filter(Boolean).map(o =>
                         `${o.display_name || "ללא שם"} (${o.email}${o.player_id ? ", מקושר לכרטיס" : ""})`).join(" · ")}
-                      . איחוד חשבונות נעשה כרגע ידנית.
+                    </span>
+                    <span className="mr-auto flex gap-1 shrink-0">
+                      {r.duplicate_of.map(id => byId[id]).filter(Boolean).map(o => (
+                        <button key={o.user_id} onClick={() => openMerge(r, o)}
+                          className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-amber-600 text-white font-semibold hover:bg-amber-700">
+                          <Merge className="w-3.5 h-3.5" /> איחוד
+                        </button>
+                      ))}
                     </span>
                   </div>
                 )}
+
+                {merge && (merge.a === r.user_id) && (() => {
+                  const keep = byId[merge.keep], drop = byId[merge.keep === merge.a ? merge.b : merge.a]
+                  if (!keep || !drop) return null
+                  const bothCards = keep.player_id && drop.player_id && keep.player_id !== drop.player_id
+                  const loseEmail = (drop.providers || []).includes("email")
+                  return (
+                    <div className="rounded-xl border border-amber-300 dark:border-amber-700 p-3 space-y-2 text-xs text-slate-700 dark:text-slate-200">
+                      <div className="font-bold text-sm">איזה חשבון להשאיר?</div>
+                      {[merge.a, merge.b].map(id => { const o = byId[id]; return (
+                        <label key={id} className="flex items-start gap-2 cursor-pointer">
+                          <input type="radio" name={`keep-${merge.a}`} checked={merge.keep === id} onChange={() => setMerge({ ...merge, keep: id })} className="mt-0.5" />
+                          <span>
+                            <b>{o.display_name || "ללא שם"}</b> <span dir="ltr">{o.email}</span>
+                            {" · "}{hasApp(o) ? "משתמש באפליקציה" : "אתר בלבד"}{o.player_id ? ` · כרטיס: ${o.player_name || "מקושר"}` : ""}
+                          </span>
+                        </label>
+                      )})}
+                      <ul className="list-disc pr-5 space-y-0.5 text-slate-600 dark:text-slate-300">
+                        <li>החשבון <b dir="ltr">{drop.email}</b> יימחק. כל מה ששייך לו (כרטיס שחקן, תפקידים, התראות, לייקים…) עובר ל־<b dir="ltr">{keep.email}</b>.</li>
+                        {(drop.providers || []).filter(p => p !== "email").length > 0 && <li>הכניסה עם {(drop.providers || []).filter(p => p !== "email").map(p => PROVIDER_LABEL[p] || p).join(" + ")} תמשיך לעבוד — ותוביל לחשבון שנשאר.</li>}
+                        {loseEmail && <li className="text-red-600 dark:text-red-400 font-semibold">הכניסה עם האימייל והסיסמה של החשבון שנמחק תפסיק לעבוד.</li>}
+                        {!hasApp(keep) && hasApp(drop) && <li className="text-red-600 dark:text-red-400 font-semibold">החשבון שנמחק הוא זה שבאפליקציה — המשתמש יתנתק שם ויצטרך להתחבר מחדש.</li>}
+                        <li>אי אפשר לבטל.</li>
+                      </ul>
+                      {bothCards && <p className="text-red-600 dark:text-red-400 font-semibold">שני החשבונות מקושרים לכרטיסי שחקן שונים — כנראה שני אנשים שונים. לא ניתן לאחד.</p>}
+                      {mergeErr && <p className="text-red-600 dark:text-red-400 font-semibold">{mergeErr}</p>}
+                      <div className="flex gap-2">
+                        <button onClick={runMerge} disabled={merging || bothCards}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-600 text-white font-semibold hover:bg-red-700 disabled:opacity-50">
+                          {merging ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Merge className="w-3.5 h-3.5" />} איחוד ומחיקת {drop.email}
+                        </button>
+                        <button onClick={() => setMerge(null)} disabled={merging}
+                          className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 font-semibold">ביטול</button>
+                      </div>
+                    </div>
+                  )
+                })()}
               </li>
             ))}
             {!shown.length && <li className="card p-6 text-center text-sm text-slate-500">אין חשבונות שמתאימים לסינון</li>}
