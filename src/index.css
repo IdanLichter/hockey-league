@@ -453,3 +453,16 @@
 @media (prefers-reduced-motion: reduce) {
   .career-enter { animation: none; }
 }
+
+/* The crash page (ErrorBoundary) — the ball that left the rink keeps bouncing.
+   Transform only, and it stops for prefers-reduced-motion. */
+@keyframes ballOut {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-6px); }
+}
+.ball-out {
+  animation: ballOut 0.9s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .ball-out { animation: none; }
+}
