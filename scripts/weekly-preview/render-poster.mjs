@@ -27,6 +27,29 @@ if (!facts.games?.length) { console.error('no games in facts — nothing to draw
 const font = (await readFile(path.join(here, 'fonts/Heebo-Variable.ttf'))).toString('base64')
 const logo = (await readFile(path.join(here, '../../public/logos/main-logo.png'))).toString('base64')
 
+// Inline every remote image (crests, player cutouts) as a data: URI before Chrome sees the page.
+// In the cloud routine's sandbox all egress goes through a proxy that Node's fetch honours but
+// headless Chrome does not — Chrome got every image as a failed load while curl got 200s.
+// Inlining makes the render network-free, so it behaves the same everywhere.
+const inlined = new Map()
+async function inline(url) {
+  if (!url || url.startsWith('data:')) return url
+  if (!inlined.has(url)) {
+    const res = await fetch(url)
+    if (!res.ok) throw new Error(`image fetch ${res.status}: ${url}`)
+    const type = res.headers.get('content-type') || 'image/png'
+    inlined.set(url, `data:${type};base64,${Buffer.from(await res.arrayBuffer()).toString('base64')}`)
+  }
+  return inlined.get(url)
+}
+for (const g of facts.games) {
+  for (const t of [g.home, g.away]) {
+    t.logo_url = await inline(t.logo_url)
+    if (t.featured_player_image) t.featured_player_image.image_url = await inline(t.featured_player_image.image_url)
+  }
+  if (g.matchup_image) g.matchup_image.image_url = await inline(g.matchup_image.image_url)
+}
+
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c])
 const venues = [...new Set(facts.games.map((g) => g.venue).filter(Boolean))]
 const oneVenue = venues.length === 1 ? venues[0] : null
@@ -157,7 +180,7 @@ try {
     await Promise.all(imgs.map((i) => i.complete ? null : new Promise((r) => { i.onload = i.onerror = r })))
     return {
       font: document.fonts.check('900 40px Heebo'),
-      broken: imgs.filter((i) => !i.naturalWidth).map((i) => i.src.slice(0, 120)),
+      broken: imgs.filter((i) => !i.naturalWidth).map((i) => i.src.slice(0, 60)),
       overflow: [...document.querySelectorAll('.names .name')].some((n) => n.scrollWidth > n.clientWidth + 2),
     }
   })
