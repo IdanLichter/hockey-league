@@ -50,3 +50,19 @@ export function useHasNativeApp() {
   const platforms = useMyAppPlatforms()
   return Array.isArray(platforms) && platforms.length > 0
 }
+
+/**
+ * Fold one account into another (admin-only, see supabase/admin-merge-accounts.sql).
+ * Returns { kept, deleted, player_id, rows, lost_email_login }. Irreversible.
+ */
+export async function mergeAccounts(keepId, dropId) {
+  const { data, error } = await supabase.rpc('admin_merge_accounts', { p_keep: keepId, p_drop: dropId })
+  if (error) {
+    const m = error.message || ''
+    if (/different player cards/i.test(m)) throw new Error('שני החשבונות מקושרים לכרטיסי שחקן שונים — לא מאחדים אוטומטית.')
+    if (/admin account/i.test(m)) throw new Error('לא ניתן למחוק חשבון של מנהל.')
+    if (/not authorized/i.test(m)) throw new Error('אין הרשאה.')
+    throw new Error('האיחוד נכשל: ' + m)
+  }
+  return data
+}
