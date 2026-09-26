@@ -23,10 +23,6 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 
 const SB_URL = Deno.env.get("SUPABASE_URL")!;
 const SB_SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!; // auto-injected
-// OPTIONAL. Without it, items post under their original English/Spanish title
-// (see translateToHebrew) — the ingest still works, it just reads less well.
-const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY") ?? "";
-const GEMINI_MODEL = "gemini-3.5-flash";
 
 const admin = createClient(SB_URL, SB_SERVICE_ROLE, {
   auth: { persistSession: false, autoRefreshToken: false },
@@ -170,40 +166,32 @@ function parseFeed(xml: string, src: Source): Item[] {
 }
 
 // ---- Hebrew ---------------------------------------------------------------
-// Headlines arrive in English (WSE) and Spanish (OK Liga). Untranslated they sit
-// badly next to the rest of an all-Hebrew feed — but a missing key must degrade,
-// not fail: the item still posts, under its original title.
+// Headlines arrive in English (WSE) and Spanish (OK Liga, Patines y Chuecas).
+// Untranslated they sit badly next to the rest of an all-Hebrew feed — but a
+// failed translation must degrade, not fail: the item still posts, under its
+// original title.
+//
+// Google Translate's keyless endpoint used by its Chrome dictionary extension.
+// Free, no account — chosen after Gemini's prepaid credits ran out on 2026-09-22
+// and every call came back 402 while the run reported success.
+//
+// NOT the better-known translate.googleapis.com `client=gtx` endpoint: that one
+// works from a laptop but answers the edge runtime's shared cloud egress with a
+// 429 "Sorry..." bot page on every call (verified 2026-09-26). This one answers
+// the same egress with 200. Both are unofficial, so Google can throttle or change
+// either without notice — any surprise returns null and the source title is used.
 async function translateToHebrew(title: string): Promise<string | null> {
-  if (!GEMINI_API_KEY) return null;
-  const system =
-    "You translate rink hockey (הוקי גלגיליות) headlines into natural Hebrew for an Israeli league app. " +
-    "Rink hockey vocabulary: ball not puck, הוקי גלגיליות not הוקי קרח. " +
-    "Keep team and country names in their familiar Hebrew form. " +
-    // RTL bidi reorders a digit run sitting between Hebrew words, which can make a
-    // scoreline read as if the wrong team won (the league's standing RTL score rule).
-    "If the headline contains a scoreline, keep the two team names and the score together as one " +
-    'unbroken Latin-script run (e.g. "HC Liceo 8-2 Igualada") rather than splitting the digits between Hebrew words. ' +
-    "Output ONLY the translated headline, no quotes, no commentary.";
   try {
-    const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`,
-      {
-        method: "POST",
-        headers: { "x-goog-api-key": GEMINI_API_KEY, "Content-Type": "application/json" },
-        body: JSON.stringify({
-          systemInstruction: { parts: [{ text: system }] },
-          contents: [{ role: "user", parts: [{ text: title }] }],
-          // maxOutputTokens must leave room for this model's reasoning tokens as well as
-          // the answer — too tight and it returns MAX_TOKENS with an EMPTY text part.
-          generationConfig: { temperature: 0.2, maxOutputTokens: 2000 },
-        }),
-      },
-    );
-    if (!res.ok) throw new Error(`gemini HTTP ${res.status}: ${(await res.text()).slice(0, 200)}`);
+    const url = "https://clients5.google.com/translate_a/t?client=dict-chrome-ex&sl=auto&tl=iw&q=" +
+      encodeURIComponent(title);
+    const res = await fetch(url, { signal: AbortSignal.timeout(10_000) });
+    if (!res.ok) throw new Error(`google translate HTTP ${res.status}: ${(await res.text()).slice(0, 200)}`);
     const data = await res.json();
-    const parts = data?.candidates?.[0]?.content?.parts ?? [];
-    const text = parts.map((p: { text?: string }) => p.text ?? "").join("").trim();
-    return text || null;
+    // With sl=auto the answer is [["<hebrew>", "<detected lang>"]]; with a fixed
+    // source language it is ["<hebrew>"]. Take the text from either shape.
+    const first = Array.isArray(data) ? data[0] : null;
+    const text = (Array.isArray(first) ? first[0] : first);
+    return typeof text === "string" && text.trim() ? text.trim() : null;
   } catch (err) {
     console.error("translate failed, falling back to source title:", err);
     return null;
@@ -362,7 +350,7 @@ Deno.serve(async (req) => {
         report.push({ source: src.key, error: String(err) });
       }
     }
-    return Response.json({ ok: true, dry_run: dryRun, translated: !!GEMINI_API_KEY, report });
+    return Response.json({ ok: true, dry_run: dryRun, report });
   } catch (err) {
     console.error("ingest failed:", err);
     return Response.json({ ok: false, error: String(err) }, { status: 500 });
