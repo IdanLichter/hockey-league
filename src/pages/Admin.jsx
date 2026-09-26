@@ -47,12 +47,13 @@ import SeasonCalendar from "@/components/admin/SeasonCalendar"
 import TelemetryAdmin from "@/components/admin/TelemetryAdmin"
 import SuggestionsReview from "@/components/admin/SuggestionsReview"
 import RolesAdmin from "@/components/admin/RolesAdmin"
+import CoachesAdmin from "@/components/admin/CoachesAdmin"
 import ReportsReview from "@/components/admin/ReportsReview"
 import GameChangeRequestsReview from "@/components/admin/GameChangeRequestsReview"
 import WhatsNew from "@/components/admin/WhatsNew"
 import ClustersAdmin from "@/components/admin/ClustersAdmin"
 import { SortBar, sortItems } from "@/components/admin/SortBar"
-import { Award, Images, HeartPulse, Gavel, MapPin, BellRing, Ban, CalendarDays, Cake, CalendarOff, Activity, Wallet } from "lucide-react"
+import { Award, Images, HeartPulse, Gavel, MapPin, BellRing, Ban, CalendarDays, Cake, CalendarOff, Activity, Wallet, ClipboardList } from "lucide-react"
 import { BRAND_ORANGE } from '@/lib/brand'
 import { AdminSkeleton, AdminPanelSkeleton, SkeletonPanelRows } from "@/components/skeletons/PageSkeletons"
 
@@ -61,6 +62,7 @@ const tabs = [
   { id: "calendar", label: "לוח שנה", icon: CalendarDays },
   { id: "players", label: "שחקנים", icon: UserCheck },
   { id: "teams", label: "קבוצות", icon: Users },
+  { id: "coaches", label: "מאמנים", icon: ClipboardList },
   { id: "tournaments", label: "טורנירים", icon: Trophy },
   { id: "season", label: "עונה", icon: Archive },
   { id: "claims", label: "בקשות", icon: UserPlus },
@@ -249,6 +251,7 @@ export default function Admin() {
               {currentTab === "reports" && <ReportsReview />}
               {currentTab === "clusters" && <ClustersAdmin players={players} />}
               {currentTab === "telemetry" && <TelemetryAdmin />}
+              {currentTab === "coaches" && <CoachesAdmin teamsMap={teamsMap} players={players} />}
               {currentTab === "roles" && <RolesAdmin teamsMap={teamsMap} players={players} />}
               {currentTab === "users" && <UsersAdmin adminUsers={adminUsers} currentUserEmail={user.email} reload={loadData} />}
             </>

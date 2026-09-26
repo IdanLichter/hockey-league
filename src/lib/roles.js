@@ -27,7 +27,7 @@ export const TEAM_SCOPED = new Set(['coach', 'player'])
 export async function getProfiles() {
   const { data, error } = await supabase
     .from('profiles')
-    .select('id, display_name, avatar_url, player_id')
+    .select('id, display_name, avatar_url, player_id, is_bot')
     .order('display_name')
   if (error) throw error
   return data
@@ -44,6 +44,12 @@ export async function grantRole(userId, role, teamId = null) {
   const { error } = await supabase
     .from('user_roles')
     .insert({ user_id: userId, role, team_id: TEAM_SCOPED.has(role) ? teamId : null })
+  if (error) throw error
+}
+
+// Move a team-scoped role (e.g. a coach) to another team, keeping the same row.
+export async function moveRoleTeam(id, teamId) {
+  const { error } = await supabase.from('user_roles').update({ team_id: teamId }).eq('id', id)
   if (error) throw error
 }
 
