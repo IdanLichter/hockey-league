@@ -568,13 +568,15 @@ function GamesAdmin({ games, teams, players, teamsMap, gameStats, tournaments = 
                   <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1 block">שלב</label>
                   <select value={form.playoff_round} onChange={e => setForm({ ...form, playoff_round: e.target.value })} className="filter-select w-full">
                     <option value="">—</option>
-                    <option value="first_round">סיבוב ראשון</option>
+                    <option value="first_round">סדרה (2-7 / 3-6 / 4-5)</option>
                     <option value="semi_final">חצי גמר</option>
                     <option value="final">גמר</option>
+                    <option value="third_place">משחק על מקום 3/4</option>
+                    <option value="placement">דירוג מקומות 5–7</option>
                   </select>
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1 block">מספר משחק בסדרה</label>
+                  <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1 block">מספר משחק בסדרה <span className="font-normal">(1, 2 · 3 = הכרעה)</span></label>
                   <input type="number" min="1" value={form.series_game} onChange={e => setForm({ ...form, series_game: e.target.value })} className="filter-input w-full" />
                 </div>
               </>

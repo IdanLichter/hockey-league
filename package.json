@@ -9,7 +9,8 @@
     "build": "node scripts/gen-sitemap.mjs && vite build",
     "build:prerender": "PRERENDER=1 npm run build",
     "preview": "vite preview",
-    "check:career": "node scripts/check-career.mjs"
+    "check:career": "node scripts/check-career.mjs",
+    "check:playoffs": "node scripts/check-playoffs.mjs"
   },
   "engines": {
     "node": ">=18"

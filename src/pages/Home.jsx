@@ -198,7 +198,10 @@ function FinalFourLink({ dep }) {
       const row = document.querySelector('[data-ff-anchor="table-first"]')
       const dq = [...document.querySelectorAll('[data-ff-anchor="direct-qualifier"]')]
         .find(el => el.getBoundingClientRect().width > 0)
-      if (!host || !row || !dq || window.innerWidth < 1024) { setLine(null); return }
+      // Once the playoffs grow panels BELOW the bracket (places 5–7, final ranking) the
+      // line would cut straight through them — drop it then.
+      const blocked = document.querySelector('[data-ff-blocks-link]')
+      if (!host || !row || !dq || blocked || window.innerWidth < 1024) { setLine(null); return }
       const h = host.getBoundingClientRect()
       const r = row.getBoundingClientRect()
       const d = dq.getBoundingClientRect()
