@@ -19,8 +19,9 @@ Work from the repo root, **on `main`** (the clone may default to `dev`, which la
 2. **Facts** — `node scripts/weekly-preview/preview.mjs facts > /tmp/facts.json`
    (with a date argument only when the prompt gives one). Read the whole file.
    - If `games` is empty (tomorrow isn't a Saturday, or that Saturday has no scheduled league
-     games — a holiday break, a gap in the fixture list): **stop. Post nothing.** Say so, send the
-     `⛔ נעצר` push with the reason, and end. The server enforces the same rule: a real publish is
+     games — a holiday break, a gap in the fixture list): **stop. Post nothing.** Say so in one
+     line and end — NO push notification (that's a normal off week, not a problem; the league
+     plays roughly every other Saturday). `⛔ נעצר` pushes are only for real failures. The server enforces the same rule: a real publish is
      accepted only for TOMORROW's Saturday and only if it has scheduled games.
 3. **Poster** — `node scripts/weekly-preview/render-poster.mjs /tmp/facts.json /tmp/poster.png`.
    Open the PNG and look at it. If it failed or looks wrong (missing crest, cut-off name),
