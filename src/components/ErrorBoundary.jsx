@@ -57,7 +57,7 @@ export default class ErrorBoundary extends React.Component {
             onClick={() => window.location.reload()}
             className="px-5 py-2.5 rounded-xl bg-brand text-white text-sm font-semibold"
           >
-            רענון 🏑
+            רענון
           </button>
           <p className="text-xs text-slate-400 dark:text-slate-500">
             בטח בדיוק דחפנו עדכון חדש 😅
