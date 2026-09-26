@@ -41,16 +41,6 @@ function localParts(d: Date) {
   return { date: `${p.year}-${p.month}-${p.day}`, time: `${p.hour === "24" ? "00" : p.hour}:${p.minute}`, weekday: p.weekday };
 }
 
-/** The next Saturday (Israel-local) on or after `from`, as YYYY-MM-DD. */
-function nextSaturday(from: Date): string {
-  for (let i = 0; i < 8; i++) {
-    const d = new Date(from.getTime() + i * 86400000);
-    const lp = localParts(d);
-    if (lp.weekday === "Sat") return lp.date;
-  }
-  throw new Error("no saturday within a week");
-}
-
 const HE_DAYS = ["ראשון", "שני", "שלישי", "רביעי", "חמישי", "שישי", "שבת"];
 function hebrewDate(ymd: string) {
   const [y, m, d] = ymd.split("-").map(Number);
@@ -247,7 +237,10 @@ async function publish(body: any) {
   const today = localParts(new Date()).date;
   const days = (Date.parse(ymd) - Date.parse(today)) / 864e5;
   // A dry run writes nothing, so it may validate a later Saturday (testing ahead of the season).
-  if (!dryRun && (days < 0 || days > 8)) return { ok: false, error: "saturday out of range" };
+  // A real post goes out only on the eve of the games: the Saturday must be TOMORROW (Israel
+  // time). A late, early or wrong-day run can therefore never announce the wrong weekend.
+  // A dry run writes no post, so it may preview any Saturday.
+  if (!dryRun && days !== 1) return { ok: false, error: `not the day before ${ymd} (today is ${today}) — nothing posted` };
   const games = (await gamesOn(ymd)).filter((g) => g.status === "scheduled");
   if (!games.length) return { ok: false, error: "no scheduled games that day" };
 
@@ -288,7 +281,15 @@ Deno.serve(async (req) => {
     if (!TOKEN || bearer !== TOKEN) return Response.json({ ok: false, error: "forbidden" }, { status: 403 });
     const body = await req.json().catch(() => ({}));
     if (body?.action === "facts") {
-      const ymd = /^\d{4}-\d{2}-\d{2}$/.test(body?.saturday ?? "") ? body.saturday : nextSaturday(new Date());
+      if (/^\d{4}-\d{2}-\d{2}$/.test(body?.saturday ?? "")) {
+        return Response.json({ ok: true, facts: await buildFacts(body.saturday) });
+      }
+      // Default (the Friday routine): only TOMORROW, and only if tomorrow is a Saturday.
+      const tomorrow = localParts(new Date(Date.now() + 864e5));
+      if (tomorrow.weekday !== "Sat") {
+        return Response.json({ ok: true, facts: { saturday: null, games: [], note: `tomorrow (${tomorrow.date}) is not a Saturday — no preview` } });
+      }
+      const ymd = tomorrow.date;
       return Response.json({ ok: true, facts: await buildFacts(ymd) });
     }
     if (body?.action === "publish") {
