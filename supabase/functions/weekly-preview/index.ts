@@ -261,23 +261,24 @@ async function publish(body: any) {
   const guid = `weekly-preview:${ymd}`;
   const { data: existing } = await admin.from("posts").select("id,deleted_at").eq("external_guid", guid).maybeSingle();
   if (existing?.deleted_at) return { ok: false, error: "a moderator deleted this week's preview — not re-posting", post_id: existing.id };
-  if (dryRun) return { ok: true, dry_run: true, would: existing ? "update" : "insert", guid, games: games.length };
-
-  const path = `weekly-preview/${ymd}-${Date.now()}.png`; // unique name → no stale CDN copy on a re-run
+  // Every run uploads its poster (unique name → no stale CDN copy on a re-run), so even a dry
+  // run ends with a link a human can open. Dry runs go under dry-run/ and touch no post.
+  const path = `weekly-preview/${dryRun ? "dry-run/" : ""}${ymd}-${Date.now()}.png`;
   const up = await admin.storage.from(BUCKET).upload(path, bytes, { contentType: "image/png", upsert: false });
   if (up.error) throw up.error;
   const image_url = admin.storage.from(BUCKET).getPublicUrl(path).data.publicUrl;
+  if (dryRun) return { ok: true, dry_run: true, would: existing ? "update" : "insert", guid, games: games.length, image_url, text };
 
   const row = { body: text, image_url, source_name: SOURCE_NAME, link_url: `${SITE}/games` };
   if (existing) {
     const { error } = await admin.from("posts").update({ ...row, updated_at: new Date().toISOString() }).eq("id", existing.id);
     if (error) throw error;
-    return { ok: true, action: "updated", post_id: existing.id, image_url };
+    return { ok: true, action: "updated", post_id: existing.id, image_url, text, feed_url: `${SITE}/` };
   }
   const { data: ins, error } = await admin.from("posts")
     .insert({ ...row, author_id: await botAuthor(), external_guid: guid }).select("id").single();
   if (error) throw error;
-  return { ok: true, action: "inserted", post_id: ins.id, image_url };
+  return { ok: true, action: "inserted", post_id: ins.id, image_url, text, feed_url: `${SITE}/` };
 }
 
 // ---- entry -----------------------------------------------------------------

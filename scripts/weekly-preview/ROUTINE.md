@@ -24,7 +24,14 @@ Work from the repo root, **on `main`** (the clone may default to `dev`, which la
    stop and report — never publish a broken poster.
 4. **Text** — write the post to `/tmp/text.txt` following the rules below.
 5. **Publish** — `node scripts/weekly-preview/preview.mjs publish <saturday> /tmp/text.txt /tmp/poster.png`
-   (add `--dry-run` if the prompt says DRY RUN). Report the JSON it prints.
+   (add `--dry-run` if the prompt says DRY RUN). It prints JSON with `image_url` (the poster,
+   uploaded on dry runs too) and the `text`.
+6. **Preview for Ariel** — send ONE push notification (PushNotification tool, if available):
+   `✅ פורסם` / `🧪 ניסיון` / `⛔ נעצר` + the Saturday date + the poster `image_url`.
+   Then end with a final message laid out as:
+   - `![poster](<image_url>)` on its own line (renders the poster in the run page)
+   - the full Hebrew text exactly as sent
+   - one line: published / dry run / stopped, and why
    Running it again the same week *updates* that week's post instead of adding a second one.
    If a moderator deleted this week's post the function refuses — respect that, don't work around it.
 
