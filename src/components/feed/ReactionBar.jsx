@@ -105,7 +105,7 @@ export default function ReactionBar({ itemKey, liked: likedInit = false, likeCou
   }
 
   return (
-    <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-700/50">
+    <div data-reactions className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-700/50">
       {/* Actions */}
       <div className="flex items-center gap-5 text-xs">
         <button onClick={toggleLike} className={`flex items-center gap-1.5 font-semibold transition-colors ${liked ? "text-red-500" : "text-slate-500 dark:text-slate-400 hover:text-red-500"}`}>

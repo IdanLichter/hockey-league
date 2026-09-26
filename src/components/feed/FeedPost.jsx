@@ -693,7 +693,7 @@ function PostCard({ post, likedPostIds, blockedIds, roleBadges }) {
       )}
 
       {/* Actions */}
-      <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-700/50 flex items-center gap-5 text-xs">
+      <div data-reactions className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-700/50 flex items-center gap-5 text-xs">
         <button onClick={toggleLike} className={`flex items-center gap-1.5 font-semibold transition-colors ${liked ? "text-red-500" : "text-slate-500 dark:text-slate-400 hover:text-red-500"}`}>
           <Heart className={`w-4 h-4 ${liked ? "fill-current" : ""}`} />
           {likeCount > 0 ? <span>{likeCount}</span> : <span>אהבתי</span>}
@@ -707,7 +707,7 @@ function PostCard({ post, likedPostIds, blockedIds, roleBadges }) {
       {/* Comments */}
       <AnimatePresence>
         {showComments && (
-          <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
+          <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} data-reactions className="overflow-hidden">
             <div className="mt-3 space-y-3">
               {loadingComments ? (
                 <div className="flex justify-center py-2"><Loader2 className="w-4 h-4 animate-spin text-slate-400" /></div>

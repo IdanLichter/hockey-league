@@ -57,6 +57,100 @@ export function isFollowedPost(post, followedTeams, followedPlayers) {
 }
 
 /**
+ * Tags describing what a feed item is ABOUT. Sent with every impression so the server
+ * can learn affinity without knowing how the feed is built — synthetic items (game
+ * results, milestones) have no table of their own to join against.
+ *
+ * Vocabulary (keep in step with the iOS and Android ports):
+ *   type:<post.type>   origin:league|world   team:<uuid>   player:<uuid>
+ *   source:<source_name>   media:video
+ */
+export function feedItemTags(post) {
+  const d = post?.data || {}
+  const tags = new Set([`type:${post?.type}`, `origin:${post?.type === 'external' ? 'world' : 'league'}`])
+  const team = (id) => { if (id) tags.add(`team:${id}`) }
+  const player = (id) => { if (id) tags.add(`player:${id}`) }
+  switch (post?.type) {
+    case 'game_result':
+      team(d.game?.home_team_id); team(d.game?.away_team_id)
+      break
+    case 'milestone':
+      player(d.playerId); team(d.team?.id)
+      break
+    case 'champion':
+      team(d.team?.id)
+      break
+    case 'top_scorer':
+      player(d.player?.id); team(d.team?.id)
+      break
+    case 'post':
+      team(d.post?.team_id); player(d.author?.player_id)
+      break
+    case 'external':
+      if (d.post?.source_name) tags.add(`source:${d.post.source_name}`)
+      if (/youtu\.?be/.test(d.post?.link_url || '')) tags.add('media:video')
+      break
+  }
+  return [...tags].slice(0, 12)
+}
+
+/*
+ * Personalised ranking. Everything is still expressed as TIME, on top of the item's
+ * own timestamp, so recency keeps dominating and one number explains every position:
+ *
+ *   score = date + follow + affinity + popularity − world − seen
+ *
+ * - AFFINITY_MS: a tag profile of ±1 is worth ±24h. Built server-side from what this
+ *   viewer lingered on, opened, liked and commented on (feed_personalization()).
+ * - POPULAR_MS_PER_LOG: league-wide engagement, log-scaled and capped, so one card
+ *   people reacted to rises a bit for everyone without pinning itself to the top.
+ * - WORLD_PENALTY_MS: outside news yields to league content of a similar age — the
+ *   wire feed must never bury what happened here. Applies to guests too.
+ * - SEEN_PENALTY_MS: something you already looked at on an earlier visit sinks by two
+ *   days, so every visit opens on what is new to YOU. "Seen" comes from the snapshot
+ *   taken at load, so a card never jumps while you are reading.
+ * Pinned posts are exempt from all of it.
+ */
+export const AFFINITY_MS = 24 * 60 * 60 * 1000
+export const POPULAR_MS_PER_LOG = 6 * 60 * 60 * 1000
+export const POPULAR_CAP_MS = 18 * 60 * 60 * 1000
+export const WORLD_PENALTY_MS = 12 * 60 * 60 * 1000
+export const SEEN_PENALTY_MS = 48 * 60 * 60 * 1000
+
+/** Mean affinity of the tags we have an opinion on, clamped to −1..1. */
+export function affinityOf(tags, affinity) {
+  if (!affinity) return 0
+  let sum = 0, n = 0
+  for (const t of tags) {
+    // Every tag counts, type/origin included: someone who never reads outside news
+    // should see less of it, not just less of one source.
+    const v = affinity[t]
+    if (typeof v === 'number' && isFinite(v)) { sum += v; n++ }
+  }
+  return n ? Math.max(-1, Math.min(1, sum / n)) : 0
+}
+
+/**
+ * Score one item. Split out so the ranking rule is unit-testable and so the parts can
+ * be inspected on a live page (`post.scoreParts`).
+ */
+export function scoreItem(post, personalization) {
+  const t = new Date(post.date).getTime()
+  const parts = { date: isNaN(t) ? 0 : t, follow: 0, affinity: 0, popular: 0, world: 0, seen: 0 }
+  if (post.data?.post?.pinned) return { score: parts.date, parts }
+  if (post.followed) parts.follow = FOLLOW_BOOST_MS
+  if (post.type === 'external') parts.world = -WORLD_PENALTY_MS
+  if (personalization) {
+    parts.affinity = Math.round(AFFINITY_MS * affinityOf(post.tags || feedItemTags(post), personalization.affinity))
+    const pop = personalization.popular?.[post.id] || 0
+    if (pop > 0) parts.popular = Math.min(POPULAR_CAP_MS, Math.round(POPULAR_MS_PER_LOG * Math.log2(1 + pop)))
+    if (personalization.seen?.[post.id]) parts.seen = -SEEN_PENALTY_MS
+  }
+  const score = parts.date + parts.follow + parts.affinity + parts.popular + parts.world + parts.seen
+  return { score, parts }
+}
+
+/**
  * Build the feed.
  * @param {Object} args
  * @param {Array} args.games
@@ -68,6 +162,8 @@ export function isFollowedPost(post, followedTeams, followedPlayers) {
  * @param {string} args.seasonMode - 'regular' | 'final_four'
  * @param {Set} args.followedTeams - team ids the viewer follows
  * @param {Set} args.followedPlayers - player ids the viewer follows
+ * @param {Object|null} args.personalization - feed_personalization() result, or null
+ *   for guests / before it loads ({ seen, affinity, popular })
  * @returns {Array} post objects: { id, type, date, rank, followed, data }
  */
 export function buildFeed({
@@ -81,6 +177,7 @@ export function buildFeed({
   seasonMode = 'regular',
   followedTeams = new Set(),
   followedPlayers = new Set(),
+  personalization = null,
 } = {}) {
   const teamsMap = Object.fromEntries(teams.map(t => [t.id, t]))
   const playersMap = Object.fromEntries(players.map(p => [p.id, p]))
@@ -208,13 +305,16 @@ export function buildFeed({
     })
   }
 
-  // ---- Rank: recency, with followed items given a fixed freshness bonus ----
-  // One stream, not two tabs: a followed item floats above same-age neighbours but
-  // still loses to genuinely newer news, so the feed stays current AND personal.
+  // ---- Rank: recency, plus time-denominated nudges (see scoreItem) ----
+  // One stream, not tabs: a followed / liked-topic item floats above same-age
+  // neighbours but still loses to genuinely newer news, so the feed stays current AND
+  // personal.
   for (const p of posts) {
     p.followed = isFollowedPost(p, followedTeams, followedPlayers)
-    const t = new Date(p.date).getTime()
-    p.score = (isNaN(t) ? 0 : t) + (p.followed ? FOLLOW_BOOST_MS : 0)
+    p.tags = feedItemTags(p)
+    const { score, parts } = scoreItem(p, personalization)
+    p.score = score
+    p.scoreParts = parts
   }
 
   posts.sort((a, b) => {

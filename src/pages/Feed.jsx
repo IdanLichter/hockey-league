@@ -11,6 +11,7 @@ import { motion } from "framer-motion"
 import { useSeasonMode, useSeasonName } from "@/App"
 import { buildFeed } from "@/lib/feed"
 import { getMyFollowSets } from "@/lib/follows"
+import { setFeedTracking, observeFeedItem, getFeedPersonalization } from "@/lib/feedImpressions"
 import { attachEventPhotos } from "@/lib/eventPhotos"
 import { getPhotoIndex } from "@/lib/media"
 import { getPhotoOverrides } from "@/lib/photoOverrides"
@@ -27,6 +28,16 @@ import { FeedSkeleton, SkeletonFeedPosts } from "@/components/skeletons/PageSkel
 const PAGE_SIZE = 25
 // Stable identity so the feed useMemo doesn't rebuild on every render for guests.
 const EMPTY_FOLLOWS = { teams: new Set(), players: new Set(), notify: new Set() }
+
+/** The deep-link anchor wrapper, which also reports the card's impressions. */
+function TrackedItem({ post, children }) {
+  const ref = useRef(null)
+  // Tags change only with the item's identity; joining keeps the effect from
+  // re-subscribing on every feed rebuild.
+  const tagKey = (post.tags || []).join('|')
+  useEffect(() => observeFeedItem(ref.current, post.id, post.tags), [post.id, tagKey]) // eslint-disable-line react-hooks/exhaustive-deps
+  return <div ref={ref} id={post.id} className="scroll-mt-24">{children}</div>
+}
 
 export default function Feed() {
   const { seasonMode } = useSeasonMode()
@@ -47,6 +58,7 @@ export default function Feed() {
   const [itemCommentCounts, setItemCommentCounts] = useState({})
   const [blockedIds, setBlockedIds] = useState(() => new Set())
   const [follows, setFollows] = useState(EMPTY_FOLLOWS)
+  const [personalization, setPersonalization] = useState(null)
   const [championId, setChampionId] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -69,6 +81,18 @@ export default function Feed() {
     if (!user) { setFollows(EMPTY_FOLLOWS); return }
     let alive = true
     getMyFollowSets().then(f => { if (alive) setFollows(f) }).catch(() => {})
+    return () => { alive = false }
+  }, [user])
+
+  // Personalised ranking inputs (seen / affinity / popular) + impression tracking.
+  // Loaded ONCE per visit: "seen" is a snapshot of earlier visits, so a card you are
+  // reading never jumps because you just looked at it. Guests are neither tracked nor
+  // personalised.
+  useEffect(() => {
+    setFeedTracking(!!user)
+    if (!user) { setPersonalization(null); return }
+    let alive = true
+    getFeedPersonalization().then(p => { if (alive) setPersonalization(p) })
     return () => { alive = false }
   }, [user])
 
@@ -125,10 +149,11 @@ export default function Feed() {
       humanPosts: posts.filter(p => !blockedIds.has(p.author_id)),
       championId, seasonName, seasonMode,
       followedTeams: follows.teams, followedPlayers: follows.players,
+      personalization,
     }),
     { photos: photoIndex.photos, photoPlayers: photoIndex.photoPlayers, players },
     photoOverrides
-  ), [games, teams, players, gameStats, posts, championId, seasonName, seasonMode, photoIndex, blockedIds, photoOverrides, follows])
+  ), [games, teams, players, gameStats, posts, championId, seasonName, seasonMode, photoIndex, blockedIds, photoOverrides, follows, personalization])
 
   const counts = useMemo(() => ({
     all: feed.length,
@@ -244,9 +269,9 @@ export default function Feed() {
                 // Anchor for deep links: a like/comment notification points at
                 // /#post-<id>, and buildFeed already ids human posts as `post-<uuid>`,
                 // which is exactly the notification's entity_id.
-                <div key={post.id} id={post.id} className="scroll-mt-24">
+                <TrackedItem key={post.id} post={post}>
                 <FeedPost key={post.id} post={post} playersMap={playersMap} teamsMap={teamsMap} roleBadges={roleBadges} likedPostIds={likedPostIds} likedItems={likedItems} itemLikeCounts={itemLikeCounts} itemCommentCounts={itemCommentCounts} blockedIds={blockedIds} onPhotoRefreshed={handlePhotoRefreshed} />
-                </div>
+                </TrackedItem>
               ))}
             </div>
           )}
