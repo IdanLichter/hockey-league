@@ -18,6 +18,7 @@ import { countsForStats, FRIENDLY_GAME_TYPE } from "@/lib/leagueStats"
 import GameChangeRequestModal from "@/components/GameChangeRequestModal"
 import GameChangeOpponentCard from "@/components/GameChangeOpponentCard"
 import OfficialSelfSubmit from "@/components/OfficialSelfSubmit"
+import AddToCalendar from "@/components/games/AddToCalendar"
 import GameFormExport from "@/components/GameFormExport"
 import { getMyGameChangeRequest, cancelGameChangeRequest } from "@/lib/gameRequests"
 import { GameDetailSkeleton } from "@/components/skeletons/PageSkeletons"
@@ -376,6 +377,9 @@ export default function GameDetail() {
 
       {/* ===== OPPONENT COACH: respond to a reschedule request (pick workable dates) ===== */}
       <GameChangeOpponentCard game={game} coachTeamIds={coachTeamIds} onResponded={refreshMyRequest} />
+
+      {/* ===== ADD TO CALENDAR (upcoming games) ===== */}
+      <AddToCalendar game={game} teamsMap={teamsMap} />
 
       {/* ===== OFFICIAL SELF-SUBMIT (judge/medic apply for an upcoming game) ===== */}
       <OfficialSelfSubmit game={game} />

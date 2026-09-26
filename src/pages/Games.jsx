@@ -17,6 +17,7 @@ import { Radio } from "lucide-react"
 import { useSeasonName } from "@/App"
 import { entityPath } from "@/lib/slugs"
 import { GamesSkeleton } from "@/components/skeletons/PageSkeletons"
+import GamesCalendar from "@/components/games/GamesCalendar"
 
 export default function Games() {
   const { coachTeamIds } = useAuth()
@@ -112,14 +113,18 @@ export default function Games() {
   // tournament pages, so every tab here excludes tournament-tagged games.
   const compMatch = (g) => g.game_type === activeCompetition && !g.tournament_id
 
-  const filtered = games.filter(g => {
+  // Every filter except the date: this is what the season calendar shows, and the
+  // calendar is how a date gets picked, so it must not narrow itself to that date.
+  const calendarGames = games.filter(g => {
     if (!gameInAge(g, ageTab)) return false
     if (!compMatch(g)) return false
     if (statusFilter !== "all" && g.status !== statusFilter) return false
     if (teamFilter !== "all" && g.home_team_id !== teamFilter && g.away_team_id !== teamFilter) return false
-    if (dateFilter && format(new Date(g.game_date), 'yyyy-MM-dd') !== dateFilter) return false
     return true
   })
+  const filtered = dateFilter
+    ? calendarGames.filter(g => format(new Date(g.game_date), 'yyyy-MM-dd') === dateFilter)
+    : calendarGames
 
   const completed = filtered.filter(g => g.status === 'completed')
   const upcoming = filtered.filter(g => ['scheduled', 'in_progress', 'waiting_result'].includes(g.status))
@@ -349,6 +354,15 @@ export default function Games() {
         </h1>
         <p className="page-subtitle mt-1">לוח משחקים ותוצאות{seasonName && ` עונת ${seasonName}`}</p>
       </motion.div>
+
+      <GamesCalendar
+        games={calendarGames}
+        teamsMap={teamsMap}
+        selectedDate={dateFilter}
+        onSelectDate={setDateFilter}
+        team={teamFilter !== "all" ? teamsMap[teamFilter] : null}
+        seasonName={seasonName}
+      />
 
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-2.5">
