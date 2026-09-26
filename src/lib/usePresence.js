@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { supabase } from './supabase'
+import { sessionUser } from './sessionUser'
 
 /**
  * Real-time "who's online" via Supabase Realtime Presence — an authentic count of
@@ -72,7 +73,7 @@ export function usePresence({ platform = 'web', track = true } = {}) {
       .subscribe(async (status) => {
         if (status !== 'SUBSCRIBED') return
         if (track) {
-          const { data: { user } } = await supabase.auth.getUser().catch(() => ({ data: { user: null } }))
+          const user = await sessionUser()
           await channel.track({ platform, user_id: user?.id ?? null, at: Date.now() })
         } else {
           sync()

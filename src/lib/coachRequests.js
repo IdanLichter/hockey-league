@@ -1,4 +1,5 @@
 import { supabase } from './supabase'
+import { sessionUser } from './sessionUser'
 
 /**
  * "Request to coach a team" flow. A linked player files a PENDING request for a
@@ -24,7 +25,7 @@ export async function requestCoachRole(teamId, note = null) {
 
 /** The user's own open request for a team, if any (for the button's pending state). */
 export async function getMyCoachRequest(teamId) {
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await sessionUser()
   if (!user || !teamId) return null
   const { data, error } = await supabase
     .from('coach_requests')
@@ -36,7 +37,7 @@ export async function getMyCoachRequest(teamId) {
 }
 
 export async function cancelCoachRequest(id) {
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await sessionUser()
   if (!user) throw new Error('not-authenticated')
   // Mirror the DELETE RLS (own + pending) and read back so we can tell the caller
   // when nothing matched (e.g. it was already approved/rejected).

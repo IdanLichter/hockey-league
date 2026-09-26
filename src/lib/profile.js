@@ -1,4 +1,5 @@
 import { supabase } from './supabase'
+import { sessionUser } from './sessionUser'
 import { PLAYER_PUBLIC_COLUMNS } from './api'
 
 /**
@@ -15,7 +16,7 @@ import { PLAYER_PUBLIC_COLUMNS } from './api'
  *   null when signed out.
  */
 export async function getMyProfile() {
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await sessionUser()
   if (!user) return null
 
   const { data: profile, error } = await supabase
@@ -76,7 +77,7 @@ export async function disconnectPairing() {
  * at the DB for non-admins anyway).
  */
 export async function updateMyProfile({ display_name, avatar_url }) {
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await sessionUser()
   if (!user) throw new Error('not authenticated')
   const row = { id: user.id }
   if (display_name !== undefined) row.display_name = display_name
@@ -96,7 +97,7 @@ export async function updateMyProfile({ display_name, avatar_url }) {
  * updateMyProfile — users upload a photo instead of pasting an image URL.
  */
 export async function uploadAvatar(file) {
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await sessionUser()
   if (!user) throw new Error('not authenticated')
   const ext = (file.name?.split('.').pop() || 'jpg').toLowerCase()
   const path = `${user.id}/avatar-${Date.now()}.${ext}`

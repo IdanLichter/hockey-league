@@ -1,4 +1,5 @@
 import { supabase } from './supabase'
+import { sessionUser } from './sessionUser'
 
 /**
  * Self-service team membership (Package 1b). A linked player requests to join a
@@ -12,7 +13,7 @@ import { supabase } from './supabase'
 
 /** The current user's open (pending) join request, if any (joined to its team). */
 export async function getMyJoinRequest() {
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await sessionUser()
   if (!user) return null
   const { data, error } = await supabase
     .from('team_join_requests')
@@ -64,7 +65,7 @@ export async function requestTeamJoin(teamId, note = null) {
 }
 
 export async function cancelTeamJoin(id) {
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await sessionUser()
   if (!user) throw new Error('not-authenticated')
   const { data, error } = await supabase
     .from('team_join_requests').delete()

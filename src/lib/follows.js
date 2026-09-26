@@ -1,4 +1,5 @@
 import { supabase } from './supabase'
+import { sessionUser } from './sessionUser'
 
 /**
  * Follow / subscribe (P5 — sheet row 24 + the ranked-feed epic).
@@ -16,7 +17,7 @@ export const FOLLOW_TYPES = { team: 'team', player: 'player' }
 
 /** Everything I follow: [{ target_type, target_id, notify }]. */
 export async function getMyFollows() {
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await sessionUser()
   if (!user) return []
   const { data, error } = await supabase
     .from('follows')
@@ -41,7 +42,7 @@ export async function getMyFollowSets() {
 
 /** Follow a target. `notify` defaults to off — opting into pushes is a separate act. */
 export async function follow(targetType, targetId, notify = false) {
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await sessionUser()
   if (!user) throw new Error('not-authenticated')
   const { error } = await supabase
     .from('follows')
@@ -51,7 +52,7 @@ export async function follow(targetType, targetId, notify = false) {
 }
 
 export async function unfollow(targetType, targetId) {
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await sessionUser()
   if (!user) throw new Error('not-authenticated')
   const { error } = await supabase
     .from('follows')
@@ -64,7 +65,7 @@ export async function unfollow(targetType, targetId) {
 
 /** Turn pushes on/off for something already followed. */
 export async function setFollowNotify(targetType, targetId, notify) {
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await sessionUser()
   if (!user) throw new Error('not-authenticated')
   const { error } = await supabase
     .from('follows')

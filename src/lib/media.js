@@ -1,4 +1,5 @@
 import { supabase } from './supabase'
+import { sessionUser } from './sessionUser'
 
 // Face clusters surfaced on the Media page. Default: unidentified players.
 export async function getMediaClusters({ status = 'unresolved' } = {}) {
@@ -38,7 +39,7 @@ export async function submitSuggestion(clusterKey, firstName, lastName) {
   const first = (firstName || '').trim()
   const last = (lastName || '').trim()
   if (!first || !last) throw new Error('נא למלא שם פרטי ושם משפחה')
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await sessionUser()
   if (!user) throw new Error('יש להתחבר כדי להציע שם')
   const { error } = await supabase.from('cluster_suggestions').insert({
     cluster_key: clusterKey,

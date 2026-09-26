@@ -1,4 +1,5 @@
 import { supabase } from './supabase'
+import { sessionUser } from './sessionUser'
 
 /**
  * Officials (judges + medics) assignment, self-submission, and pay (epic D).
@@ -67,7 +68,7 @@ export async function applyAsOfficial(gameId, role) {
 
 /** My own official assignments/applications for a game (self-readable via RLS). */
 export async function getMyOfficialRoles(gameId) {
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await sessionUser()
   if (!user || !gameId) return []
   const { data, error } = await supabase
     .from('game_officials')
@@ -90,7 +91,7 @@ export async function getMyOfficialRoles(gameId) {
  * depend on the backfill having caught every one.
  */
 export async function getMyApprovedGameIds(role = 'judge') {
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await sessionUser()
   if (!user) return new Set()
   const { data, error } = await supabase
     .from('game_officials')

@@ -1,4 +1,5 @@
 import { supabase } from './supabase'
+import { sessionUser } from './sessionUser'
 
 /**
  * Web Push registration for the "bell". A browser opts in explicitly (a user
@@ -50,7 +51,7 @@ export async function enablePush() {
   if (!pushSupported()) return { ok: false, reason: 'unsupported' }
   if (!VAPID_PUBLIC_KEY) return { ok: false, reason: 'no-key' }
 
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await sessionUser()
   if (!user) return { ok: false, reason: 'signed-out' }
 
   const permission = await Notification.requestPermission()
@@ -89,7 +90,7 @@ export async function disablePush() {
   if (!sub) return
   const endpoint = sub.endpoint
   await sub.unsubscribe().catch(() => {})
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await sessionUser()
   if (user) {
     await supabase.from('push_subscriptions').delete()
       .eq('user_id', user.id).eq('endpoint', endpoint)

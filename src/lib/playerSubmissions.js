@@ -1,4 +1,5 @@
 import { supabase } from './supabase'
+import { sessionUser } from './sessionUser'
 
 /**
  * Self-service player cards (#7). A logged-in user proposes a NEW player card
@@ -15,7 +16,7 @@ import { supabase } from './supabase'
 
 /** The current user's open (pending) submission, if any (joined to its team). */
 export async function getMyPlayerSubmission() {
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await sessionUser()
   if (!user) return null
   const { data, error } = await supabase
     .from('player_submissions')
@@ -28,7 +29,7 @@ export async function getMyPlayerSubmission() {
 }
 
 export async function createPlayerSubmission({ teamId, firstName, lastName, jerseyNumber, position, age, note }) {
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await sessionUser()
   if (!user) throw new Error('not-authenticated')
   const { data, error } = await supabase
     .from('player_submissions')
@@ -79,7 +80,7 @@ export async function getTeamSubmissions(teamId) {
 }
 
 export async function cancelPlayerSubmission(id) {
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await sessionUser()
   if (!user) throw new Error('not-authenticated')
   // Mirror the DELETE RLS (own + pending) in the query and read back the deleted
   // rows so we can tell the caller when nothing matched (already reviewed).

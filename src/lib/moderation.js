@@ -1,4 +1,5 @@
 import { supabase } from './supabase'
+import { sessionUser } from './sessionUser'
 
 // Reporting + blocking. Mirrors the mobile apps' moderation surface.
 // The `content_reports` / `user_blocks` tables and their RLS already exist in prod:
@@ -38,7 +39,7 @@ export const REASON_MAX = 60
 export const DETAILS_MAX = 500
 
 async function currentUserId() {
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await sessionUser()
   return user?.id || null
 }
 

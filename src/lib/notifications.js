@@ -1,4 +1,5 @@
 import { supabase } from './supabase'
+import { sessionUser } from './sessionUser'
 import { ROLE_LABEL } from './roles'
 
 /**
@@ -12,7 +13,7 @@ import { ROLE_LABEL } from './roles'
  */
 
 async function currentUserId() {
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await sessionUser()
   return user?.id || null
 }
 

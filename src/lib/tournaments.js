@@ -1,4 +1,5 @@
 import { supabase } from './supabase'
+import { sessionUser } from './sessionUser'
 import { registerSlugs } from './slugs'
 
 /**
@@ -59,7 +60,7 @@ export async function deleteTournament(id) {
 
 /** A coach submits a PENDING tournament request for themselves (RLS-gated). */
 export async function requestTournament(payload) {
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await sessionUser()
   if (!user) throw new Error('not-authenticated')
   const { data, error } = await supabase
     .from('tournaments')
@@ -71,7 +72,7 @@ export async function requestTournament(payload) {
 
 /** The signed-in coach's own requests (any status), newest first. */
 export async function getMyTournamentRequests() {
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await sessionUser()
   if (!user) return []
   const { data, error } = await supabase
     .from('tournaments').select('*')
@@ -83,7 +84,7 @@ export async function getMyTournamentRequests() {
 
 /** League manager / admin approves (→ active) or rejects (→ rejected) a request. */
 export async function reviewTournament(id, approve) {
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await sessionUser()
   const { error } = await supabase
     .from('tournaments')
     .update({ status: approve ? 'active' : 'rejected', approved_by: user?.id || null })

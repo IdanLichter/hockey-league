@@ -1,4 +1,5 @@
 import { supabase } from './supabase'
+import { sessionUser } from './sessionUser'
 
 /**
  * Game video (YouTube) attach + marker timeline. Embed-only: no Data API, no
@@ -59,7 +60,7 @@ export async function getGameVideo(gameId) {
 export async function attachVideo(gameId, { url, kind = 'full', offset = 0 } = {}) {
   const video_id = parseYouTubeId(url)
   if (!video_id) throw new Error('קישור YouTube לא תקין')
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await sessionUser()
   if (!user) throw new Error('יש להתחבר')
   const { data, error } = await supabase
     .from('game_videos')
@@ -123,7 +124,7 @@ export async function detachVideo(id) {
 
 // Editor: add a marker. video_seconds comes from player.getCurrentTime().
 export async function addMarker(videoRef, { videoSeconds, kind, label = null, playerId = null, teamId = null } = {}) {
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await sessionUser()
   const { data, error } = await supabase
     .from('game_video_markers')
     .insert({

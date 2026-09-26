@@ -1,4 +1,5 @@
 import { supabase } from './supabase'
+import { sessionUser } from './sessionUser'
 
 /**
  * Admin-curated photo choices for the synthetic feed cards (game result, milestone,
@@ -21,7 +22,7 @@ export async function getPhotoOverrides() {
 
 // Pin `photoId` (or null for "no photo") to a card; upsert on the item_key primary key.
 export async function setPhotoOverride(itemKey, photoId) {
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await sessionUser()
   const { error } = await supabase
     .from('feed_photo_overrides')
     .upsert(

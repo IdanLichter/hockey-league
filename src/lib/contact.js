@@ -1,4 +1,5 @@
 import { supabase } from './supabase'
+import { sessionUser } from './sessionUser'
 
 /**
  * Official contact details (P3 — sheet rows 16, 17). A judge must have a real full name
@@ -13,7 +14,7 @@ import { supabase } from './supabase'
 
 /** My own contact row, or null if I've never filled it in. */
 export async function getMyContact() {
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await sessionUser()
   if (!user) return null
   const { data, error } = await supabase
     .from('user_contact')

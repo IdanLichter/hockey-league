@@ -1,4 +1,5 @@
 import { supabase } from './supabase'
+import { sessionUser } from './sessionUser'
 
 /**
  * Likes + comments for SYNTHETIC feed items (game results, milestones,
@@ -12,7 +13,7 @@ import { supabase } from './supabase'
  */
 
 async function currentUserId() {
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await sessionUser()
   return user?.id ?? null
 }
 

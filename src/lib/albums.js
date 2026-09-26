@@ -1,4 +1,5 @@
 import { supabase } from './supabase'
+import { sessionUser } from './sessionUser'
 
 // Album submissions — content editors (and admins) drop a Google-Photos album
 // URL into a queue that's processed OFFLINE (scrape → face-cluster → new photo
@@ -12,7 +13,7 @@ import { supabase } from './supabase'
 const GOOGLE_PHOTOS_RE = /^https?:\/\/(photos\.google\.com|photos\.app\.goo\.gl)\//i
 
 async function currentUserId() {
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await sessionUser()
   return user?.id || null
 }
 

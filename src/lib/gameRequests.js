@@ -1,4 +1,5 @@
 import { supabase } from './supabase'
+import { sessionUser } from './sessionUser'
 
 /**
  * Coach-requested game reschedules with DUAL approval (#2/#5): the coach proposes up
@@ -61,7 +62,7 @@ export async function cancelGameChangeRequest(id) {
 
 // The current user's own latest request for a game (any status), or null.
 export async function getMyGameChangeRequest(gameId) {
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await sessionUser()
   if (!user) return null
   const { data, error } = await supabase
     .from('game_change_requests').select('*')

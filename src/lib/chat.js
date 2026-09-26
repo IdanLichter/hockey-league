@@ -1,4 +1,5 @@
 import { supabase } from './supabase'
+import { sessionUser } from './sessionUser'
 
 /**
  * Members-only direct messages (see supabase/direct-messages-schema.sql).
@@ -8,7 +9,7 @@ import { supabase } from './supabase'
  */
 
 async function currentUserId() {
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await sessionUser()
   return user?.id || null
 }
 

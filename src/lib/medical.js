@@ -1,4 +1,5 @@
 import { supabase } from './supabase'
+import { sessionUser } from './sessionUser'
 
 /**
  * Medical certificates (#2). A linked player uploads a photo/PDF of their yearly
@@ -16,7 +17,7 @@ import { supabase } from './supabase'
 
 /** Upload the player's physical to the private bucket + create a pending cert row. */
 export async function uploadMedical(playerId, file) {
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await sessionUser()
   if (!user) throw new Error('not-authenticated')
   const ext = (file.name?.split('.').pop() || 'jpg').toLowerCase()
   const path = `${playerId}/${Date.now()}.${ext}`

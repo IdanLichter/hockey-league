@@ -1,5 +1,6 @@
-import { createContext, useContext, useState, useEffect } from 'react'
+import { createContext, useContext, useState, useEffect, useRef } from 'react'
 import { supabase } from './supabase'
+import { sessionUser } from './sessionUser'
 
 const AuthContext = createContext()
 
@@ -13,32 +14,47 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true)
   const [authOpen, setAuthOpen] = useState(false)
 
+  // Whose account (admin flag, roles, profile) is loaded or loading. The bootstrap
+  // is three queries queued behind supabase-js's auth lock, and on page load both
+  // getSession() and onAuthStateChange hand us the same user — INITIAL_SESSION,
+  // then SIGNED_IN from the client's own session recovery (it fires again on every
+  // tab refocus), then TOKEN_REFRESHED. Loading on each ran it 3x and held back
+  // every page's first data request. Only a different user id reloads.
+  const loadedFor = useRef(null)
+
   useEffect(() => {
     let mounted = true
-    // Get initial session. A rejected getSession() must still clear `loading`,
-    // otherwise the whole app is stuck on the spinner forever.
-    supabase.auth.getSession()
-      .then(({ data: { session } }) => {
-        if (!mounted) return
-        setUser(session?.user ?? null)
-        if (session?.user) loadAccount(session.user)
-        else setLoading(false)
-      })
-      .catch(() => { if (mounted) setLoading(false) })
 
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const apply = (u, event) => {
       if (!mounted) return
-      setUser(session?.user ?? null)
-      if (session?.user) {
-        setAuthOpen(false) // close the auth modal once signed in
-        loadAccount(session.user)
-      } else {
+      const next = u ?? null
+      // Keep the same object for the same account, so effects keyed on `user` don't
+      // refetch on every token refresh. USER_UPDATED carries a changed email/metadata.
+      setUser(prev => (prev && next && prev.id === next.id && event !== 'USER_UPDATED') ? prev : next)
+      if (!next) {
+        loadedFor.current = null
         setIsAdmin(false)
         setRoles([])
         setProfile(null)
         setLoading(false)
+        return
       }
+      if (loadedFor.current === next.id && event !== 'USER_UPDATED') return
+      loadedFor.current = next.id
+      loadAccount(next)
+    }
+
+    // Get initial session. A rejected getSession() must still clear `loading`,
+    // otherwise the whole app is stuck on the spinner forever.
+    supabase.auth.getSession()
+      .then(({ data: { session } }) => apply(session?.user, 'GET_SESSION'))
+      .catch(() => { if (mounted) setLoading(false) })
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (!mounted) return
+      if (session?.user && event === 'SIGNED_IN') setAuthOpen(false) // close the auth modal once signed in
+      apply(session?.user, event)
     })
 
     return () => { mounted = false; subscription.unsubscribe() }
@@ -47,7 +63,7 @@ export function AuthProvider({ children }) {
   // Resolve admin status + granted roles + profile for a signed-in user.
   const loadAccount = async (u) => {
     await Promise.all([checkAdmin(u.email), loadRoles(u.id), loadProfile(u.id)])
-    setLoading(false)
+    if (loadedFor.current === u.id) setLoading(false)
   }
 
   // Load the editable profile and, if the account is linked to a player,
@@ -89,7 +105,7 @@ export function AuthProvider({ children }) {
 
   // Re-fetch the profile (e.g. after the user edits their avatar on /me).
   const refreshProfile = async () => {
-    const { data: { user: u } } = await supabase.auth.getUser()
+    const u = await sessionUser()
     if (u) await loadProfile(u.id)
     else setProfile(null)
   }
@@ -195,6 +211,7 @@ export function AuthProvider({ children }) {
 
   const signOut = async () => {
     await supabase.auth.signOut()
+    loadedFor.current = null
     setUser(null)
     setIsAdmin(false)
     setRoles([])

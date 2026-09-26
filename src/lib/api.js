@@ -1,4 +1,5 @@
 import { supabase } from './supabase'
+import { sessionUser } from './sessionUser'
 import { countsForStats } from './leagueStats'
 import { registerSlugs } from './slugs'
 import { sniffImageType, SAFE_IMAGE_TYPES, IMAGE_TYPE_ERROR } from './imageType'
@@ -64,7 +65,7 @@ export async function reviewTeam(teamId, approve) {
 
 /** The signed-in user's own team requests (any status), newest first. */
 export async function getMyTeamRequests() {
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await sessionUser()
   if (!user) return []
   const { data, error } = await supabase
     .from('teams').select('*').eq('created_by', user.id)
@@ -264,7 +265,7 @@ export async function getPlayerRoleBadges(playerId) {
 }
 
 export async function createPost({ body, teamId = null }) {
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await sessionUser()
   if (!user) throw new Error('not authenticated')
   const { data, error } = await supabase
     .from('posts')
@@ -294,7 +295,7 @@ export async function editPost(id, body) {
 
 // --- Likes ---
 export async function getMyLikes() {
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await sessionUser()
   if (!user) return []
   const { data, error } = await supabase.from('post_likes').select('post_id').eq('user_id', user.id)
   if (error) throw error
@@ -302,7 +303,7 @@ export async function getMyLikes() {
 }
 
 export async function likePost(postId) {
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await sessionUser()
   if (!user) throw new Error('not authenticated')
   const { error } = await supabase.from('post_likes').insert({ post_id: postId, user_id: user.id })
   // PK is (post_id, user_id): a double-click / stale-UI re-like returns 23505.
@@ -311,7 +312,7 @@ export async function likePost(postId) {
 }
 
 export async function unlikePost(postId) {
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await sessionUser()
   if (!user) throw new Error('not authenticated')
   const { error } = await supabase.from('post_likes').delete().eq('post_id', postId).eq('user_id', user.id)
   if (error) throw error
@@ -330,7 +331,7 @@ export async function getComments(postId) {
 }
 
 export async function createComment(postId, body) {
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await sessionUser()
   if (!user) throw new Error('not authenticated')
   const { data, error } = await supabase
     .from('comments')

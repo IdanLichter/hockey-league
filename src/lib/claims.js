@@ -1,4 +1,5 @@
 import { supabase } from './supabase'
+import { sessionUser } from './sessionUser'
 
 /**
  * Player-claim flow (Stage B1). A logged-in user files a PENDING claim on a
@@ -19,7 +20,7 @@ import { supabase } from './supabase'
  *  - playerOwnerId: profile id that already owns THIS player, or null
  */
 export async function getClaimContext(playerId) {
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await sessionUser()
 
   const { data: owner, error: ownerErr } = await supabase
     .from('profiles').select('id').eq('player_id', playerId).maybeSingle()
@@ -40,7 +41,7 @@ export async function getClaimContext(playerId) {
 }
 
 export async function createClaim(playerId, note) {
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await sessionUser()
   if (!user) throw new Error('not-authenticated')
   const { data, error } = await supabase
     .from('player_claims')
@@ -51,7 +52,7 @@ export async function createClaim(playerId, note) {
 }
 
 export async function cancelClaim(claimId) {
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await sessionUser()
   if (!user) throw new Error('not-authenticated')
   // Mirror the DELETE RLS policy in the query (own + pending) instead of relying
   // on it silently, and read back the deleted rows so we can tell the caller when
