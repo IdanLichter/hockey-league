@@ -4,7 +4,8 @@ import { createPlayer } from './api'
 /**
  * Podium mirror (2026-09-22). Players register and pay for the season in
  * podiumcomp.com — the federation's system — and separately in this app. A
- * scheduled Edge Function (`podium-sync`, every 6h) mirrors the Podium side into
+ * scheduled sync (scripts/podium-sync.mjs, run by launchd on Ariel's Mac — Podium's
+ * Cloudflare blocks the `podium-sync` Edge Function's server IP) mirrors the Podium side into
  * public.podium_athletes / public.podium_payments so nobody has to keep two tabs
  * open to answer "is he registered" or "has he paid".
  *
@@ -66,26 +67,6 @@ export const CLOUDFLARE_BLOCKED =
 
 export function isCloudflareBlock(message) {
   return /just a moment|cloudflare|403/i.test(message || '')
-}
-
-/**
- * Run the sync now. The function re-checks admin/league_manager itself — being
- * signed in is not enough, because this reaches out to a third party's server.
- */
-export async function runPodiumSync() {
-  const { data, error } = await supabase.functions.invoke('podium-sync')
-  if (error) {
-    // A non-2xx arrives as `error` with the body unread on error.context, so the
-    // function's own reason ("not authorized", a Podium 403…) would otherwise be lost.
-    const body = await error.context?.json?.().catch(() => null)
-    const reason = body?.error
-    if (reason === 'not authorized') throw new Error('אין הרשאה להריץ סנכרון')
-    throw new Error(isCloudflareBlock(reason) ? CLOUDFLARE_BLOCKED : (reason || 'הסנכרון נכשל'))
-  }
-  if (data && data.ok === false) {
-    throw new Error(isCloudflareBlock(data.error) ? CLOUDFLARE_BLOCKED : (data.error || 'הסנכרון נכשל'))
-  }
-  return data
 }
 
 /**

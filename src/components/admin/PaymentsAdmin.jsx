@@ -1,7 +1,8 @@
 import { useState, useEffect, useMemo } from "react"
-import { getPaymentOverview, getUnmatchedAthletes, getLastSync, runPodiumSync, linkPodiumAthlete, createPlayerForAthlete, isCloudflareBlock, CLOUDFLARE_BLOCKED } from "@/lib/podium"
+import { getPaymentOverview, getUnmatchedAthletes, linkPodiumAthlete, createPlayerForAthlete } from "@/lib/podium"
+import PodiumSyncNote from "@/components/admin/PodiumSyncNote"
 import { getTeams } from "@/lib/api"
-import { Wallet, RefreshCw, AlertTriangle, Check, X, Link2Off, Link2, Search, UserPlus } from "lucide-react"
+import { Wallet, Check, X, Link2Off, Link2, Search, UserPlus } from "lucide-react"
 import { format } from "date-fns"
 
 /**
@@ -19,8 +20,7 @@ import { format } from "date-fns"
 export default function PaymentsAdmin() {
   const [rows, setRows] = useState(null)
   const [unmatched, setUnmatched] = useState([])
-  const [sync, setSync] = useState(null)
-  const [syncing, setSyncing] = useState(false)
+  const [loads, setLoads] = useState(0) // bumps PodiumSyncNote on every reload
   const [error, setError] = useState(null)
   const [denied, setDenied] = useState(false)
   const [q, setQ] = useState("")
@@ -32,10 +32,8 @@ export default function PaymentsAdmin() {
   const load = async () => {
     try {
       setError(null)
-      const [ov, un, s] = await Promise.all([
-        getPaymentOverview(), getUnmatchedAthletes(), getLastSync(),
-      ])
-      setRows(ov); setUnmatched(un); setSync(s)
+      const [ov, un] = await Promise.all([getPaymentOverview(), getUnmatchedAthletes()])
+      setRows(ov); setUnmatched(un); setLoads(n => n + 1)
       getTeams("name", true).then(t => setTeams(t || [])).catch(() => {})
     } catch (e) {
       if (e?.message === "not-authorized") { setDenied(true); setRows([]) }
@@ -43,13 +41,6 @@ export default function PaymentsAdmin() {
     }
   }
   useEffect(() => { load() }, [])
-
-  const doSync = async () => {
-    setSyncing(true); setError(null)
-    try { await runPodiumSync(); await load() }
-    catch (e) { setError(e?.message || "הסנכרון נכשל") }
-    finally { setSyncing(false) }
-  }
 
   /**
    * Link a Podium athlete to a player card by hand. The auto-matcher only joins on
@@ -101,7 +92,6 @@ export default function PaymentsAdmin() {
   if (rows === null) return <div className="card p-6 text-center text-sm text-slate-500">טוען…</div>
 
   const season = rows[0]?.season_label || ""
-  const stale = sync?.finished_at && (Date.now() - new Date(sync.finished_at)) > 24 * 3600e3
 
   return (
     <div className="space-y-4">
@@ -109,30 +99,10 @@ export default function PaymentsAdmin() {
         <h2 className="flex items-center gap-2 text-lg font-bold text-slate-900 dark:text-white">
           <Wallet className="w-5 h-5 text-brand" /> תשלומים {season && <span className="text-sm font-semibold text-slate-400">עונת {season}</span>}
         </h2>
-        <button onClick={doSync} disabled={syncing}
-          className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-600 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors disabled:opacity-50">
-          <RefreshCw className={`w-3.5 h-3.5 ${syncing ? "animate-spin" : ""}`} />
-          {syncing ? "מסנכרן…" : "סנכרן עכשיו"}
-        </button>
       </div>
 
-      {/* The data is a mirror, so its age is part of the reading. */}
-      <p className="text-xs text-slate-500 dark:text-slate-400">
-        הנתונים מגיעים מפודיום ומסונכרנים ידנית.{" "}
-        {sync?.finished_at
-          ? <>עודכן לאחרונה {format(new Date(sync.finished_at), "d/M/yyyy HH:mm")}
-              {stale && <span className="text-amber-600 dark:text-amber-400"> — מעל 24 שעות</span>}</>
-          : "עדיין לא בוצע סנכרון."}
-      </p>
+      <PodiumSyncNote refreshKey={loads} />
 
-      {sync && sync.ok === false && (
-        <div className="card p-3 border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/30 text-sm text-red-700 dark:text-red-400 flex items-start gap-2">
-          <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
-          <span>{isCloudflareBlock(sync.error)
-            ? CLOUDFLARE_BLOCKED
-            : `הסנכרון האחרון נכשל${sync.error ? ` — ${sync.error}` : ""}.`} הנתונים למטה עשויים להיות ישנים.</span>
-        </div>
-      )}
       {error && (
         <div className="card p-3 border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/30 text-sm text-red-700 dark:text-red-400">{error}</div>
       )}

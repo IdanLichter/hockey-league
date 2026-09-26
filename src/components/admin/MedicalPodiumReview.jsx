@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react"
 import { getPendingManagerMedical, approveMedicalPodium, revokeMedical, signMedical } from "@/lib/medical"
 import { getUnmatchedAthletes } from "@/lib/podium"
+import PodiumSyncNote from "@/components/admin/PodiumSyncNote"
 import { ShieldCheck, Check, X, Eye, RefreshCw, Clock, BadgeCheck, Link2Off, Wallet, RotateCcw, UserPlus } from "lucide-react"
 import { format } from "date-fns"
 
@@ -111,6 +112,9 @@ export default function MedicalPodiumReview() {
           <strong>{reinspecting}</strong> מתוכם סומנו לבדיקה חוזרת — שחקנים שאושרו בעבר
           וממתינים כעת לאישור מחדש.</>}
       </p>
+
+      {/* The רשום/שילם chips below are only as fresh as the last Podium sync. */}
+      <PodiumSyncNote />
 
       {cardless.length > 0 && (
         <div className="card p-3 border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/30 text-xs text-blue-800 dark:text-blue-300 flex items-start gap-2">
