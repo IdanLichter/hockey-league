@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react"
 import { Link } from "react-router-dom"
 import { getGames, getTeams, getPlayers, getReferees, getGameStatsByGameId } from "@/lib/api"
-import { Calendar, Clock, MapPin, Trophy, Shield, X, ChevronDown, ArrowLeft, RefreshCw, AlertTriangle, Users, Utensils } from "lucide-react"
+import { Calendar, Clock, MapPin, Trophy, Shield, X, ChevronDown, ArrowLeft, RefreshCw, AlertTriangle, Users, Utensils, CheckCircle2, XCircle } from "lucide-react"
 import { Crossed } from "@/components/icons/HockeyIcons"
 import { motion, AnimatePresence } from "framer-motion"
 import { format } from "date-fns"
@@ -20,10 +20,13 @@ import { GamesSkeleton } from "@/components/skeletons/PageSkeletons"
 import GamesCalendar from "@/components/games/GamesCalendar"
 
 export default function Games() {
-  const { coachTeamIds } = useAuth()
+  const { coachTeamIds, profile } = useAuth()
+  const myPlayerId = profile?.player_id || null
   const seasonName = useSeasonName()
   const [games, setGames] = useState([])
   const [availByGame, setAvailByGame] = useState({})
+  // The signed-in player's own answer per upcoming game → "מגיע/ה" badge on the card.
+  const [myAvail, setMyAvail] = useState({})
   const [teams, setTeams] = useState([])
   const [players, setPlayers] = useState([])
   const [referees, setReferees] = useState([])
@@ -54,6 +57,19 @@ export default function Games() {
     }).catch(() => {})
     return () => { alive = false }
   }, [games, (coachTeamIds || []).join(",")])
+
+  // Player: my own answer for every upcoming game (RLS returns my rows; a coach also
+  // gets their team's, hence the player_id filter).
+  useEffect(() => {
+    const ids = myPlayerId ? games.filter(g => g.status === "scheduled").map(g => g.id) : []
+    if (!ids.length) { setMyAvail({}); return }
+    let alive = true
+    getAvailabilityForGames(ids).then(rows => {
+      if (!alive) return
+      setMyAvail(Object.fromEntries(rows.filter(r => r.player_id === myPlayerId).map(r => [r.game_id, r.status])))
+    }).catch(() => {})
+    return () => { alive = false }
+  }, [games, myPlayerId])
 
   // Games being officiated right now — realtime, pinned above the schedule.
   const liveGames = useLiveGames()
@@ -184,6 +200,16 @@ export default function Games() {
             {att && (
               <span className={`stat-pill inline-flex items-center gap-1 ${att.tooFew ? "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300" : "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300"}`} title="מגיעים מהקבוצה שלך">
                 <Users className="w-3 h-3" /> {att.count}{!att.gk && <AlertTriangle className="w-3 h-3 text-red-500" />}
+              </span>
+            )}
+            {game.status === "scheduled" && myAvail[game.id] === "available" && (
+              <span className="stat-pill inline-flex items-center gap-1 bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300" title="אישרת הגעה למשחק">
+                <CheckCircle2 className="w-3 h-3" /> מגיע/ה
+              </span>
+            )}
+            {game.status === "scheduled" && myAvail[game.id] === "unavailable" && (
+              <span className="stat-pill inline-flex items-center gap-1 bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300" title="סימנת שלא תגיע/י">
+                <XCircle className="w-3 h-3" /> לא מגיע/ה
               </span>
             )}
             <ChevronDown className={`w-5 h-5 text-slate-400 transition-transform mr-auto ${open ? 'rotate-180' : ''}`} />
