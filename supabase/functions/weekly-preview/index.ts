@@ -127,7 +127,7 @@ async function buildFacts(ymd: string) {
       .select("team_id,final_rank,points,wins,ties,losses,goals_for,goals_against").eq("season_id", previous.id);
     prevStand = new Map((ts ?? []).map((r) => [r.team_id, r]));
     const { data: ps } = await admin.from("player_season_stats")
-      .select("team_id,first_name,last_name,goals,games_played").eq("season_id", previous.id)
+      .select("team_id,player_id,first_name,last_name,goals,games_played").eq("season_id", previous.id)
       .in("team_id", teamIds).gt("goals", 0).order("goals", { ascending: false });
     for (const p of ps ?? []) {
       const list = prevScorers.get(p.team_id) ?? [];
@@ -135,6 +135,48 @@ async function buildFacts(ymd: string) {
       prevScorers.set(p.team_id, list);
     }
   }
+
+  // ---- Player imagery (approved background-removed cutouts; see supabase/player-cutouts.sql).
+  // Deterministic per Saturday: re-running the same week picks the same images, the next
+  // week rotates to different ones.
+  const { data: roster } = await admin.from("players").select("id,first_name,last_name,team_id").in("team_id", teamIds);
+  const playerById = new Map((roster ?? []).map((p) => [p.id, p]));
+  const { data: cuts } = await admin.from("player_cutouts").select("player_ids,image_url").eq("status", "approved")
+    .overlaps("player_ids", [...playerById.keys()]);
+  const weekSeed = Math.floor(Date.parse(ymd) / (7 * 864e5));
+  const hash = (str: string) => [...str].reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, weekSeed);
+  const pick = <T,>(arr: T[], salt: string) => arr.length ? arr[hash(salt) % arr.length] : null;
+  const who = (id: string) => { const p = playerById.get(id); return p ? { name: `${p.first_name ?? ""} ${p.last_name ?? ""}`.trim(), team: byId.get(p.team_id)?.name ?? null } : null; };
+  const teamOf = (id: string) => playerById.get(id)?.team_id ?? null;
+  const allScorers = new Map<string, number>();   // player_id -> last-season goals (for preference)
+  if (previous) {
+    const { data: g } = await admin.from("player_season_stats").select("player_id,goals").eq("season_id", previous.id).in("team_id", teamIds);
+    for (const r of g ?? []) if (r.player_id) allScorers.set(r.player_id, r.goals ?? 0);
+  }
+
+  /** One solo cutout for a team: among the team's (up to) 3 top-scoring players that HAVE
+   *  a cutout, rotate by week; then rotate between that player's cutouts. */
+  const featureFor = (teamId: string) => {
+    const solos = (cuts ?? []).filter((c) => c.player_ids.length === 1 && teamOf(c.player_ids[0]) === teamId);
+    const players = [...new Set(solos.map((c) => c.player_ids[0]))]
+      .sort((a, b) => (allScorers.get(b) ?? 0) - (allScorers.get(a) ?? 0)).slice(0, 3);
+    const pid = pick(players, teamId);
+    if (pid) {
+      const c = pick(solos.filter((x) => x.player_ids[0] === pid), pid)!;
+      return { kind: "solo", image_url: c.image_url, players: [who(pid)] };
+    }
+    // no solo: a same-team pair still shows the team
+    const pair = pick((cuts ?? []).filter((c) => c.player_ids.length === 2 && c.player_ids.every((x) => teamOf(x) === teamId)), teamId + "duo");
+    return pair ? { kind: "duo", image_url: pair.image_url, players: pair.player_ids.map(who) } : null;
+  };
+
+  /** A pair with one player from each side of THIS fixture — the matchup's hero image. */
+  const matchupFor = (homeId: string, awayId: string) => {
+    const pairs = (cuts ?? []).filter((c) => c.player_ids.length === 2 &&
+      new Set(c.player_ids.map(teamOf)).has(homeId) && new Set(c.player_ids.map(teamOf)).has(awayId));
+    const c = pick(pairs, homeId + awayId);
+    return c ? { kind: "duo", image_url: c.image_url, players: c.player_ids.map(who) } : null;
+  };
 
   const teamFacts = (id: string) => {
     const t = byId.get(id)!;
@@ -145,6 +187,7 @@ async function buildFacts(ymd: string) {
       this_season: table.find((r) => r.team_id === id) ?? null,
       last_season: prevStand.get(id) ? { season: previous!.name, ...prevStand.get(id), top_scorers: prevScorers.get(id) ?? [] } : null,
       last_results: last,
+      featured_player_image: featureFor(id),
     };
   };
 
@@ -159,6 +202,9 @@ async function buildFacts(ymd: string) {
       playoff_round: g.playoff_round, series_game: g.series_game,
       home: teamFacts(g.home_team_id), away: teamFacts(g.away_team_id),
       head_to_head_from_home_view: h2h,
+      // Set when we have a photo of a home player and an away player together. The poster
+      // then shows that one image for the game instead of one cutout per team.
+      matchup_image: matchupFor(g.home_team_id, g.away_team_id),
     };
   });
 

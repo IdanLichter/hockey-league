@@ -42,18 +42,34 @@ const stageLabel = (g) => {
   return g.game_type && g.game_type !== 'ליגה' ? g.game_type : null
 }
 
-const crest = (t) => t.logo_url
-  ? `<div class="crest"><img src="${esc(t.logo_url)}" alt=""></div>`
-  : `<div class="crest fallback" style="background:${esc(t.primary_color || '#1d4ed8')}">${esc([...t.name][0])}</div>`
+const crest = (t, cls = '') => t.logo_url
+  ? `<div class="crest ${cls}"><img src="${esc(t.logo_url)}" alt=""></div>`
+  : `<div class="crest fallback ${cls}" style="background:${esc(t.primary_color || '#1d4ed8')}">${esc([...t.name][0])}</div>`
+
+// Player imagery (from facts): a pair with one player from each team fills the whole
+// stage; otherwise each side gets its own cutout with the crest pinned at its feet; a side
+// with no approved cutout shows the big crest alone.
+const figure = (t) => {
+  const f = t.featured_player_image
+  return f
+    ? `<div class="half"><img class="cut" src="${esc(f.image_url)}" alt="">${crest(t, 'pin')}</div>`
+    : `<div class="half bare">${crest(t)}</div>`
+}
 
 const card = (g) => `
   <div class="card">
     <div class="time" dir="ltr">${esc(g.kickoff)}</div>
     ${stageLabel(g) ? `<div class="stage">${esc(stageLabel(g))}</div>` : ''}
-    <div class="match">
-      <div class="side">${crest(g.home)}<div class="name">${esc(g.home.name)}</div></div>
-      <div class="vs">נגד</div>
-      <div class="side">${crest(g.away)}<div class="name">${esc(g.away.name)}</div></div>
+    <div class="fig">
+      ${g.matchup_image
+        ? `<img class="cut duo" src="${esc(g.matchup_image.image_url)}" alt="">
+           <div class="duo-crests">${crest(g.home, 'pin')}${crest(g.away, 'pin')}</div>`
+        : `${figure(g.home)}${figure(g.away)}`}
+    </div>
+    <div class="names">
+      <div class="name">${esc(g.home.name)}</div>
+      <div class="vs" dir="ltr">VS</div>
+      <div class="name">${esc(g.away.name)}</div>
     </div>
     ${oneVenue ? '' : `<div class="venue">📍 ${esc(g.venue)}</div>`}
   </div>`
@@ -77,24 +93,37 @@ body {
 .when .v { font-size: 30px; font-weight: 500; color: #c7d4f5; margin-top: 8px; }
 .cards { position: absolute; top: 236px; bottom: 96px; inset-inline: 64px; display: flex; gap: 28px; }
 .card {
-  flex: 1; min-width: 0; border-radius: 28px; padding: 26px 22px 30px;
+  flex: 1; min-width: 0; border-radius: 28px; padding: 24px 18px 22px; overflow: hidden;
   background: linear-gradient(180deg, rgba(255,255,255,.11), rgba(255,255,255,.04));
   border: 2px solid rgba(255,255,255,.14);
-  display: flex; flex-direction: column; align-items: center; justify-content: flex-start; padding-top: 52px;
+  display: flex; flex-direction: column; align-items: center;
 }
-.time { font-size: 64px; font-weight: 900; color: #e8b53a; line-height: 1; }
-.stage { font-size: 24px; font-weight: 700; color: #c7d4f5; margin-top: 8px; }
-.match { display: flex; align-items: flex-start; justify-content: center; gap: 10px; width: 100%; margin-top: 30px; }
-.side { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; }
+.time { font-size: 56px; font-weight: 900; color: #e8b53a; line-height: 1; }
+.stage { font-size: 22px; font-weight: 700; color: #c7d4f5; margin-top: 6px; }
+/* the stage: cutouts stand on its floor, crests pinned at their feet */
+.fig { flex: 1; min-height: 0; width: 100%; position: relative; display: flex; align-items: flex-end; justify-content: center; margin-top: 10px; }
+.half { flex: 1; min-width: 0; height: 100%; position: relative; display: flex; align-items: flex-end; justify-content: center; }
+.half.bare { align-items: center; }
+.cut { max-height: 100%; max-width: 100%; object-fit: contain; object-position: bottom;
+  filter: drop-shadow(0 10px 18px rgba(0,0,0,.5));
+  -webkit-mask-image: linear-gradient(to bottom, #000 80%, transparent 100%); mask-image: linear-gradient(to bottom, #000 80%, transparent 100%); }
+.cut.duo { height: 100%; }
 /* Crests arrive as circles, squares on white, transparent PNGs — one white disc makes them a set.
-   16% padding keeps a square crest's corners inside the circle (inscribed square = 70.7%). */
-.crest { width: 170px; height: 170px; border-radius: 50%; background: #fff; padding: 16%; flex-shrink: 0;
+   Padding ≈16% of the disc keeps a square crest's corners inside the circle (inscribed square =
+   70.7%). In px, not %: percentage padding resolves against the PARENT's width. */
+.crest { width: 170px; height: 170px; border-radius: 50%; background: #fff; padding: 27px; flex-shrink: 0;
   display: flex; align-items: center; justify-content: center; box-shadow: 0 10px 26px rgba(0,0,0,.45), 0 0 0 4px rgba(255,255,255,.18); }
 .crest img { width: 100%; height: 100%; object-fit: contain; }
 .crest.fallback { padding: 0; color: #fff; font-size: 72px; font-weight: 900; }
-.name { font-size: 38px; font-weight: 800; text-align: center; line-height: 1.1; margin-top: 18px; }
-.vs { font-size: 30px; font-weight: 700; color: #8fa3d6; margin-top: 66px; }
-.venue { font-size: 26px; color: #c7d4f5; margin-top: auto; }
+.crest.pin { width: 92px; height: 92px; padding: 14px; position: absolute; bottom: 0; box-shadow: 0 6px 16px rgba(0,0,0,.5), 0 0 0 3px #e8b53a; }
+.half .crest.pin { inset-inline-start: 50%; transform: translateX(50%); }
+.duo-crests { position: absolute; inset: auto 0 0 0; height: 92px; }
+.duo-crests .crest.pin:first-child { right: 6px; }
+.duo-crests .crest.pin:last-child { left: 6px; }
+.names { display: flex; align-items: center; width: 100%; gap: 8px; margin-top: 16px; }
+.names .name { flex: 1; min-width: 0; font-size: 36px; font-weight: 800; text-align: center; line-height: 1.08; }
+.vs { font-size: 30px; font-weight: 900; font-style: italic; color: #e8b53a; letter-spacing: 1px; }
+.venue { font-size: 24px; color: #c7d4f5; margin-top: 10px; }
 .foot { position: absolute; bottom: 34px; inset-inline: 64px; display: flex; justify-content: space-between; font-size: 28px; color: #8fa3d6; font-weight: 500; }
 .foot b { color: #fff; font-weight: 700; }
 </style></head><body>
@@ -129,7 +158,7 @@ try {
     return {
       font: document.fonts.check('900 40px Heebo'),
       broken: imgs.filter((i) => !i.naturalWidth).map((i) => i.src.slice(0, 120)),
-      overflow: [...document.querySelectorAll('.name')].some((n) => n.scrollWidth > n.clientWidth + 2),
+      overflow: [...document.querySelectorAll('.names .name')].some((n) => n.scrollWidth > n.clientWidth + 2),
     }
   })
   if (!check.font) throw new Error('Heebo did not load — refusing to render Hebrew in a fallback font')

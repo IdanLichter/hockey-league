@@ -49,11 +49,17 @@ Hebrew, for the league's players, families and fans. Warm, lively, a little bit 
 **Shape:**
 1. A one-line headline (e.g. "🏑 מחזור השבת: שלושה משחקים בקריית ביאליק ובקריית מוצקין").
    If `is_opening_round` is true, it's the season opener — say so.
-2. One short line per game, in kickoff order: time, home vs away, venue, and ONE interesting
-   true fact (last season's finish, the head-to-head, a top scorer from last season, recent form).
+2. One line per game, in kickoff order, in EXACTLY this order:
+   **teams first, joined by "vs" (never "נגד"), then the time, then 📍 and the venue**, then a dash
+   and ONE interesting true fact:
+   `בלג נוער vs בלג בוגרים · 16:30 · 📍 קריית ביאליק – <fact>`
+   Home team first (it's listed as `home`). Facts to choose from: last season's finish, the
+   head-to-head, a last-season top scorer, recent form.
    `head_to_head_from_home_view` results are from the HOME team's point of view.
    Last-season facts must be framed as last season ("בעונה שעברה"). This season's table only
    matters once `league_games_played_this_season` > 0.
+   The poster shows the players in `featured_player_image` / `matchup_image`; you may name them
+   in the fact, but only with a real stat of theirs from facts.json.
 3. A closing line inviting people to come / follow live on the site.
 
 Don't include URLs in the text — the card already links to the games page.
