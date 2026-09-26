@@ -201,7 +201,10 @@ export async function listMarkets() {
  * "שווי תיק" — an admin with an empty portfolio was shown 2,534 coins.
  */
 export async function getMyPositions() {
-  const { data: { user } } = await supabase.auth.getUser()
+  // The session, not getUser(): getUser() is a network round trip to the auth
+  // server, and this only needs the id to filter by — RLS still enforces it.
+  const { data: { session } } = await supabase.auth.getSession()
+  const user = session?.user
   if (!user) return {}
   const { data, error } = await supabase
     .from('market_positions').select('*').eq('user_id', user.id).gt('shares', 0)
@@ -496,8 +499,8 @@ export async function loadBoard() {
     getActivity().catch(() => new Map()),
   ])
   const data = { reason, wallet, markets: reason ? [] : markets, positions, conflicts, activity }
-  const { data: { user } } = await supabase.auth.getUser()
-  boardCache = { ...data, userId: user?.id || null, at: Date.now() }
+  const { data: { session } } = await supabase.auth.getSession()
+  boardCache = { ...data, userId: session?.user?.id || null, at: Date.now() }
   return data
 }
 

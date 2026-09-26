@@ -54,11 +54,13 @@ export default function Market() {
     if (b) setBoard(b)
   }, [])
 
+  // Keyed on the user alone, not on authLoading: the account bootstrap (admin
+  // check, roles, profile) takes seconds and the market needs none of it — the
+  // session's user id is known the moment the page mounts.
   useEffect(() => {
-    if (authLoading) return
-    if (!user) { setBoard({ reason: 'signed-out', markets: [] }); return }
-    load()
-  }, [authLoading, user, load])
+    if (user) { load(); return }
+    if (!authLoading) setBoard({ reason: 'signed-out', markets: [] })
+  }, [authLoading, user?.id, load]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const markets = board?.markets || null
   const positions = board?.positions || {}
@@ -93,7 +95,7 @@ export default function Market() {
     return () => { alive = false }
   }, [featured?.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  if (authLoading || !board) return <MarketSkeleton />
+  if (!board) return <MarketSkeleton />
   if (board.reason) return <MarketGate reason={board.reason} onUnlocked={() => { invalidateBoard(); load() }} />
 
   // A settled market is history, not something to trade, so it moves to its own

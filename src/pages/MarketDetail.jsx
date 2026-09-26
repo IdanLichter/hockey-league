@@ -55,13 +55,13 @@ export default function MarketDetail() {
     setConflict(m ? (b.conflicts.get(m.id) ?? null) : null); setMarket(m); setMissing(!m)
   }, [routeKey]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  // As on the board: the session's user is enough, the account bootstrap isn't needed.
   useEffect(() => {
-    if (authLoading) return
-    if (!user) { setReason('signed-out'); return }
-    load()
-  }, [authLoading, user, load])
+    if (user) { load(); return }
+    if (!authLoading) setReason('signed-out')
+  }, [authLoading, user?.id, load]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  if ((authLoading || reason === undefined) && !market) {
+  if (reason === undefined && !market) {
     return <MarketDetailSkeleton />
   }
   if (reason) return <MarketGate reason={reason} onUnlocked={load} />
