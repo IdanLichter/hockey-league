@@ -139,7 +139,7 @@ export default function MarketDetail() {
               </p>
             </div>
           ) : (
-            <PriceChart market={market} trades={trades || []} />
+            <PriceChart market={market} trades={trades} />
           )}
 
           {mine.length > 0 && (

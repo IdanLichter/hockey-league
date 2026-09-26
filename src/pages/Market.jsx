@@ -260,7 +260,7 @@ function Board({
 
       <div className="space-y-10">
         {filter === 'all' && featured && (
-          <FeaturedMarket market={featured} trades={featuredTrades || []} activity={activity.get(featured.id)} />
+          <FeaturedMarket market={featured} trades={featuredTrades} activity={activity.get(featured.id)} />
         )}
 
         {(filter === 'all' || filter === 'season') && (

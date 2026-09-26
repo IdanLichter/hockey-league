@@ -92,6 +92,14 @@ export default function PriceChart({ market, trades, variant = 'card' }) {
     }
   }, [trades, market, H, hero])
 
+  // Tape still loading: hold the chart's space rather than draw the opening
+  // price flat and caption it "not traded yet" for a market that has been.
+  if (trades == null) {
+    return <div className={`${hero ? '' : 'mkt-card p-4 '}animate-pulse`}>
+      <div className="rounded-lg bg-surface-sunken" style={{ aspectRatio: `${W} / ${H}` }} />
+    </div>
+  }
+
   if (empty) {
     return (
       <div className={hero ? '' : 'mkt-card p-4'}>
