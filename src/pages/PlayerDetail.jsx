@@ -293,7 +293,16 @@ export default function PlayerDetail() {
               </button>
             </>
           ) : takenByOther ? (
-            <span className="text-sm text-slate-500 dark:text-slate-400">פרופיל זה כבר משויך לחשבון קיים</span>
+            <span className="text-sm text-slate-500 dark:text-slate-400">
+              פרופיל זה כבר משויך לחשבון קיים
+              {/* The usual cause is the same person with a second account (Apple in the
+                  app, Google here) — tell them how out, instead of a dead end. */}
+              {user && !claimCtx?.profile?.player_id && (
+                <span className="block text-xs mt-1">
+                  זה הכרטיס שלך? כנראה נרשמת בעבר בדרך אחרת (Google / Apple / אימייל). התנתק/י והיכנס/י באותה דרך — או פנה/י למנהל הליגה לאיחוד החשבונות.
+                </span>
+              )}
+            </span>
           ) : pendingElsewhere ? (
             <span className="text-sm text-slate-500 dark:text-slate-400">כבר הגשת בקשת בעלות על שחקן אחר</span>
           ) : linkedElsewhere ? (

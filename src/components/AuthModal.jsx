@@ -218,6 +218,12 @@ export default function AuthModal() {
                 >
                   <GoogleIcon /> המשך עם Google
                 </button>
+
+                {/* Each sign-in method is its own account unless linked — the Apple-in-the-
+                    app + Google-here split is how a player ends up with two accounts. */}
+                <p className="text-center text-[11px] text-slate-400 dark:text-slate-500 mt-3 leading-relaxed">
+                  כבר נרשמתם באפליקציה? היכנסו כאן באותה דרך (Google / אימייל) — דרך אחרת תיצור חשבון נפרד.
+                </p>
               </>
             )}
 

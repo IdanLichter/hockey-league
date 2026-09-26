@@ -4,6 +4,7 @@ import { getGames, getTeams, getPlayers, getGameStats, getLeagueSetting, getPost
 import { getItemLikes, getItemCommentCounts } from "@/lib/reactions"
 import { getMyBlocks } from "@/lib/moderation"
 import { useAuth } from "@/lib/AuthContext"
+import { useHasNativeApp } from "@/lib/appUsers"
 import { RefreshCw, Smartphone } from "lucide-react"
 import { Rink } from "@/components/icons/HockeyIcons"
 import { motion } from "framer-motion"
@@ -31,6 +32,7 @@ export default function Feed() {
   const { seasonMode } = useSeasonMode()
   const seasonName = useSeasonName()
   const { user } = useAuth()
+  const hasApp = useHasNativeApp()
   const [games, setGames] = useState([])
   const [teams, setTeams] = useState([])
   const [players, setPlayers] = useState([])
@@ -202,7 +204,8 @@ export default function Feed() {
               <p className="page-subtitle mt-1">כל מה שקורה בליגה</p>
             </div>
 
-            <Link
+            {/* Already signed in on the app → nothing to download. */}
+            {!hasApp && <Link
               to="/app"
               className="group shrink-0 hidden sm:inline-flex items-center gap-2 rounded-2xl bg-gradient-to-l from-brand to-brand-hover px-3.5 py-2.5 text-white shadow-sm ring-1 ring-brand/20 hover:shadow-md hover:brightness-105 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
               aria-label="הורידו את האפליקציה"
@@ -212,7 +215,7 @@ export default function Feed() {
                 <span className="block text-[13px] font-black">הורידו את האפליקציה!</span>
                 <span className="block text-[11px] font-medium text-white/85">iPhone · Android</span>
               </span>
-            </Link>
+            </Link>}
           </motion.div>
 
           {/* Live now — pinned above the composer when a game is being officiated */}

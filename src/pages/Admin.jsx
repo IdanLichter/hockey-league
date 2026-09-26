@@ -45,6 +45,7 @@ import OfficialsAdmin from "@/components/admin/OfficialsAdmin"
 import VenuesAdmin from "@/components/admin/VenuesAdmin"
 import SeasonCalendar from "@/components/admin/SeasonCalendar"
 import TelemetryAdmin from "@/components/admin/TelemetryAdmin"
+import AppUsersAdmin from "@/components/admin/AppUsersAdmin"
 import SuggestionsReview from "@/components/admin/SuggestionsReview"
 import RolesAdmin from "@/components/admin/RolesAdmin"
 import CoachesAdmin from "@/components/admin/CoachesAdmin"
@@ -53,7 +54,7 @@ import GameChangeRequestsReview from "@/components/admin/GameChangeRequestsRevie
 import WhatsNew from "@/components/admin/WhatsNew"
 import ClustersAdmin from "@/components/admin/ClustersAdmin"
 import { SortBar, sortItems } from "@/components/admin/SortBar"
-import { Award, Images, HeartPulse, Gavel, MapPin, BellRing, Ban, CalendarDays, Cake, CalendarOff, Activity, Wallet, ClipboardList } from "lucide-react"
+import { Award, Images, HeartPulse, Gavel, MapPin, BellRing, Ban, CalendarDays, Cake, CalendarOff, Activity, Wallet, ClipboardList, Smartphone } from "lucide-react"
 import { BRAND_ORANGE } from '@/lib/brand'
 import { AdminSkeleton, AdminPanelSkeleton, SkeletonPanelRows } from "@/components/skeletons/PageSkeletons"
 
@@ -78,6 +79,7 @@ const tabs = [
   { id: "reports", label: "דיווחים", icon: Flag },
   { id: "clusters", label: "קבוצות תמונות", icon: Images },
   { id: "telemetry", label: "טלמטריה", icon: Activity },
+  { id: "app_users", label: "משתמשי אפליקציה", icon: Smartphone },
   { id: "roles", label: "תפקידים", icon: Award },
   { id: "users", label: "מנהלים", icon: Crown },
 ]
@@ -251,6 +253,7 @@ export default function Admin() {
               {currentTab === "reports" && <ReportsReview />}
               {currentTab === "clusters" && <ClustersAdmin players={players} />}
               {currentTab === "telemetry" && <TelemetryAdmin />}
+              {currentTab === "app_users" && <AppUsersAdmin />}
               {currentTab === "coaches" && <CoachesAdmin teamsMap={teamsMap} players={players} />}
               {currentTab === "roles" && <RolesAdmin teamsMap={teamsMap} players={players} />}
               {currentTab === "users" && <UsersAdmin adminUsers={adminUsers} currentUserEmail={user.email} reload={loadData} />}

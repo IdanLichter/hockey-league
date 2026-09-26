@@ -15,6 +15,7 @@ import TeamMembershipCard from "@/components/TeamMembershipCard"
 import MedicalCertificateCard from "@/components/MedicalCertificateCard"
 import BirthDateCard from "@/components/BirthDateCard"
 import BlockedUsersCard from "@/components/BlockedUsersCard"
+import SignInMethodsCard from "@/components/SignInMethodsCard"
 import { RoleBadges, deriveRoleItems } from "@/components/RoleBadges"
 import { entityPath } from "@/lib/slugs"
 import { ProfileSkeleton } from "@/components/skeletons/PageSkeletons"
@@ -399,6 +400,8 @@ export default function Profile() {
             </button>
           </form>
         )}
+
+        <SignInMethodsCard />
 
         <div className="pt-4 border-t border-slate-100 dark:border-slate-700/50 space-y-3">
           <div className="flex items-center gap-2">

@@ -10,6 +10,7 @@ import {
   CalendarClock, CalendarCheck, CalendarX, HeartPulse, ChevronLeft, Loader2,
 } from "lucide-react"
 import { entityPath } from '@/lib/slugs'
+import { useHasNativeApp } from "@/lib/appUsers"
 
 /**
  * "פעולות מהירות" — a context-aware quick-actions panel that sits under the feed
@@ -42,6 +43,7 @@ export default function QuickActions({ games = [], teamsMap = {} }) {
   const { user, profile, openAuth } = useAuth()
   const playerId = profile?.player_id || null
   const teamId = profile?.player?.team_id || null
+  const hasApp = useHasNativeApp()
 
   // { game, status } for the player's next game; status null = not answered yet.
   const [nextGame, setNextGame] = useState(null)
@@ -110,7 +112,8 @@ export default function QuickActions({ games = [], teamsMap = {} }) {
       links.push({ key: "findteam", label: "מצא/י קבוצה", icon: Users, to: "/me", primary: true })
     }
     if (push === "default") links.push({ key: "push", label: "הפעלת התראות", icon: Bell, onClick: onEnablePush, busy: pushBusy })
-    links.push({ key: "app", label: "הורדת האפליקציה", icon: Smartphone, to: "/app" })
+    // Someone who has already signed in on the app doesn't need to be sold it.
+    if (!hasApp) links.push({ key: "app", label: "הורדת האפליקציה", icon: Smartphone, to: "/app" })
   }
 
   const opponentName = (g) => {
