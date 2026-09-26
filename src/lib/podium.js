@@ -74,7 +74,14 @@ export function isCloudflareBlock(message) {
  */
 export async function runPodiumSync() {
   const { data, error } = await supabase.functions.invoke('podium-sync')
-  if (error) throw new Error('הסנכרון נכשל')
+  if (error) {
+    // A non-2xx arrives as `error` with the body unread on error.context, so the
+    // function's own reason ("not authorized", a Podium 403…) would otherwise be lost.
+    const body = await error.context?.json?.().catch(() => null)
+    const reason = body?.error
+    if (reason === 'not authorized') throw new Error('אין הרשאה להריץ סנכרון')
+    throw new Error(isCloudflareBlock(reason) ? CLOUDFLARE_BLOCKED : (reason || 'הסנכרון נכשל'))
+  }
   if (data && data.ok === false) {
     throw new Error(isCloudflareBlock(data.error) ? CLOUDFLARE_BLOCKED : (data.error || 'הסנכרון נכשל'))
   }

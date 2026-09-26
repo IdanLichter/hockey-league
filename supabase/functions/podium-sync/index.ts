@@ -187,7 +187,20 @@ async function assertCaller(req: Request) {
   if (!isAdmin && !roles) throw new Error("not authorized");
 }
 
+// The סנכרן עכשיו button calls this from the browser, which sends a CORS preflight
+// first. Without these headers the preflight fell through to assertCaller (no
+// token → throw → 500) and the browser dropped the real POST: the button did
+// nothing while the pg_cron path kept working. "*" is safe — Bearer-token API,
+// the function authorizes the caller itself. The header list is what
+// supabase-js functions.invoke() sends.
+const CORS: Record<string, string> = {
+  "access-control-allow-origin": "*",
+  "access-control-allow-headers": "authorization, x-client-info, apikey, content-type, x-supabase-api-version",
+  "access-control-allow-methods": "POST, OPTIONS",
+};
+
 Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response(null, { headers: CORS });
   const started = new Date().toISOString();
   let runId: number | null = null;
   try {
@@ -273,7 +286,7 @@ Deno.serve(async (req) => {
 
     return new Response(JSON.stringify({
       ok: true, athletes: athleteRows.length, payments: paymentCount, matched,
-    }), { headers: { "content-type": "application/json" } });
+    }), { headers: { ...CORS, "content-type": "application/json" } });
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     if (runId) {
@@ -282,7 +295,8 @@ Deno.serve(async (req) => {
       }).eq("id", runId);
     }
     return new Response(JSON.stringify({ ok: false, error: msg }), {
-      status: 500, headers: { "content-type": "application/json" },
+      status: msg === "not authorized" ? 403 : 500,
+      headers: { ...CORS, "content-type": "application/json" },
     });
   }
 });
