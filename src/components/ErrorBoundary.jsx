@@ -11,10 +11,16 @@ import { trackError, flush } from '@/lib/telemetry'
  *
  * A class component on purpose: componentDidCatch has no hook equivalent.
  */
+const DEV_HOSTS = /^(localhost|127\.0\.0\.1|\[::1\]|hockey-league-dev(-[a-z0-9-]+)?\.vercel\.app)$/i
+
 export default class ErrorBoundary extends React.Component {
   constructor(props) {
     super(props)
-    this.state = { crashed: false }
+    // `?crash-preview` shows this page without a real crash (and without reporting
+    // one) so it can be looked at — dev hosts only, never on the public site.
+    const preview = DEV_HOSTS.test(window.location.hostname) &&
+      new URLSearchParams(window.location.search).has('crash-preview')
+    this.state = { crashed: preview }
   }
 
   static getDerivedStateFromError() {
