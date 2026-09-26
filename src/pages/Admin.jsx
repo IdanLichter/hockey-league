@@ -137,6 +137,18 @@ export default function Admin() {
   const [tournaments, setTournaments] = useState([])
   const [playerTeams, setPlayerTeams] = useState([])
   const [loading, setLoading] = useState(true)
+  // `section` names one queue inside a stacked tab (the claims tab holds five). Each
+  // queue fetches its own rows after mount, so the ones above it keep growing for a
+  // moment — re-aim a few times rather than once, or the scroll lands on stale geometry.
+  const requestedSection = searchParams.get('section')
+  useEffect(() => {
+    if (!requestedSection || loading) return
+    const timers = [150, 600, 1400].map(ms => setTimeout(() => {
+      document.getElementById(`review-${requestedSection}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }, ms))
+    return () => timers.forEach(clearTimeout)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [requestedSection, requestedTab, loading])
 
   useEffect(() => {
     if (!authLoading && (!user || !canManage)) return
@@ -224,7 +236,7 @@ export default function Admin() {
               {currentTab === "teams" && <TeamsAdmin teams={teams} reload={loadData} reviewOnly={!isAdmin && !isLeagueManager} />}
               {currentTab === "calendar" && <SeasonCalendar />}
               {currentTab === "season" && <SeasonAdmin games={games} teams={teams} players={players} reload={loadData} />}
-              {currentTab === "claims" && <><ClaimsReview teamsMap={teamsMap} coachTeamIds={coachScoped ? coachTeamIds : null} /><PlayerSubmissionsReview teamsMap={teamsMap} coachTeamIds={coachScoped ? coachTeamIds : null} /><TeamJoinRequestsReview teamsMap={teamsMap} coachTeamIds={coachScoped ? coachTeamIds : null} />{(isAdmin || isLeagueManager) && <CoachRequestsReview teamsMap={teamsMap} />}<MedicalReview coachTeamIds={coachScoped ? coachTeamIds : null} />{isAdmin && <SuggestionsReview players={players} />}</>}
+              {currentTab === "claims" && <><div id="review-claims" className="scroll-mt-20"><ClaimsReview teamsMap={teamsMap} coachTeamIds={coachScoped ? coachTeamIds : null} /></div><div id="review-submissions" className="scroll-mt-20"><PlayerSubmissionsReview teamsMap={teamsMap} coachTeamIds={coachScoped ? coachTeamIds : null} /></div><div id="review-joins" className="scroll-mt-20"><TeamJoinRequestsReview teamsMap={teamsMap} coachTeamIds={coachScoped ? coachTeamIds : null} /></div>{(isAdmin || isLeagueManager) && <div id="review-coaches" className="scroll-mt-20"><CoachRequestsReview teamsMap={teamsMap} /></div>}<div id="review-medical" className="scroll-mt-20"><MedicalReview coachTeamIds={coachScoped ? coachTeamIds : null} /></div>{isAdmin && <SuggestionsReview players={players} />}</>}
               {currentTab === "game_requests" && <GameChangeRequestsReview teamsMap={teamsMap} />}
               {currentTab === "medical" && <>{(isAdmin || isLeagueManager) && <div className="mb-8"><MedicalPodiumReview /></div>}<MedicalRosterAdmin /></>}
               {currentTab === "payments" && <PaymentsAdmin />}

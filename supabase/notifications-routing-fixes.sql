@@ -1,0 +1,11 @@
+-- Applied 2026-09-26 as migration `notifications_routing_fixes_sep26` (live).
+--
+-- 1) notify_medical_decision(): a revoke (approved -> rejected) no longer ALSO fires
+--    the generic medical_rejected — revoke_medical_certificate() already sends
+--    medical_revoked with the reason, so the player got two pushes for one action.
+-- 2) revoke_medical_certificate(): the coach's copy of medical_revoked carries
+--    data.for_coach = true, so clients route him to that player's page (/players/<id>)
+--    instead of his own /me.
+--
+-- Full function bodies: see pg_get_functiondef('public.notify_medical_decision'::regproc)
+-- and pg_get_functiondef('public.revoke_medical_certificate'::regprocedure) on the live DB.

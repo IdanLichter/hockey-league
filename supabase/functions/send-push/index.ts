@@ -107,10 +107,11 @@ function notificationText(n: NotificationRow, actorName: string): string {
     case "role_granted":   return `קיבלת תפקיד: ${ROLE_LABEL[d.role] ?? d.role ?? ""}`;
     case "claim_request":  return `${d.claimant ?? "משתמש"} מבקש/ת להתחבר לשחקן ${d.player_name ?? ""}`;
     case "content_report": return `דווח תוכן${d.reason ? ` — ${d.reason}` : ""}`;
-    case "game_result":    return `תוצאה: ${d.home_team ?? ""} ${d.home_score ?? ""}:${d.away_score ?? ""} ${d.away_team ?? ""}`;
+    // away:home, like the bell — the digits run LTR inside an RTL line (RTL score gotcha)
+    case "game_result":    return `תוצאה: ${d.home_team ?? ""} ${d.away_score ?? ""}:${d.home_score ?? ""} ${d.away_team ?? ""}`;
     case "game_change_request":  return `${actorName} מבקש/ת שינוי במשחק ${d.home_team ?? ""} נגד ${d.away_team ?? ""}${d.reason ? ` — ${d.reason}` : ""}`;
-    case "game_change_approved": return `בקשתך לשינוי המשחק ${d.home_team ?? ""} נגד ${d.away_team ?? ""} אושרה 🎉`;
-    case "game_change_rejected": return `בקשתך לשינוי המשחק ${d.home_team ?? ""} נגד ${d.away_team ?? ""} נדחתה`;
+    case "game_change_approved": return `בקשתך לשינוי המשחק ${d.home_team ?? ""} נגד ${d.away_team ?? ""} אושרה 🎉${d.decision_note ? ` — ${d.decision_note}` : ""}`;
+    case "game_change_rejected": return `בקשתך לשינוי המשחק ${d.home_team ?? ""} נגד ${d.away_team ?? ""} נדחתה${d.decision_note ? ` — ${d.decision_note}` : ""}`;
     case "team_join_request":    return `${actorName} מבקש/ת להצטרף לקבוצת ${d.team_name ?? ""}`;
     case "team_join_approved":   return `בקשתך להצטרף לקבוצת ${d.team_name ?? ""} אושרה 🎉`;
     case "team_join_rejected":   return `בקשתך להצטרף לקבוצת ${d.team_name ?? ""} נדחתה`;
@@ -118,6 +119,11 @@ function notificationText(n: NotificationRow, actorName: string): string {
     case "player_submission_approved": return `כרטיס השחקן ${d.candidate_name ?? ""} שהגשת אושר 🎉`;
     case "player_submission_rejected": return `כרטיס השחקן ${d.candidate_name ?? ""} נדחה${d.reason ? ` — ${d.reason}` : ""}`;
     case "medical_submitted":    return `${d.player_name ?? actorName} העלה/תה אישור רפואי הממתין לאישור`;
+    // Stage 2 — the coach signed off; the league manager still has to verify פודיום.
+    // These three shipped with bell copy only, so their pushes said "התראה חדשה".
+    case "medical_pending_manager": return `${d.player_name || "שחקן"}${d.team_name ? ` (${d.team_name})` : ""} — המאמן אישר את הבדיקה, ממתין לאימות רישום בפודיום`;
+    case "medical_coach_approved":  return `המאמן אישר את הבדיקה הרפואית שלך — ממתין לאישור המנהלת`;
+    case "medical_reinspection":    return `${d.count ?? ""} אישורים רפואיים הוחזרו לבדיקה חוזרת — השחקנים חסומים עד לאישורם`;
     case "medical_approved":     return `האישור הרפואי שלך אושר ✅`;
     case "medical_rejected":     return `האישור הרפואי שלך נדחה — יש להעלות מחדש`;
     case "medical_expiring":     return `האישור הרפואי שלך יפוג בעוד ${d.days_left ?? ""} ימים — מומלץ לחדש`;
@@ -191,42 +197,30 @@ function notificationHref(n: NotificationRow): string {
     case "claim_rejected": return n.entity_id ? `/players/${n.entity_id}` : "/me";
     case "role_granted":   return "/me";
     case "app_update":     return "/app";
-    case "claim_request":
-    case "content_report": return "/admin";
-    case "game_result":    return n.entity_id ? `/games/${n.entity_id}` : "/games";
-    case "game_change_request":  return "/admin";
+    // Reviewer queues: land on the TAB (and, inside the stacked claims tab, the
+    // SECTION) the notification is about. A bare /admin opens whichever tab happens to
+    // be first, and the reviewer has to go hunting. Both apps read `tab` too.
+    case "claim_request":          return "/admin?tab=claims&section=claims";
+    case "content_report":         return "/admin?tab=reports";
+    case "game_change_request":    return "/admin?tab=game_requests";
+    case "coach_request":          return "/admin?tab=claims&section=coaches";
+    case "official_application":   return "/admin?tab=officials";
+    case "team_join_request":          return "/admin?tab=claims&section=joins";
+    case "player_submission_request":  return "/admin?tab=claims&section=submissions";
+    case "medical_submitted":          return "/admin?tab=claims&section=medical";
+    case "medical_pending_manager":
+    case "medical_reinspection":   return "/admin?tab=medical";
+    case "medical_expiring_player": return "/admin?tab=claims&section=medical";
+    // the recipient is the coach the report is waiting on — land him on the queue
+    case "coach_open_items": return `/admin?tab=${d.tab ?? n.entity_id ?? "claims"}`;
+    case "unavailability_reported": return "/admin?tab=unavailability";
+    case "game_result":
     case "game_change_opponent":
     case "game_change_approved":
-    case "game_change_rejected": return n.entity_id ? `/games/${n.entity_id}` : "/games";
-    case "coach_request":          return "/admin";
-    case "coach_request_rejected": return n.entity_id ? `/teams/${n.entity_id}` : "/me";
+    case "game_change_rejected":
     case "official_assigned":
     case "official_application_approved":
-    case "official_application_rejected": return n.entity_id ? `/games/${n.entity_id}` : "/games";
-    case "official_application":          return "/admin";
-    case "team_join_request":
-    case "player_submission_request":
-    case "medical_submitted":      return "/admin";
-    case "team_join_approved":
-    case "team_join_rejected":     return n.entity_id ? `/teams/${n.entity_id}` : "/me";
-    case "player_submission_approved": return d.player_id ? `/players/${d.player_id}` : "/me";
-    case "player_submission_rejected":
-    case "medical_approved":
-    case "medical_rejected":
-    case "medical_expiring":       return "/me";
-    // the recipient is the COACH, and Admin.jsx never grants him the medical tab —
-    // his medical surface is MedicalReview, which renders inside the claims tab.
-    case "medical_expiring_player": return "/admin?tab=claims";
-    // the recipient is the coach the report is waiting on — land him on the queue
-    case "coach_open_items": return `/admin?tab=${n.entity_id ?? "claims"}`;
-    case "unavailability_reported": return "/admin?tab=unavailability";
-    case "unavailability_approved":
-    case "unavailability_rejected": return "/me";
-    case "medical_revoked":
-    case "medical_date_changed":   return "/me";
-    case "tournament_invite":
-    case "tournament_invite_accepted":
-    case "tournament_invite_declined": return n.entity_id ? `/tournaments/${n.entity_id}` : "/tournaments";
+    case "official_application_rejected":
     case "game_register_reminder":
     case "game_register_nudge":
     case "coach_squad_digest":
@@ -236,8 +230,27 @@ function notificationHref(n: NotificationRow): string {
     case "game_moved":
     case "follow_game_alert":
     case "goal_scored":            return n.entity_id ? `/games/${n.entity_id}` : "/games";
+    case "coach_request_rejected":
+    case "team_join_approved":
+    case "team_join_rejected":     return n.entity_id ? `/teams/${n.entity_id}` : "/me";
+    case "player_submission_approved": return d.player_id ? `/players/${d.player_id}` : "/me";
+    case "player_submission_rejected":
+    case "medical_approved":
+    case "medical_rejected":
+    case "medical_coach_approved":
+    case "medical_expiring":
+    case "medical_date_changed":
+    case "unavailability_approved":
+    case "unavailability_rejected": return "/me";
+    // the coach's copy is about one of his players, not about him
+    case "medical_revoked":        return d.for_coach && n.entity_id ? `/players/${n.entity_id}` : "/me";
+    case "tournament_invite":
+    case "tournament_invite_accepted":
+    case "tournament_invite_declined": return n.entity_id ? `/tournaments/${n.entity_id}` : "/tournaments";
     case "market_resolved":        return n.entity_id ? `/market/${n.entity_id}` : "/market";
     case "market_coins":           return "/market";
+    case "post_like":
+    case "post_comment":           return n.entity_id ? `/#post-${n.entity_id}` : "/";
     default:               return "/";
   }
 }

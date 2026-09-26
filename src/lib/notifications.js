@@ -303,16 +303,17 @@ export function notificationHref(n) {
     case 'follow_game_alert':      return n.entity_id ? `/games/${n.entity_id}` : '/games'
     case 'app_update':            return '/app'
     case 'goal_scored':           return n.entity_id ? `/games/${n.entity_id}` : '/games'
-    // reviewers land on the /admin review tabs
-    case 'team_join_request':
-    case 'player_submission_request':
-    case 'medical_submitted':      return '/admin?tab=claims'
+    // reviewers land on the /admin review tabs. The claims tab stacks five queues, so
+    // `section` scrolls to the one this is about instead of leaving it below the fold.
+    case 'team_join_request':          return '/admin?tab=claims&section=joins'
+    case 'player_submission_request':  return '/admin?tab=claims&section=submissions'
+    case 'medical_submitted':          return '/admin?tab=claims&section=medical'
     case 'medical_pending_manager':
     case 'medical_reinspection':   return '/admin?tab=medical'
     // the player / submitter lands where the outcome lives
     case 'team_join_approved':
     case 'team_join_rejected':     return n.entity_id ? `/teams/${n.entity_id}` : '/me'
-    case 'coach_request':          return '/admin?tab=claims'
+    case 'coach_request':          return '/admin?tab=claims&section=coaches'
     case 'coach_request_rejected': return n.entity_id ? `/teams/${n.entity_id}` : '/me'
     case 'player_submission_approved': return n.data?.player_id ? `/players/${n.data.player_id}` : '/me'
     case 'player_submission_rejected':
@@ -320,14 +321,15 @@ export function notificationHref(n) {
     case 'medical_rejected':
     case 'medical_coach_approved':
     case 'medical_expiring':       return '/me'
-    case 'medical_expiring_player': return '/admin?tab=claims'
+    case 'medical_expiring_player': return '/admin?tab=claims&section=medical'
     // F1 — the reviewer lands on the player whose absence it is; the player on his own page
     // the recipient is the coach the report is waiting on — land him on the queue
     case 'coach_open_items': return `/admin?tab=${n.entity_id || 'claims'}`
     case 'unavailability_reported': return '/admin?tab=unavailability'
     case 'unavailability_approved':
     case 'unavailability_rejected': return '/me'
-    case 'medical_revoked':
+    // the coach's copy is about one of his players, not about him
+    case 'medical_revoked':        return n.data?.for_coach && n.entity_id ? `/players/${n.entity_id}` : '/me'
     case 'medical_date_changed':   return '/me'
     case 'tournament_invite':
     case 'tournament_invite_accepted':
