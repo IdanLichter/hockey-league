@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { ArrowRight, MapPin, CalendarDays, Lock, Coins, Droplets, Sparkles } from 'lucide-react'
 import { useAuth } from '@/lib/AuthContext'
@@ -45,6 +45,7 @@ export default function MarketDetail() {
     getTrades(seedMarket.id).then(setTrades).catch(() => setTrades([]))
   }, [seedMarket?.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  const loadedFor = useRef(null)
   const load = useCallback(async () => {
     const b = await loadBoard()
     setReason(b.reason)
@@ -57,7 +58,12 @@ export default function MarketDetail() {
 
   // As on the board: the session's user is enough, the account bootstrap isn't needed.
   useEffect(() => {
-    if (user) { load(); return }
+    if (user) {
+      // Once per user and market: authLoading flipping later must not reload.
+      const k = `${user.id}:${routeKey}`
+      if (loadedFor.current !== k) { loadedFor.current = k; load() }
+      return
+    }
     if (!authLoading) setReason('signed-out')
   }, [authLoading, user?.id, load]) // eslint-disable-line react-hooks/exhaustive-deps
 

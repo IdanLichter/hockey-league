@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import {
   Coins, LayoutGrid, Wallet, Trophy, Settings, CalendarDays, Star, History, Gift,
@@ -49,6 +49,7 @@ export default function Market() {
   const [tab, setTab] = useState('board')
   const [filter, setFilter] = useState('all')
 
+  const loadedFor = useRef(null)
   const load = useCallback(async () => {
     const b = await loadBoard().catch(() => null)
     if (b) setBoard(b)
@@ -58,7 +59,11 @@ export default function Market() {
   // check, roles, profile) takes seconds and the market needs none of it — the
   // session's user id is known the moment the page mounts.
   useEffect(() => {
-    if (user) { load(); return }
+    if (user) {
+      // Once per user: authLoading flipping later must not fire a second load.
+      if (loadedFor.current !== user.id) { loadedFor.current = user.id; load() }
+      return
+    }
     if (!authLoading) setBoard({ reason: 'signed-out', markets: [] })
   }, [authLoading, user?.id, load]) // eslint-disable-line react-hooks/exhaustive-deps
 
