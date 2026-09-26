@@ -7,11 +7,15 @@ The routine prompt only says "follow ROUTINE.md", so this file is the real promp
 
 ## Steps
 
-Work from the repo root.
+Work from the repo root, **on `main`** (the clone may default to `dev`, which lacks these files):
+`git fetch origin main && git checkout -B main origin/main`.
 
-1. **Install** — `npm ci --no-audit --no-fund` (puppeteer downloads its own Chrome).
-   If Chrome can't be downloaded, point `CHROME_PATH` at any installed Chrome/Chromium
-   (`which chromium chromium-browser google-chrome`) and continue.
+1. **Install** — `npm ci --no-audit --no-fund`. The cloud image ships Chromium at
+   `/opt/pw-browsers/chromium`; if that exists, `export CHROME_PATH=/opt/pw-browsers/chromium`.
+   Otherwise use any Chrome/Chromium on the machine (`which chromium chromium-browser google-chrome`).
+   If the facts call fails with `HTTP 403, non-JSON body` / `CONNECT tunnel failed`, the
+   environment's network allowlist is blocking `*.supabase.co` — stop and say so; it's a
+   setting, not a code bug.
 2. **Facts** — `node scripts/weekly-preview/preview.mjs facts > /tmp/facts.json`
    (with a date argument only when the prompt gives one). Read the whole file.
    - If `games` is empty: **stop. Post nothing.** Say "no league games this Saturday" and end.
