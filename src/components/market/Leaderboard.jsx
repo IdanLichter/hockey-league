@@ -1,16 +1,17 @@
 import { useState, useEffect } from 'react'
-import { Trophy, Loader2 } from 'lucide-react'
+import { Trophy } from 'lucide-react'
 import { getLeaderboard, coins as fmtCoins, START_BALANCE } from '@/lib/market'
 import { useAuth } from '@/lib/AuthContext'
 
-function Face({ name, url }) {
+function Face({ name, url, big = false }) {
+  const size = big ? 'w-14 h-14' : 'w-8 h-8'
   if (url) {
     return <img src={url} alt="" loading="lazy"
       onError={e => { e.currentTarget.style.visibility = 'hidden' }}
-      className="w-8 h-8 rounded-full object-cover shrink-0 bg-surface-sunken" />
+      className={`${size} rounded-full object-cover shrink-0 bg-surface-sunken`} />
   }
   return (
-    <div className="w-8 h-8 rounded-full shrink-0 bg-surface-sunken flex items-center justify-center text-xs font-bold text-fg-muted">
+    <div className={`${size} rounded-full shrink-0 bg-surface-sunken flex items-center justify-center text-xs font-bold text-fg-muted`}>
       {name?.charAt(0) || '?'}
     </div>
   )
@@ -34,57 +35,90 @@ export default function Leaderboard() {
 
   if (err) return <p className="text-center text-sm text-fg-muted py-10">לא הצלחנו לטעון את הטבלה</p>
   if (!rows) {
-    return <div className="flex justify-center py-12"><Loader2 className="w-5 h-5 animate-spin text-brand" /></div>
+    return <div className="space-y-3"><div className="h-40 rounded-xl bg-surface-sunken animate-pulse" /><div className="h-64 rounded-xl bg-surface-sunken animate-pulse" /></div>
   }
   if (!rows.length) {
     return <p className="text-center text-sm text-fg-muted py-10">עדיין אף אחד לא נכנס לשוק</p>
   }
 
-  return (
-    <div className="mkt-card overflow-hidden">
-      <div className="flex items-center gap-2 px-4 py-3 border-b border-line-subtle">
-        <Trophy className="w-4 h-4 text-gold" />
-        <h2 className="font-extrabold text-fg-strong text-sm">טבלת המובילים</h2>
-        <span className="ms-auto text-[11px] text-fg-subtle">שווי תיק = מטבעות + פוזיציות פתוחות</span>
-      </div>
+  const myIdx = rows.findIndex(r => r.user_id === user?.id)
+  const me = myIdx >= 0 ? rows[myIdx] : null
+  const ahead = myIdx > 0 ? rows[myIdx - 1] : null
+  const podium = rows.slice(0, 3)
+  const rest = rows.slice(3)
 
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="text-[11px] text-fg-subtle border-b border-line-subtle">
-              <th className="text-start font-semibold px-4 py-2 w-10">#</th>
-              <th className="text-start font-semibold px-2 py-2">שחקן</th>
-              <th className="text-end font-semibold px-2 py-2">מטבעות</th>
-              <th className="text-end font-semibold px-2 py-2 hidden sm:table-cell">פוזיציות</th>
-              <th className="text-end font-semibold px-4 py-2">שווי תיק</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-line-subtle">
-            {rows.map((r, i) => {
-              const me = r.user_id === user?.id
-              const up = Number(r.total) >= START_BALANCE
+  return (
+    <div className="space-y-4">
+      {me && (
+        <div className="mkt-card px-4 py-3 flex items-center gap-3 border-brand/40 bg-brand/5">
+          <span className="mkt-num text-2xl font-black text-brand">#{myIdx + 1}</span>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-bold text-fg-strong">המקום שלך מתוך {rows.length}</p>
+            <p className="text-[11px] text-fg-muted">
+              {ahead
+                ? <>עוד <span className="mkt-coin">{fmtCoins(Number(ahead.total) - Number(me.total))}</span> כדי לעקוף את {ahead.display_name}</>
+                : 'אתה בראש הטבלה — תחזיק מעמד 👑'}
+            </p>
+          </div>
+          <span className={`mkt-num font-black ${Number(me.total) >= START_BALANCE ? 'text-pos' : 'text-neg'}`}>{fmtCoins(me.total)}</span>
+        </div>
+      )}
+
+      {/* Podium: 2 · 1 · 3, the winner raised in the middle. */}
+      {podium.length >= 3 && (
+        <div className="mkt-card p-4 pt-6 bg-gradient-to-b from-gold/10 to-transparent">
+          <div className="grid grid-cols-3 gap-2 items-end">
+            {[podium[1], podium[0], podium[2]].map(r => {
+              const place = rows.indexOf(r)
+              const h = ['h-24', 'h-16', 'h-12'][place]
               return (
-                <tr key={r.user_id} className={me ? 'bg-brand/5' : undefined}>
-                  <td className={`px-4 py-2.5 mkt-num font-bold ${MEDAL[i] || 'text-fg-subtle'}`}>{i + 1}</td>
-                  <td className="px-2 py-2.5">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <Face name={r.display_name} url={r.avatar_url} />
-                      <span className="font-semibold text-fg-strong truncate">{r.display_name}</span>
-                      {me && <span className="stat-pill bg-brand/15 text-brand text-[10px] px-1.5 py-0">אני</span>}
-                    </div>
-                  </td>
-                  <td className="px-2 py-2.5 text-end mkt-num text-fg-soft">{fmtCoins(r.balance)}</td>
-                  <td className="px-2 py-2.5 text-end mkt-num text-fg-muted hidden sm:table-cell">
-                    {fmtCoins(r.open_value)}
-                  </td>
-                  <td className={`px-4 py-2.5 text-end mkt-num font-bold ${up ? 'text-pos' : 'text-neg'}`}>
-                    {fmtCoins(r.total)}
-                  </td>
-                </tr>
+                <div key={r.user_id} className="flex flex-col items-center text-center min-w-0">
+                  {place === 0 && <Trophy className="w-5 h-5 text-gold mb-1" />}
+                  <div className={`rounded-full p-0.5 ${place === 0 ? 'bg-gold' : place === 1 ? 'bg-fg-faint' : 'bg-[#b87333]'}`}>
+                    <Face name={r.display_name} url={r.avatar_url} big={place === 0} />
+                  </div>
+                  <span className="text-xs font-bold text-fg-strong truncate max-w-full mt-1.5">{r.display_name}</span>
+                  <span className="mkt-num text-xs font-black text-pos">{fmtCoins(r.total)}</span>
+                  <div className={`w-full ${h} mt-2 rounded-t-lg flex items-start justify-center pt-1.5 ${
+                    place === 0 ? 'bg-gold/25' : 'bg-surface-sunken'}`}>
+                    <span className={`mkt-num text-lg font-black ${MEDAL[place]}`}>{place + 1}</span>
+                  </div>
+                </div>
               )
             })}
-          </tbody>
-        </table>
+          </div>
+        </div>
+      )}
+
+      <div className="mkt-card overflow-hidden">
+        <div className="flex items-center gap-2 px-4 py-3 border-b border-line-subtle">
+          <Trophy className="w-4 h-4 text-gold" />
+          <h2 className="font-extrabold text-fg-strong text-sm">טבלת המובילים</h2>
+          <span className="ms-auto text-[11px] text-fg-subtle hidden sm:inline">שווי תיק = מטבעות + פוזיציות פתוחות</span>
+        </div>
+        <ul className="divide-y divide-line-subtle">
+          {(podium.length >= 3 ? rest : rows).map(r => {
+            const i = rows.indexOf(r)
+            const mine = r.user_id === user?.id
+            const up = Number(r.total) >= START_BALANCE
+            return (
+              <li key={r.user_id} className={`flex items-center gap-3 px-4 py-2.5 ${mine ? 'bg-brand/5' : ''}`}>
+                <span className={`mkt-num w-6 text-sm font-bold ${MEDAL[i] || 'text-fg-subtle'}`}>{i + 1}</span>
+                <Face name={r.display_name} url={r.avatar_url} />
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className="font-semibold text-sm text-fg-strong truncate">{r.display_name}</span>
+                    {mine && <span className="stat-pill bg-brand/15 text-brand text-[10px] px-1.5 py-0">אני</span>}
+                  </div>
+                  <p className="text-[11px] text-fg-subtle mkt-num">
+                    {fmtCoins(r.balance)} מטבעות · {fmtCoins(r.open_value)} בפוזיציות
+                  </p>
+                </div>
+                <span className={`mkt-num text-sm font-black ${up ? 'text-pos' : 'text-neg'}`}>{fmtCoins(r.total)}</span>
+              </li>
+            )
+          })}
+        </ul>
       </div>
     </div>
   )

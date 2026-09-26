@@ -1,11 +1,13 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { ArrowRight, MapPin, CalendarDays, Lock, Coins, Droplets } from 'lucide-react'
+import { ArrowRight, MapPin, CalendarDays, Lock, Coins, Droplets, Sparkles } from 'lucide-react'
 import { useAuth } from '@/lib/AuthContext'
 import {
-  getBlockReason, getWallet, listMarkets, getMyPositions, getTrades, getConflicts,
+  loadBoard, cachedBoard, getTrades, gameSides,
   coins as fmtCoins, pct,
 } from '@/lib/market'
+import TeamLogo from '@/components/TeamLogo'
+import { SplitBar, useSideColors } from '@/components/market/MatchCard'
 import MarketGate from '@/components/market/MarketGate'
 import { StatusChip, OutcomeFace, closesIn } from '@/components/market/MarketCard'
 import TradeTicket from '@/components/market/TradeTicket'
@@ -22,31 +24,36 @@ export default function MarketDetail() {
   const { id: routeKey } = useParams()
   const { user, loading: authLoading } = useAuth()
 
-  const [reason, setReason] = useState(undefined)
-  const [market, setMarket] = useState(null)
-  const [wallet, setWallet] = useState(null)
-  const [positions, setPositions] = useState({})
-  const [trades, setTrades] = useState([])
-  const [conflict, setConflict] = useState(null)
+  // Opened from the board, everything but the tape is already in this tab's
+  // cache — paint it now and refresh underneath rather than skeleton the page.
+  const seed = cachedBoard(user?.id)
+  const find = ms => (ms || []).find(x => x.slug === routeKey || x.id === routeKey) || null
+  const seedMarket = seed && !seed.reason ? find(seed.markets) : null
+
+  const [reason, setReason] = useState(seedMarket ? null : undefined)
+  const [market, setMarket] = useState(seedMarket)
+  const [wallet, setWallet] = useState(seed?.wallet ?? null)
+  const [positions, setPositions] = useState(seed?.positions ?? {})
+  const [trades, setTrades] = useState(null)
+  const [conflict, setConflict] = useState(seedMarket ? (seed.conflicts.get(seedMarket.id) ?? null) : null)
   const [missing, setMissing] = useState(false)
 
+  // A slug from the cache lets the tape start loading in the first round trip
+  // instead of waiting for the board to resolve it.
+  useEffect(() => {
+    if (!seedMarket) return
+    getTrades(seedMarket.id).then(setTrades).catch(() => setTrades([]))
+  }, [seedMarket?.id]) // eslint-disable-line react-hooks/exhaustive-deps
+
   const load = useCallback(async () => {
-    const r = await getBlockReason()
-    setReason(r)
-    if (r) return
-    const [w, ms, ps, cs] = await Promise.all([
-      getWallet().catch(() => null),
-      listMarkets().catch(() => []),
-      getMyPositions().catch(() => ({})),
-      getConflicts().catch(() => new Map()),
-    ])
-    const m = ms.find(x => x.slug === routeKey || x.id === routeKey)
-    // Trades key off the market's UUID, so they can only be fetched once the
-    // slug has been matched — one round trip later than the rest.
+    const b = await loadBoard()
+    setReason(b.reason)
+    if (b.reason) return
+    const m = find(b.markets)
     const ts = m ? await getTrades(m.id).catch(() => []) : []
-    setWallet(w); setPositions(ps); setTrades(ts)
-    setConflict(m ? (cs.get(m.id) ?? null) : null); setMarket(m || null); setMissing(!m)
-  }, [routeKey])
+    setWallet(b.wallet); setPositions(b.positions); setTrades(ts)
+    setConflict(m ? (b.conflicts.get(m.id) ?? null) : null); setMarket(m); setMissing(!m)
+  }, [routeKey]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (authLoading) return
@@ -54,7 +61,7 @@ export default function MarketDetail() {
     load()
   }, [authLoading, user, load])
 
-  if (authLoading || reason === undefined) {
+  if ((authLoading || reason === undefined) && !market) {
     return <MarketDetailSkeleton />
   }
   if (reason) return <MarketGate reason={reason} onUnlocked={load} />
@@ -112,7 +119,22 @@ export default function MarketDetail() {
 
       <div className="grid lg:grid-cols-[1fr_340px] gap-5 items-start">
         <div className="space-y-5 min-w-0">
-          <PriceChart market={market} trades={trades} />
+          {market.kind === 'game' && <MatchHeader market={market} />}
+          {/* "Nobody has bet" only when the book agrees — every price still at the
+              1/n it opened on. A tape that failed to load must not claim it. */}
+          {trades && trades.length === 0 && market.status === 'open'
+            && market.outcomes.every(o => Math.abs(o.price - 1 / market.outcomes.length) < 0.001) ? (
+            <div className="mkt-card p-6 text-center border-dashed bg-gradient-to-b from-brand/[0.06] to-transparent">
+              <Sparkles className="w-7 h-7 text-gold mx-auto mb-2" />
+              <p className="font-extrabold text-fg-strong">עוד אף אחד לא הימר כאן</p>
+              <p className="text-xs text-fg-muted mt-1 max-w-xs mx-auto leading-relaxed">
+                כל האפשרויות עדיין במחיר הפתיחה — ההימור הראשון קובע את הקו.
+                היה הראשון ותקבל את המחיר הכי טוב.
+              </p>
+            </div>
+          ) : (
+            <PriceChart market={market} trades={trades || []} />
+          )}
 
           {mine.length > 0 && (
             <div className="mkt-card p-4">
@@ -147,7 +169,7 @@ export default function MarketDetail() {
             </div>
           )}
 
-          <Tape trades={trades} market={market} />
+          <Tape trades={trades || []} market={market} />
         </div>
 
         <div>
@@ -192,6 +214,35 @@ function Tape({ trades, market }) {
           </li>
         ))}
       </ul>
+    </div>
+  )
+}
+
+/** A fixture's page opens on the fixture: both crests, big, and the split odds. */
+function MatchHeader({ market }) {
+  const { home, draw, away } = gameSides(market)
+  const colors = useSideColors(home, away)
+  if (!home || !away) return null
+  const Side = ({ o, c }) => (
+    <div className="flex-1 min-w-0 flex flex-col items-center gap-2 text-center">
+      <TeamLogo team={o.team} size={14} />
+      <span className="font-extrabold text-fg-strong leading-tight">{o.label}</span>
+      <span className="mkt-num text-2xl font-black" style={{ color: c }}>{pct(o.price)}</span>
+    </div>
+  )
+  return (
+    <div className="mkt-card p-5 bg-gradient-to-b from-surface-inset to-surface">
+      <div className="flex items-start gap-3">
+        <Side o={home} c={colors.home} />
+        <div className="shrink-0 pt-5 text-center">
+          <span className="text-xs font-black text-fg-subtle tracking-widest">VS</span>
+          {draw && (
+            <p className="text-[11px] text-fg-muted mt-2">תיקו <span className="mkt-num font-bold text-fg-soft">{pct(draw.price)}</span></p>
+          )}
+        </div>
+        <Side o={away} c={colors.away} />
+      </div>
+      <div className="mt-4"><SplitBar home={home} draw={draw} away={away} colors={colors} tall /></div>
     </div>
   )
 }

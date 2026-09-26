@@ -146,7 +146,11 @@ export async function listMarkets() {
   const gameIds = markets.filter(m => m.game_id).map(m => m.game_id)
   const playerIds = [...new Set(outcomes.map(o => o.player_id).filter(Boolean))]
 
-  const [games, players] = await Promise.all([
+  // The league has a handful of teams, so all of them come down in the same
+  // round trip as games and players. Waiting to learn which team ids the
+  // player runners point at cost the board a third sequential hop — the
+  // single biggest slice of the 4–6s skeleton the market used to open on.
+  const [games, players, teams] = await Promise.all([
     gameIds.length
       ? supabase.from('games').select('id, game_date, venue, status, home_team_id, away_team_id')
           .in('id', gameIds).then(r => r.data || [])
@@ -155,21 +159,8 @@ export async function listMarkets() {
       ? supabase.from('players').select('id, first_name, last_name, photo_url, team_id')
           .in('id', playerIds).then(r => r.data || [])
       : [],
+    supabase.from('teams').select('id, name, logo_url, primary_color').then(r => r.data || []),
   ])
-
-  // Teams wait on players deliberately: a runner in מלך השערים carries no
-  // team_id of its own, and the price chart colours that line by the team the
-  // player plays for. One extra round trip, and only when the board holds a
-  // player market at all.
-  const teamIds = [...new Set([
-    ...outcomes.map(o => o.team_id),
-    ...players.map(p => p.team_id),
-  ].filter(Boolean))]
-
-  const teams = teamIds.length
-    ? await supabase.from('teams').select('id, name, logo_url, primary_color')
-        .in('id', teamIds).then(r => r.data || [])
-    : []
 
   const gameById = Object.fromEntries(games.map(g => [g.id, g]))
   const teamById = Object.fromEntries(teams.map(t => [t.id, t]))
@@ -477,4 +468,105 @@ export function pickFeatured(markets, activity = new Map(), conflicts = new Map(
     if (score > bestScore) { best = m; bestScore = score }
   }
   return best
+}
+
+// ── Board loading + cache ───────────────────────────────────────────────────
+
+/**
+ * Everything the board and a market page need, fetched in parallel.
+ *
+ * The eligibility check runs ALONGSIDE the reads instead of in front of them:
+ * every read here is RLS-gated and simply comes back empty for someone who is
+ * blocked, so there is nothing to protect by waiting. The wallet is the one
+ * exception — `market_wallet` opens a wallet on first call — so it still waits
+ * for a clean eligibility answer.
+ *
+ * Resolves all at once, so the page never renders a half state (the wallet hero
+ * used to flash "0 / 0" in red while the rest was still in flight).
+ */
+export async function loadBoard() {
+  const reasonP = getBlockReason()
+  const walletP = reasonP.then(r => (r ? null : getWallet().catch(() => null)))
+  const [reason, wallet, markets, positions, conflicts, activity] = await Promise.all([
+    reasonP,
+    walletP,
+    listMarkets().catch(() => []),
+    getMyPositions().catch(() => ({})),
+    getConflicts().catch(() => new Map()),
+    getActivity().catch(() => new Map()),
+  ])
+  const data = { reason, wallet, markets: reason ? [] : markets, positions, conflicts, activity }
+  const { data: { user } } = await supabase.auth.getUser()
+  boardCache = { ...data, userId: user?.id || null, at: Date.now() }
+  return data
+}
+
+let boardCache = null
+
+/**
+ * The last board this tab loaded, for the same user — or null.
+ *
+ * Returning to the board from a market (or opening a market from the board)
+ * paints this immediately and refreshes underneath, instead of showing a
+ * skeleton for data that was on screen a second ago.
+ */
+export function cachedBoard(userId) {
+  if (!boardCache || !userId || boardCache.userId !== userId) return null
+  return boardCache
+}
+
+/** Forget the cached board — after a trade, so nothing stale is painted. */
+export function invalidateBoard() { boardCache = null }
+
+// ── Board grouping ──────────────────────────────────────────────────────────
+
+const TZ = 'Asia/Jerusalem'
+const dayKey = iso => new Date(iso).toLocaleDateString('en-CA', { timeZone: TZ })
+
+/** "היום" / "מחר" / "שבת · 03.10" — how a matchday is headed on the board. */
+export function matchdayLabel(iso) {
+  const key = dayKey(iso)
+  const today = dayKey(new Date().toISOString())
+  const tomorrow = dayKey(new Date(Date.now() + DAY).toISOString())
+  if (key === today) return 'היום'
+  if (key === tomorrow) return 'מחר'
+  const d = new Date(iso)
+  const wd = d.toLocaleDateString('he-IL', { weekday: 'long', timeZone: TZ })
+  const dm = d.toLocaleDateString('he-IL', { day: '2-digit', month: '2-digit', timeZone: TZ })
+  return `${wd} · ${dm}`
+}
+
+/**
+ * Game markets bucketed by the day they are played, soonest first.
+ *
+ * A season is 40+ fixtures and every one of them spawns a market the day it is
+ * scheduled, so a flat list buried the season markets under nine months of
+ * games. Grouped by matchday, the board can show the next round in full and
+ * fold the rest away.
+ *
+ *   [{ key: '2026-10-03', label: 'שבת · 03.10', markets: [...] }, ...]
+ */
+export function groupByMatchday(gameMarkets) {
+  const groups = new Map()
+  for (const m of gameMarkets) {
+    const iso = m.game?.game_date || m.closes_at
+    const key = iso ? dayKey(iso) : 'tbd'
+    if (!groups.has(key)) groups.set(key, { key, label: iso ? matchdayLabel(iso) : 'ללא תאריך', iso, markets: [] })
+    groups.get(key).markets.push(m)
+  }
+  const out = [...groups.values()]
+  out.sort((a, b) => (a.key === 'tbd') - (b.key === 'tbd') || a.key.localeCompare(b.key))
+  for (const g of out) g.markets.sort((a, b) => new Date(a.game?.game_date || 0) - new Date(b.game?.game_date || 0))
+  return out
+}
+
+/** The home / draw / away outcomes of a game market (any may be missing). */
+export function gameSides(market) {
+  const by = k => market.outcomes.find(o => o.okey === k) || null
+  return { home: by('home'), draw: by('draw'), away: by('away') }
+}
+
+/** True when I hold shares in any outcome of this (live) market. */
+export function holdsAny(market, positions) {
+  return market.outcomes.some(o => Number(positions?.[o.id]?.shares) > 0)
 }

@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from 'react'
-import { Loader2, ArrowLeftRight, Lock, TrendingUp, TrendingDown, Search, X } from 'lucide-react'
+import { Loader2, ArrowLeftRight, Lock, TrendingUp, TrendingDown, Search, X, Check, Coins } from 'lucide-react'
 import {
-  prices, sharesForCoins, coinsForShares, avgPrice, pct, coins as fmtCoins, buy, sell,
+  prices, sharesForCoins, coinsForShares, avgPrice, pct, coins as fmtCoins, buy, sell, invalidateBoard,
 } from '@/lib/market'
 import { OutcomeFace } from './MarketCard'
 
@@ -31,6 +31,7 @@ export default function TradeTicket({ market, balance, position, onTraded }) {
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState(null)
   const [done, setDone] = useState(null)
+  const [celebrate, setCelebrate] = useState(null)
   const [query, setQuery] = useState('')
   const [showAll, setShowAll] = useState(false)
 
@@ -103,9 +104,14 @@ export default function TradeTicket({ market, balance, position, onTraded }) {
       const r = side === 'buy'
         ? await buy(outcome.id, n)
         : await sell(outcome.id, Math.min(n, held))
-      setDone(side === 'buy'
-        ? `נקנו ${Number(r.shares).toFixed(1)} מניות`
-        : `התקבלו ${fmtCoins(r.coins)} מטבעות`)
+      invalidateBoard()
+      if (side === 'buy') {
+        // The moment a bet lands is the one moment the market should feel like a
+        // game rather than a form — so it gets a beat of its own.
+        setCelebrate({ label: outcome.label, stake: n, payout: Number(r.shares) })
+      } else {
+        setDone(`התקבלו ${fmtCoins(r.coins)} מטבעות`)
+      }
       setAmount('')
       await onTraded?.()
     } catch (e2) {
@@ -115,8 +121,15 @@ export default function TradeTicket({ market, balance, position, onTraded }) {
     }
   }
 
+  useEffect(() => {
+    if (!celebrate) return
+    const t = setTimeout(() => setCelebrate(null), 3200)
+    return () => clearTimeout(t)
+  }, [celebrate])
+
   return (
-    <div className="mkt-card p-4 sticky top-20">
+    <div className="mkt-card p-4 sticky top-20 relative overflow-hidden">
+      {celebrate && <Celebration {...celebrate} onClose={() => setCelebrate(null)} />}
       {/* Outcome picker */}
       {crowded && (
         <div className="relative mb-2">
@@ -230,10 +243,26 @@ export default function TradeTicket({ market, balance, position, onTraded }) {
             <dl className="space-y-1.5 mb-3 px-3 py-2.5 rounded-lg bg-surface-inset text-xs">
               {side === 'buy' ? (
                 <>
+                  {/* The bet slip's headline: what this stake turns into. The
+                      mechanics (shares, average price) stay, but underneath. */}
+                  <div className="-mx-3 -mt-2.5 mb-2 px-3 py-3 rounded-t-lg bg-brand/10 border-b border-brand/20">
+                    <p className="text-[11px] text-fg-muted">
+                      אם <span className="font-bold text-fg-strong">{outcome.label}</span> — תקבל
+                    </p>
+                    <div className="flex items-baseline justify-between gap-2 mt-0.5">
+                      <span className="mkt-coin text-3xl flex items-center gap-1.5">
+                        <Coins className="w-6 h-6" />{fmtCoins(preview.payout)}
+                      </span>
+                      <span className="stat-pill bg-pos/15 text-pos mkt-num" dir="ltr">
+                        ×{(preview.payout / Number(amount)).toFixed(2)}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-pos font-bold mt-0.5" dir="rtl">
+                      רווח של <span className="mkt-num">+{fmtCoins(preview.profit)}</span>
+                    </p>
+                  </div>
                   <Row label="מניות" value={preview.shares.toFixed(1)} />
                   <Row label="מחיר ממוצע" value={pct(preview.avg)} />
-                  <Row label="אם זה יקרה" value={fmtCoins(preview.payout)} accent />
-                  <Row label="רווח" value={`+${fmtCoins(preview.profit)}`} accent />
                 </>
               ) : (
                 <>
@@ -254,7 +283,9 @@ export default function TradeTicket({ market, balance, position, onTraded }) {
             disabled={busy || !preview || overBalance || overHolding}
             className="btn-primary w-full disabled:opacity-40 disabled:cursor-not-allowed">
             {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <ArrowLeftRight className="w-4 h-4" />}
-            {side === 'buy' ? 'קנייה' : 'מכירה'}
+            {side === 'buy'
+              ? (preview ? `הימור ${fmtCoins(Number(amount))} על ${outcome?.label}` : 'קנייה')
+              : 'מכירה'}
           </button>
         </form>
       )}
@@ -268,5 +299,34 @@ function Row({ label, value, accent }) {
       <dt className="text-fg-muted">{label}</dt>
       <dd className={`mkt-num font-bold ${accent ? 'text-brand' : 'text-fg-soft'}`} dir="ltr">{value}</dd>
     </div>
+  )
+}
+
+/**
+ * The filled-bet moment: a check that pops, a burst of coins, and the one
+ * number the trader cares about. Dismisses itself; a tap dismisses it sooner.
+ */
+function Celebration({ label, stake, payout, onClose }) {
+  return (
+    <button type="button" onClick={onClose}
+      className="absolute inset-0 z-10 bg-surface/95 backdrop-blur-sm flex flex-col items-center justify-center text-center px-6"
+      aria-live="polite">
+      <div className="relative mb-3">
+        <div className="mkt-burst absolute inset-0" aria-hidden>
+          {Array.from({ length: 10 }, (_, i) => (
+            <i key={i} style={{ '--a': `${i * 36}deg`, animationDelay: `${(i % 3) * 40}ms` }} />
+          ))}
+        </div>
+        <span className="mkt-pop relative w-16 h-16 rounded-full bg-brand flex items-center justify-center shadow-lg">
+          <Check className="w-8 h-8 text-brand-fg" strokeWidth={3} />
+        </span>
+      </div>
+      <p className="text-lg font-black text-fg-strong">ההימור נכנס!</p>
+      <p className="text-sm text-fg-muted mt-1">
+        <span className="mkt-coin">{fmtCoins(stake)}</span> על <span className="font-bold text-fg-soft">{label}</span>
+      </p>
+      <p className="text-xs text-fg-subtle mt-3">אם זה יקרה תקבל</p>
+      <p className="mkt-coin text-2xl mkt-pop" style={{ animationDelay: '150ms' }}>{fmtCoins(payout)}</p>
+    </button>
   )
 }

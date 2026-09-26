@@ -408,6 +408,36 @@
   to { opacity: 1; transform: translateY(0); }
 }
 
+/* Horizontal chip rails scroll by swipe; a scrollbar under a row of pills is noise. */
+.no-scrollbar { scrollbar-width: none; }
+.no-scrollbar::-webkit-scrollbar { display: none; }
+
+/* הוקי מרקט — a filled bet. The check pops, the coins burst outward, the
+   payout counts in. Transform + opacity only; all of it off under reduced motion. */
+.mkt-pop { animation: mkt-pop 0.45s cubic-bezier(.2,1.6,.4,1) both; }
+@keyframes mkt-pop {
+  from { opacity: 0; transform: scale(.4); }
+  to { opacity: 1; transform: scale(1); }
+}
+.mkt-burst > i {
+  position: absolute; top: 50%; left: 50%; width: 8px; height: 8px; border-radius: 9999px;
+  background: rgb(var(--gold)); opacity: 0;
+  animation: mkt-burst 0.8s ease-out forwards;
+}
+@keyframes mkt-burst {
+  0% { opacity: 1; transform: translate(-50%, -50%) rotate(var(--a)) translateY(0) scale(1); }
+  100% { opacity: 0; transform: translate(-50%, -50%) rotate(var(--a)) translateY(-70px) scale(.4); }
+}
+/* A price that just moved flashes once, in the direction it moved. */
+.mkt-flash-up { animation: mkt-flash-up 1.2s ease-out; }
+.mkt-flash-down { animation: mkt-flash-down 1.2s ease-out; }
+@keyframes mkt-flash-up { 0% { background: rgb(var(--pos) / .25); } 100% { background: transparent; } }
+@keyframes mkt-flash-down { 0% { background: rgb(var(--neg) / .25); } 100% { background: transparent; } }
+@media (prefers-reduced-motion: reduce) {
+  .mkt-pop, .mkt-burst > i, .mkt-flash-up, .mkt-flash-down { animation: none; }
+  .mkt-burst > i { display: none; }
+}
+
 /* The sweep must run with the reading direction, and `transform` is NOT mirrored
    by `dir` — an unflipped sweep travels left-to-right across a Hebrew page and
    reads backwards. The app is RTL end to end (<html dir="rtl">), so this rule

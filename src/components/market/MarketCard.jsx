@@ -31,11 +31,11 @@ export function StatusChip({ market }) {
     return <span className="stat-pill bg-surface-sunken text-fg-muted"><Ban className="w-3 h-3" /> בוטל</span>
   }
   if (market.status === 'closed') {
-    return <span className="stat-pill bg-surface-sunken text-fg-muted"><Lock className="w-3 h-3" /> סגור למסחר</span>
+    return <span className="stat-pill bg-surface-sunken text-fg-muted whitespace-nowrap shrink-0"><Lock className="w-3 h-3" /> סגור למסחר</span>
   }
   const t = closesIn(market.closes_at)
   return (
-    <span className="stat-pill bg-pos/10 text-pos">
+    <span className="stat-pill bg-pos/10 text-pos whitespace-nowrap shrink-0">
       <Clock className="w-3 h-3" /> {t ? `נסגר ${t}` : 'פתוח'}
     </span>
   )
