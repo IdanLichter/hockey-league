@@ -173,7 +173,10 @@ const browser = await puppeteer.launch({
 try {
   const page = await browser.newPage()
   await page.setViewport({ width: W, height: H, deviceScaleFactor: 1 })
-  await page.setContent(html, { waitUntil: 'networkidle0', timeout: 60_000 })
+  // Everything is inlined, so 'load' is enough. A cold Chromium in the cloud sandbox once sat
+  // past the 60s timeout on its first page; the immediate retry took 5s — so retry once.
+  try { await page.setContent(html, { waitUntil: 'load', timeout: 60_000 }) }
+  catch (e) { console.warn(`first load failed (${e.message}) — retrying`); await page.setContent(html, { waitUntil: 'load', timeout: 90_000 }) }
   const check = await page.evaluate(async () => {
     await document.fonts.ready
     const imgs = [...document.images]
