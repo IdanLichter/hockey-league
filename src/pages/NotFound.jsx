@@ -12,14 +12,48 @@ export default function NotFound() {
 
   return (
     <div className="page-container min-h-[60vh] flex flex-col items-center justify-center text-center py-16">
-      <div className="text-7xl font-black text-brand-strong dark:text-brand-light tracking-tight">404</div>
-      <h1 className="mt-4 text-2xl font-black text-fg-strong">הדף לא נמצא</h1>
+      <RinkFourOhFour />
+      <h1 className="mt-6 text-2xl font-black text-fg-strong">הכדור לא נמצא</h1>
       <p className="mt-2 page-subtitle max-w-md">
-        הכתובת שחיפשתם לא קיימת או שהוסרה. אפשר לחזור לעמוד הבית ולהמשיך משם.
+        חיפשנו בכל המגרש – הדף הזה לא קיים או שהוסר.
       </p>
-      <Link to="/" className="btn-primary mt-6">
-        חזרה לעמוד הבית
-      </Link>
+      <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+        <Link to="/" className="btn-primary">חזרה למגרש</Link>
+        <Link to="/games" className="btn-secondary">ללוח המשחקים</Link>
+      </div>
     </div>
+  )
+}
+
+// "404" drawn onto the rink, in the HockeyIcons line language (same as the crash
+// page): a 4 in each half, and the 0 is the ball sitting on the faceoff spot — the
+// one brand-colored accent, bouncing (.ball-out, which yields to reduced motion).
+function RinkFourOhFour() {
+  return (
+    <svg
+      viewBox="0 0 200 110"
+      className="w-64 sm:w-80 h-auto text-fg-subtle"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      role="img"
+      aria-label="404"
+      direction="ltr"
+    >
+      <rect x="6" y="6" width="188" height="98" rx="26" />
+      <line x1="100" y1="6" x2="100" y2="104" />
+      <circle cx="100" cy="55" r="22" />
+      <path d="M6 40 h12 v30 h-12" />
+      <path d="M194 40 h-12 v30 h12" />
+      <g fill="currentColor" stroke="none" className="text-fg-strong" fontWeight="900" fontSize="62" textAnchor="middle">
+        <text x="55" y="77">4</text>
+        <text x="145" y="77">4</text>
+      </g>
+      <g className="ball-out">
+        <circle cx="100" cy="55" r="13" fill="rgb(var(--brand))" stroke="none" />
+      </g>
+    </svg>
   )
 }
