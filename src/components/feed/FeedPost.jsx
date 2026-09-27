@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react"
 import { Link } from "react-router-dom"
 import { motion, AnimatePresence } from "framer-motion"
 import { format } from "date-fns"
-import { Crown, Flame, Trophy, MapPin, FileText, ChevronDown, Heart, MessageCircle, Send, Loader2, Camera, ExternalLink, BadgeCheck, Check, RefreshCw, ArrowLeft, Globe } from "lucide-react"
+import { Crown, Flame, Trophy, MapPin, FileText, ChevronDown, Heart, MessageCircle, Send, Loader2, Camera, ExternalLink, BadgeCheck, Check, RefreshCw, ArrowLeft, Globe, Cake } from "lucide-react"
 import TeamLogo from "@/components/TeamLogo"
 import { useAuth } from "@/lib/AuthContext"
 import { likePost, unlikePost, getComments, createComment, editPost, deletePost, editComment, deleteComment } from "@/lib/api"
@@ -15,6 +15,7 @@ import { RoleBadge, deriveRoleItems } from "@/components/RoleBadges"
 import { TARGET_POST, TARGET_COMMENT } from "@/lib/moderation"
 import { FRIENDLY_GAME_TYPE } from "@/lib/leagueStats"
 import { entityPath } from "@/lib/slugs"
+import { birthdayPlayerId } from "@/lib/feed"
 
 function Avatar({ url, name, className = "w-9 h-9" }) {
   const initial = (name || "?").trim().charAt(0).toUpperCase() || "?"
@@ -480,11 +481,42 @@ function MilestonePost({ post, likedItems, itemLikeCounts, itemCommentCounts, bl
   )
 }
 
+/* ============ BIRTHDAY (post_birthdays, supabase/birthday-celebrations.sql) ============
+   Only "today" — never a date or an age. Falls back to the post's own text/photo when the
+   player isn't in playersMap (e.g. archived). */
+function BirthdayBanner({ player, team, fallbackPhoto, body }) {
+  const fullName = [player.first_name, player.last_name].filter(Boolean).join(" ")
+  const photo = player.photo_url || fallbackPhoto
+  return (
+    <PlayerLink playerId={player.id} className="block rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/50 px-4 py-5 text-center hover:bg-amber-100/70 dark:hover:bg-amber-900/30 transition-colors">
+      <div className="relative w-fit mx-auto">
+        {photo
+          ? <img src={photo} alt="" className="w-20 h-20 rounded-full object-cover ring-4 ring-amber-400/70" />
+          : <div className="w-20 h-20 rounded-full bg-amber-200 dark:bg-amber-800 text-amber-800 dark:text-amber-100 ring-4 ring-amber-400/70 flex items-center justify-center text-2xl font-bold">{(fullName || "?").charAt(0)}</div>}
+        <span className="absolute -bottom-1 -left-1 w-8 h-8 rounded-full bg-amber-400 text-amber-900 flex items-center justify-center ring-2 ring-white dark:ring-slate-800">
+          <Cake className="w-4 h-4" />
+        </span>
+      </div>
+      <p className="mt-3 text-lg font-extrabold text-amber-800 dark:text-amber-200">יום הולדת שמח!</p>
+      {fullName ? (
+        <p className="text-sm font-bold text-slate-800 dark:text-slate-100">
+          {fullName}
+          {player.jersey_number != null && <span className="text-slate-500 dark:text-slate-400 font-semibold"> · #{player.jersey_number}</span>}
+          {team?.name && <span className="text-slate-500 dark:text-slate-400 font-semibold"> · {team.name}</span>}
+        </p>
+      ) : (
+        <p className="text-sm text-slate-700 dark:text-slate-200">{body}</p>
+      )}
+      <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">כל הליגה מאחלת מזל טוב — כתבו ברכה בתגובות</p>
+    </PlayerLink>
+  )
+}
+
 /* ============ HUMAN POST (Stage B2 + likes/comments) ============ */
-function PostCard({ post, likedPostIds, blockedIds, roleBadges }) {
+function PostCard({ post, likedPostIds, blockedIds, roleBadges, playersMap, teamsMap }) {
   const { user, openAuth } = useAuth()
   const { post: p, author, team } = post.data
-  const name = author?.display_name || "חבר/ת הליגה"
+  const name = birthdayPlayerId(p) ? "ליגת הוקי גלגיליות" : (author?.display_name || "חבר/ת הליגה")
   const linkedPlayerId = author?.player_id || null   // paired → has a player page
   // Author's public league role(s). No teamsMap here → coach shows as "מאמן"
   // (compact) rather than "מאמן · team", keeping the inline header short.
@@ -507,7 +539,10 @@ function PostCard({ post, likedPostIds, blockedIds, roleBadges }) {
   // An ingested news item (supabase/functions/ingest-rink-hockey-news) carries a
   // source, a link and usually a thumbnail. It reuses this card so external news
   // gets likes, comments and moderation for free.
-  const ext = p.source_name ? { source: p.source_name, link: p.link_url, image: p.image_url } : null
+  // A daily birthday post (post_birthdays) is sourced too, but renders as its own card.
+  const bdayId = birthdayPlayerId(p)
+  const bday = bdayId ? (playersMap?.[bdayId] || { id: bdayId }) : null
+  const ext = p.source_name && !bday ? { source: p.source_name, link: p.link_url, image: p.image_url } : null
   const [extImgError, setExtImgError] = useState(false)
   // Two of the three sources are YouTube channels, so most news items are videos.
   // They play HERE (muted, while on screen) rather than sending the reader to
@@ -620,6 +655,10 @@ function PostCard({ post, likedPostIds, blockedIds, roleBadges }) {
               <span title="מקושר לשחקן — לחצו לעמוד השחקן" className="shrink-0 inline-flex items-center gap-0.5 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30 px-1.5 py-0.5 rounded-full">
                 <BadgeCheck className="w-3 h-3" /> שחקן
               </span>
+            ) : bday ? (
+              <span className="shrink-0 inline-flex items-center gap-0.5 text-[10px] font-bold text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-900/30 px-1.5 py-0.5 rounded-full">
+                <Cake className="w-3 h-3" /> יום הולדת
+              </span>
             ) : ext ? (
               <span title={`מקור חיצוני · ${ext.source}`} className="shrink-0 inline-flex items-center gap-0.5 text-[10px] font-bold text-sky-700 dark:text-sky-300 bg-sky-50 dark:bg-sky-900/30 px-1.5 py-0.5 rounded-full">
                 <Globe className="w-3 h-3" /> {ext.source}
@@ -664,6 +703,8 @@ function PostCard({ post, likedPostIds, blockedIds, roleBadges }) {
             </button>
           </div>
         </div>
+      ) : bday ? (
+        <BirthdayBanner player={bday} team={bday.team_id ? teamsMap?.[bday.team_id] : null} fallbackPhoto={p.image_url} body={postBody} />
       ) : (
         <p className="text-sm text-slate-700 dark:text-slate-200 whitespace-pre-wrap break-words leading-relaxed">{ext ? postBody.split("\n\n")[0] : postBody}</p>
       )}
@@ -796,7 +837,7 @@ export default function FeedPost({ post, playersMap, teamsMap, roleBadges, liked
       return <MilestonePost post={post} {...rx} />
     case 'post':
     case 'external':
-      return <PostCard post={post} likedPostIds={likedPostIds} blockedIds={blockedIds} roleBadges={roleBadges} />
+      return <PostCard post={post} likedPostIds={likedPostIds} blockedIds={blockedIds} roleBadges={roleBadges} playersMap={playersMap} teamsMap={teamsMap} />
     default:
       return null
   }

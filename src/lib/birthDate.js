@@ -98,3 +98,19 @@ export async function getPlayerLoanAges() {
 
 /** My own player card's DOB (null if I'm not linked to a player). */
 export const getMyBirthDate = getPlayerBirthDate
+
+/**
+ * Birthday celebration opt-out (supabase/birthday-celebrations.sql). On by default: each
+ * morning post_birthdays() puts a "יום הולדת שמח" post in the feed — no date, no age.
+ * Both RPCs act only on the player linked to the caller's own account.
+ */
+export async function getMyBirthdayCelebration() {
+  const { data, error } = await supabase.rpc('my_birthday_celebration')
+  if (error) return null
+  return data?.linked ? !!data.celebrate : null
+}
+
+export async function setMyBirthdayCelebration(on) {
+  const { error } = await supabase.rpc('set_birthday_celebration', { p_on: !!on })
+  if (error) throw new Error('השמירה נכשלה, נסו שוב')
+}

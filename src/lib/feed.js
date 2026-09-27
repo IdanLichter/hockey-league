@@ -57,6 +57,16 @@ export function isFollowedPost(post, followedTeams, followedPlayers) {
 }
 
 /**
+ * The player a daily birthday post is about, or null. Those posts are written by
+ * post_birthdays() (supabase/birthday-celebrations.sql) with
+ * external_guid = birthday:<player uuid>:<year>.
+ */
+export function birthdayPlayerId(p) {
+  const m = /^birthday:([0-9a-f-]{36}):\d{4}$/.exec(p?.external_guid || '')
+  return m ? m[1] : null
+}
+
+/**
  * Tags describing what a feed item is ABOUT. Sent with every impression so the server
  * can learn affinity without knowing how the feed is built — synthetic items (game
  * results, milestones) have no table of their own to join against.
@@ -84,7 +94,7 @@ export function feedItemTags(post) {
       player(d.player?.id); team(d.team?.id)
       break
     case 'post':
-      team(d.post?.team_id); player(d.author?.player_id)
+      team(d.post?.team_id); player(d.author?.player_id); player(birthdayPlayerId(d.post))
       break
     case 'external':
       if (d.post?.source_name) tags.add(`source:${d.post.source_name}`)
@@ -291,7 +301,9 @@ export function buildFeed({
     // An ingested item carries source_name; it gets its own type so the "פוסטים"
     // filter keeps meaning "what people here wrote" rather than silently mixing
     // in a wire feed. See supabase/functions/ingest-rink-hockey-news.
-    const isExternal = !!p.source_name
+    // Birthday posts are sourced too (so native shows them without a release), but they
+    // are league content, not world news.
+    const isExternal = !!p.source_name && !birthdayPlayerId(p)
     posts.push({
       id: `post-${p.id}`,
       type: isExternal ? 'external' : 'post',

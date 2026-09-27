@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react"
 import { Cake, Check, Loader2, Pencil } from "lucide-react"
-import { getMyBirthDate, setPlayerBirthDate, ageFromBirthDate } from "@/lib/birthDate"
+import { getMyBirthDate, setPlayerBirthDate, ageFromBirthDate, getMyBirthdayCelebration, setMyBirthdayCelebration } from "@/lib/birthDate"
 
 /**
  * Date of birth on /me — and the prompt that gets it filled in.
@@ -19,6 +19,9 @@ export default function BirthDateCard({ playerId }) {
   const [saving, setSaving] = useState(false)
   const [err, setErr] = useState(null)
   const [ready, setReady] = useState(false)
+  // null = unknown / not linked → the switch isn't shown.
+  const [celebrate, setCelebrate] = useState(null)
+  const [savingCelebrate, setSavingCelebrate] = useState(false)
 
   useEffect(() => {
     if (!playerId) { setReady(true); return }
@@ -27,6 +30,7 @@ export default function BirthDateCard({ playerId }) {
       if (!alive) return
       setBirthDate(d); setValue(d || ""); setReady(true)
     }).catch(() => setReady(true))
+    getMyBirthdayCelebration().then(v => { if (alive) setCelebrate(v) })
     return () => { alive = false }
   }, [playerId])
 
@@ -41,19 +45,46 @@ export default function BirthDateCard({ playerId }) {
     } catch (e2) { setErr(e2.message) } finally { setSaving(false) }
   }
 
+  const toggleCelebrate = async () => {
+    if (savingCelebrate || celebrate == null) return
+    const next = !celebrate
+    setCelebrate(next); setSavingCelebrate(true); setErr(null)
+    try { await setMyBirthdayCelebration(next) }
+    catch (e2) { setCelebrate(!next); setErr(e2.message) }
+    finally { setSavingCelebrate(false) }
+  }
+
   const age = ageFromBirthDate(birthDate)
   const missing = !birthDate
 
   if (!missing && !editing) {
     return (
-      <div className="card p-4 flex items-center gap-2">
-        <Cake className="w-4 h-4 text-brand shrink-0" />
-        <span className="text-sm text-slate-700 dark:text-slate-200">
-          תאריך לידה: <span dir="ltr" className="tabular-nums">{new Date(birthDate).toLocaleDateString("he-IL")}</span>
-          {age != null && <span className="text-slate-400 text-xs"> · גיל {age}</span>}
-        </span>
-        <button onClick={() => setEditing(true)} aria-label="עריכת תאריך לידה"
-          className="ms-auto text-slate-400 hover:text-brand transition-colors"><Pencil className="w-3.5 h-3.5" /></button>
+      <div className="card p-4 space-y-3">
+        <div className="flex items-center gap-2">
+          <Cake className="w-4 h-4 text-brand shrink-0" />
+          <span className="text-sm text-slate-700 dark:text-slate-200">
+            תאריך לידה: <span dir="ltr" className="tabular-nums">{new Date(birthDate).toLocaleDateString("he-IL")}</span>
+            {age != null && <span className="text-slate-400 text-xs"> · גיל {age}</span>}
+          </span>
+          <button onClick={() => setEditing(true)} aria-label="עריכת תאריך לידה"
+            className="ms-auto text-slate-400 hover:text-brand transition-colors"><Pencil className="w-3.5 h-3.5" /></button>
+        </div>
+        {celebrate != null && (
+          <div className="flex items-center gap-3 pt-3 border-t border-slate-100 dark:border-slate-700/50">
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold text-slate-900 dark:text-white">לחגוג את יום ההולדת שלי</p>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">
+                פוסט ברכה בפיד ביום ההולדת. בלי תאריך ובלי גיל — רק "היום".
+              </p>
+            </div>
+            <button type="button" role="switch" aria-checked={celebrate} aria-label="לחגוג את יום ההולדת שלי"
+              onClick={toggleCelebrate} disabled={savingCelebrate}
+              className={`relative shrink-0 w-11 h-6 rounded-full transition-colors disabled:opacity-60 ${celebrate ? "bg-brand" : "bg-slate-300 dark:bg-slate-600"}`}>
+              <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all ${celebrate ? "right-0.5" : "right-[1.375rem]"}`} />
+            </button>
+          </div>
+        )}
+        {err && <p className="text-[11px] text-red-600 dark:text-red-400">{err}</p>}
       </div>
     )
   }
@@ -67,7 +98,7 @@ export default function BirthDateCard({ playerId }) {
       {missing && (
         <p className="text-[11px] text-slate-600 dark:text-slate-300 leading-relaxed">
           חסר תאריך לידה בכרטיס השחקן שלך. הליגה משתמשת בו כדי לקבוע אם אפשר להשאיל
-          שחקן/ית לקבוצה אחרת (עד גיל 18, או שוער/ת בכל גיל).
+          שחקן/ית לקבוצה אחרת (עד גיל 18, או שוער/ת בכל גיל) — וגם כדי לאחל לך מזל טוב ביום ההולדת.
         </p>
       )}
       <input type="date" value={value} onChange={e => setValue(e.target.value)}
