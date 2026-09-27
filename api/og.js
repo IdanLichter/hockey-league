@@ -60,6 +60,11 @@ export default async function handler(req, res) {
           desc = [t.city, `${t.points || 0} נק׳`, `${t.wins || 0}נ ${t.ties || 0}ת ${t.losses || 0}ה`].filter(Boolean).join(' · ')
           image = absImg(t.logo_url)
         }
+      } else if (type === 'games' && id === 'next') {
+        // The standing "sign up for your next game" link posted to team groups. Whose
+        // next game it is depends on who opens it, so the preview says what it does.
+        title = 'אישור הגעה למשחק הבא'
+        desc = 'לחצו כדי לאשר אם אתם מגיעים למשחק הבא של הקבוצה שלכם'
       } else if (type === 'games') {
         const g = await sbOne(`games?${match}&select=slug,game_date,home_score,away_score,status,home:teams!games_home_team_id_fkey(name,logo_url),away:teams!games_away_team_id_fkey(name,logo_url)`)
         if (g) {

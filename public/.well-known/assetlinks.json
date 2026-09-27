@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.arielbiton.rinkhockeyil",
+      "sha256_cert_fingerprints": [
+        "BB:BB:93:FD:FA:27:DF:68:DE:BE:47:AF:08:C8:1D:3A:07:C9:ED:CF:59:FB:2F:E4:0E:91:EB:40:69:4D:E2:FC"
+      ]
+    }
+  }
+]

@@ -8,7 +8,7 @@ import {
   getUnavailabilityFor, reportUnavailability, decideUnavailability, clearUnavailability,
 } from "@/lib/unavailability"
 import AddSquadPlayer from "@/components/AddSquadPlayer"
-import { Check, X, Loader2, CalendarCheck, CalendarX, AlertTriangle, Ban, UserMinus, Share2 } from "lucide-react"
+import { Check, X, Loader2, CalendarCheck, CalendarX, AlertTriangle, Ban, UserMinus, Share2, Link2 } from "lucide-react"
 
 /**
  * Sheet row 11 — the coach posts the squad to WhatsApp. Plain text, because that is
@@ -25,7 +25,7 @@ import { Check, X, Loader2, CalendarCheck, CalendarX, AlertTriangle, Ban, UserMi
  * `noteOf` carries whatever else the line has to say — the block's reason, or that this
  * is a manually added loan rather than one of the team's own.
  */
-export function buildSquadMessage({ game, teamName, opponentName, coming, notComing, noReply, blocked = [], nameOf, noteOf = () => "" }) {
+export function buildSquadMessage({ game, teamName, opponentName, coming, notComing, noReply, blocked = [], nameOf, noteOf = () => "", link = "" }) {
   const when = game?.game_date
     ? new Date(game.game_date).toLocaleString("he-IL", {
         weekday: "long", day: "numeric", month: "numeric", hour: "2-digit", minute: "2-digit" })
@@ -46,6 +46,8 @@ export function buildSquadMessage({ game, teamName, opponentName, coming, notCom
   if (blocked.length) parts.push("", `*חסומים לרישום (${blocked.length}):*`, list(blocked))
   // Last, so the chase list is the last thing on screen when the message is read.
   if (noReply.length) parts.push("", `*טרם הגיבו (${noReply.length}):*`, list(noReply))
+  // The way to answer, right under the names being chased. Opens the app when installed.
+  if (link) parts.push("", `לאישור הגעה: ${link}`)
   return parts.join("\n")
 }
 
@@ -92,6 +94,7 @@ export default function GameAvailability({ game, myPlayerId, officialTeamIds = [
   const [deciding, setDeciding] = useState(null)
   const [decisionNotes, setDecisionNotes] = useState({})
   const [actionErr, setActionErr] = useState(null)
+  const [copied, setCopied] = useState(false)
 
   const canSeeAny = officialTeamIds.length > 0 || !!playerTeamId
   // Every gate here is evaluated on the GAME's date, exactly like the server: an absence
@@ -183,6 +186,16 @@ export default function GameAvailability({ game, myPlayerId, officialTeamIds = [
     try { await decideUnavailability(id, approve, decisionNotes[id]); refreshBlocks() }
     catch (e) { setActionErr(e.message) }
     finally { setDeciding(null) }
+  }
+
+  // By UUID, not slug: the native apps route games/<uuid>, and the website redirects a
+  // UUID to the Hebrew URL keeping the #availability fragment.
+  const signupLink = `${window.location.origin}/games/${game.id}#availability`
+  const copySignupLink = async () => {
+    try { await navigator.clipboard.writeText(signupLink) }
+    catch { window.prompt("העתיקו את הקישור:", signupLink); return }
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
   }
 
   const rowByPlayer = Object.fromEntries(rows.map(r => [r.player_id, r]))
@@ -530,12 +543,21 @@ export default function GameAvailability({ game, myPlayerId, officialTeamIds = [
                   const text = buildSquadMessage({
                     game, teamName: teamsMap[tid]?.name || "הקבוצה",
                     opponentName: teamsMap[tid === game.home_team_id ? game.away_team_id : game.home_team_id]?.name,
-                    coming, notComing, noReply, blocked, nameOf, noteOf,
+                    coming, notComing, noReply, blocked, nameOf, noteOf, link: signupLink,
                   })
                   window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank", "noopener,noreferrer")
                 }}
                 className="mt-2 ms-2 inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1.5 rounded-lg border border-dashed border-emerald-300 dark:border-emerald-700 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-colors">
                 <Share2 className="w-3.5 h-3.5" /> ייצוא לוואטסאפ
+              </button>
+            )}
+
+            {/* The link players tap to answer — opens the app on a phone that has it. */}
+            {full && (
+              <button onClick={copySignupLink}
+                className="mt-2 ms-2 inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1.5 rounded-lg border border-dashed border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/60 transition-colors">
+                {copied ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Link2 className="w-3.5 h-3.5" />}
+                {copied ? "הקישור הועתק" : "העתקת קישור לאישור הגעה"}
               </button>
             )}
 

@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react"
-import { useParams, Link } from "react-router-dom"
+import { useParams, Link, useLocation } from "react-router-dom"
 import { getGameById, getGameStatsByGameId, getTeams, getPlayers, getReferees, getGames } from "@/lib/api"
 import { getLiveGame } from "@/lib/live"
 import { useAuth } from "@/lib/AuthContext"
-import { ArrowRight, ArrowLeft, Calendar, CalendarClock, Clock, MapPin, Shield, Trophy, Users, Flame, Swords, TrendingUp, RefreshCw, Radio, Utensils } from "lucide-react"
+import { ArrowRight, ArrowLeft, Calendar, CalendarClock, Clock, MapPin, Shield, Trophy, Users, Flame, Swords, TrendingUp, RefreshCw, Radio, Utensils, CalendarCheck, LogIn, UserPlus } from "lucide-react"
 import { motion } from "framer-motion"
 import { format } from "date-fns"
 import TeamLogo from "@/components/TeamLogo"
@@ -51,7 +51,8 @@ function StatPills({ stat }) {
 export default function GameDetail() {
   const { id: routeKey } = useParams()
   const { id, notFound: unknownRoute } = useSlugId('games', routeKey)
-  const { isAdmin, isJudgeRole, profile, coachTeamIds } = useAuth()
+  const { user, isAdmin, isJudgeRole, profile, coachTeamIds, openAuth } = useAuth()
+  const { hash } = useLocation()
   const [game, setGame] = useState(null)
   const [stats, setStats] = useState([])
   const [teams, setTeams] = useState([])
@@ -388,8 +389,31 @@ export default function GameDetail() {
       {!showLive && <GameVideo game={game} home={home} away={away} players={players} />}
 
       {/* ===== AVAILABILITY (upcoming games) ===== */}
-      {showAvailability && (
-        <GameAvailability game={game} myPlayerId={myAvailPlayerId} officialTeamIds={officialTeamIds} playerTeamId={playerTeamId} teamsMap={teamsMap} playersMap={playersMap} />
+      {/* #availability is the target of shared sign-up links (/games/next, the coach's
+          copied link): it must exist for every viewer, so a guest arriving from WhatsApp
+          lands on a way in rather than on nothing. */}
+      {showAvailability ? (
+        <div id="availability" className="scroll-mt-20">
+          <GameAvailability game={game} myPlayerId={myAvailPlayerId} officialTeamIds={officialTeamIds} playerTeamId={playerTeamId} teamsMap={teamsMap} playersMap={playersMap} />
+        </div>
+      ) : game.status === "scheduled" && (!user || hash === "#availability") && (
+        <div id="availability" className="card p-4 scroll-mt-20 flex items-center gap-3 flex-wrap">
+          <CalendarCheck className="w-5 h-5 text-brand shrink-0" />
+          <p className="flex-1 min-w-[12rem] text-sm text-slate-700 dark:text-slate-200">
+            {!user ? "משחק בקבוצה שלך? התחברו כדי לאשר הגעה."
+              : !profile?.player_id ? "כדי לאשר הגעה יש לשייך את החשבון לכרטיס השחקן שלך."
+              : "אישור הגעה פתוח לשחקני שתי הקבוצות במשחק בלבד."}
+          </p>
+          {!user ? (
+            <button onClick={openAuth} className="flex items-center gap-1.5 text-xs font-bold px-4 py-2 rounded-xl bg-brand text-brand-fg hover:bg-brand-hover transition-colors">
+              <LogIn className="w-3.5 h-3.5" /> התחברות
+            </button>
+          ) : !profile?.player_id && (
+            <Link to="/me" className="flex items-center gap-1.5 text-xs font-bold px-4 py-2 rounded-xl bg-brand text-brand-fg hover:bg-brand-hover transition-colors">
+              <UserPlus className="w-3.5 h-3.5" /> שיוך לשחקן
+            </Link>
+          )}
+        </div>
       )}
 
       {/* ===== LM broadcast (row 25) — renders only for admin / league manager ===== */}

@@ -11,6 +11,7 @@ const Feed = lazy(() => import('./pages/Feed'))
 const Home = lazy(() => import('./pages/Home'))
 const Games = lazy(() => import('./pages/Games'))
 const GameDetail = lazy(() => import('./pages/GameDetail'))
+const NextGame = lazy(() => import('./pages/NextGame'))
 const GameTv = lazy(() => import('./pages/GameTv'))
 const Notifications = lazy(() => import('./pages/Notifications'))
 const Statistics = lazy(() => import('./pages/Statistics'))
@@ -159,6 +160,8 @@ function App() {
             <Route path="/" element={<Feed />} />
             <Route path="/standings" element={<Home />} />
             <Route path="/games" element={<Games />} />
+            {/* The standing "sign up for your next game" link — resolves per viewer. */}
+            <Route path="/games/next" element={<NextGame />} />
             <Route path="/games/:id" element={<GameDetail />} />
             {/* Row 21 — fullscreen board for an HDMI-connected TV (fixed inset-0 covers the shell) */}
             <Route path="/games/:id/tv" element={<GameTv />} />
