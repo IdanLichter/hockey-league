@@ -50,7 +50,6 @@ const HUBS = [
   ['/statistics', 'daily', '0.8'],
   ['/teams', 'weekly', '0.8'],
   ['/players', 'weekly', '0.8'],
-  ['/media', 'weekly', '0.6'],
   ['/tournaments', 'weekly', '0.5'],
   ['/guide', 'monthly', '0.4'],
   ['/app', 'monthly', '0.4'],

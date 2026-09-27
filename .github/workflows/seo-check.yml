@@ -1,0 +1,23 @@
+# Daily check that rinkhockeyil.com still serves search engines real pages
+# (scripts/check-seo.mjs). Read-only: fetches the public site, deploys nothing,
+# needs no secrets. A failed run is the alert — GitHub emails the repo owner.
+name: seo check
+
+on:
+  schedule:
+    - cron: '17 5 * * *'   # 08:17 Israel time
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: node scripts/check-seo.mjs https://rinkhockeyil.com

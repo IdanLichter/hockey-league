@@ -128,6 +128,66 @@ const BUILDERS = {
     }
   },
 
+  async statistics() {
+    const players = await sb('players?select=id,slug,first_name,last_name,goals,games_played,blue_cards,red_cards,team:teams(name)&order=goals.desc,last_name.asc')
+    const row = (p, stat) => `<li>${link(path('players', p.slug || p.id), fullName(p))}${p.team?.name ? ` (${esc(p.team.name)})` : ''} — ${esc(stat)}</li>`
+    const scorers = players.filter(p => p.goals > 0).slice(0, 20)
+    const cards = players.filter(p => (p.blue_cards || 0) + (p.red_cards || 0) > 0)
+      .sort((a, b) => (b.red_cards - a.red_cards) || (b.blue_cards - a.blue_cards)).slice(0, 10)
+    return {
+      title: `סטטיסטיקות | ${SITE_NAME}`, canonicalPath: '/statistics',
+      desc: `מלכי השערים והכרטיסים בליגת הוקי הגלגיליות הישראלית${scorers[0] ? ` — מוביל: ${fullName(scorers[0])}, ${scorers[0].goals} שערים` : ''}.`,
+      body: `<h1>סטטיסטיקות</h1>` +
+        `<h2>מלכי השערים</h2><ol>${scorers.map(p => row(p, `${p.goals} שערים ב-${p.games_played || 0} משחקים`)).join('')}</ol>` +
+        (cards.length ? `<h2>כרטיסים</h2><ol>${cards.map(p => row(p, `${p.blue_cards || 0} כחולים, ${p.red_cards || 0} אדומים`)).join('')}</ol>` : ''),
+    }
+  },
+
+  async tournamentsList() {
+    const ts = await sb('tournaments?select=id,slug,name,start_date,end_date&order=start_date.desc.nullslast')
+    return {
+      title: `טורנירים | ${SITE_NAME}`, canonicalPath: '/tournaments',
+      desc: 'טורנירים לקבוצות הנוער בליגת הוקי הגלגיליות הישראלית.',
+      body: `<h1>טורנירים</h1>` + (ts.length
+        ? `<ul>${ts.map(t => `<li>${link(path('tournaments', t.slug || t.id), t.name)}` +
+            `${t.start_date ? ` — ${esc([fmtDate(t.start_date), fmtDate(t.end_date)].filter(Boolean).join(' – '))}` : ''}</li>`).join('')}</ul>`
+        : '<p>אין טורנירים כרגע.</p>'),
+    }
+  },
+
+  async archive() {
+    const seasons = await sb('seasons?status=eq.archived&select=id,slug,name&order=ends_on.desc.nullslast')
+    const sections = await Promise.all(seasons.map(async (s) => {
+      const [standings, scorers] = await Promise.all([
+        sb(`team_season_stats?season_id=eq.${s.id}&select=team_name,final_rank,points,wins,ties,losses&order=final_rank.asc`),
+        sb(`player_season_stats?season_id=eq.${s.id}&goals=gt.0&select=first_name,last_name,team_name,goals&order=goals.desc&limit=10`),
+      ])
+      return `<section><h2>${link(`/archive/${encodeURIComponent(s.slug || s.id)}`, `עונת ${s.name}`)}</h2>` +
+        (standings.length ? `<h3>טבלה סופית</h3><ol>${standings.map(t => `<li>${esc(t.team_name)} — ${t.points} נק׳ (${t.wins}-${t.ties}-${t.losses})</li>`).join('')}</ol>` : '') +
+        (scorers.length ? `<h3>מלכי השערים</h3><ol>${scorers.map(p => `<li>${esc(fullName(p))} (${esc(p.team_name)}) — ${p.goals} שערים</li>`).join('')}</ol>` : '') +
+        `</section>`
+    }))
+    return {
+      title: `ארכיון | ${SITE_NAME}`, canonicalPath: '/archive',
+      desc: `עונות קודמות של ליגת הוקי הגלגיליות הישראלית${seasons.length ? `: ${seasons.map(s => s.name).join(', ')}` : ''} — טבלאות סופיות ומלכי שערים.`,
+      body: `<h1>ארכיון העונות</h1>${sections.join('') || '<p>אין עונות בארכיון.</p>'}`,
+    }
+  },
+
+  // Static pages: the SPA's own title + description (RouteSeo.jsx), so the bot
+  // copy and the rendered page agree.
+  async guide() {
+    const desc = 'כל התכונות של ליגת הוקי הגלגיליות — מסודרות לפי תפקיד ולפי פלטפורמה (אתר / אפליקציה)'
+    return { title: `מדריך התכונות | ${SITE_NAME}`, canonicalPath: '/guide', desc, body: `<h1>מדריך התכונות</h1><p>${esc(desc)}</p>` }
+  },
+  async app() {
+    const desc = 'אפליקציית הקהילה של הוקי הגלגיליות הישראלי — טבלה, משחקים וסטטיסטיקות ל-iOS ו-Android'
+    return { title: `הורדת האפליקציה | ${SITE_NAME}`, canonicalPath: '/app', desc, body: `<h1>הורדת האפליקציה</h1><p>${esc(desc)}</p>` }
+  },
+  async privacy() {
+    return { title: `מדיניות פרטיות | ${SITE_NAME}`, canonicalPath: '/privacy', desc: `מדיניות הפרטיות של ${SITE_NAME}.`, body: '<h1>מדיניות פרטיות</h1>' }
+  },
+
   async player(key, match) {
     const [p] = await sb(`players?${match}&select=id,slug,first_name,last_name,jersey_number,position,goals,games_played,blue_cards,red_cards,photo_url,team:teams(name,slug,id)`)
     if (!p) return null
@@ -195,11 +255,14 @@ const BUILDERS = {
   },
 }
 
-const PAGE_BUILDERS = { home: 'home', standings: 'standings', teams: 'teams', players: 'players', games: 'gamesList' }
+const PAGE_BUILDERS = {
+  home: 'home', standings: 'standings', teams: 'teams', players: 'players', games: 'gamesList',
+  statistics: 'statistics', tournaments: 'tournamentsList', archive: 'archive', guide: 'guide', app: 'app', privacy: 'privacy',
+}
 const DETAIL_BUILDERS = { players: 'player', teams: 'team', games: 'game', tournaments: 'tournament' }
 
 const NAV = `<nav>${[['/', 'ראשי'], ['/standings', 'טבלה'], ['/games', 'משחקים'], ['/teams', 'קבוצות'],
-  ['/players', 'שחקנים'], ['/statistics', 'סטטיסטיקות'], ['/tournaments', 'טורנירים'], ['/media', 'מדיה']]
+  ['/players', 'שחקנים'], ['/statistics', 'סטטיסטיקות'], ['/tournaments', 'טורנירים']]
   .map(([h, t]) => link(h, t)).join(' | ')}</nav>`
 
 function render(site, { title, desc, body, canonicalPath, image }, { noindex = false } = {}) {

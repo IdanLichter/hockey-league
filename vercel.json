@@ -8,6 +8,12 @@
       ]
     },
     {
+      "source": "/media",
+      "headers": [
+        { "key": "X-Robots-Tag", "value": "noindex" }
+      ]
+    },
+    {
       "source": "/(.*)",
       "headers": [
         { "key": "X-Frame-Options", "value": "SAMEORIGIN" },
@@ -55,6 +61,12 @@
     { "source": "/teams", "has": [{ "type": "header", "key": "user-agent", "value": ".*(Googlebot|Google-InspectionTool|bingbot|DuckDuckBot|YandexBot).*" }], "destination": "/api/seo?page=teams" },
     { "source": "/players", "has": [{ "type": "header", "key": "user-agent", "value": ".*(Googlebot|Google-InspectionTool|bingbot|DuckDuckBot|YandexBot).*" }], "destination": "/api/seo?page=players" },
     { "source": "/games", "has": [{ "type": "header", "key": "user-agent", "value": ".*(Googlebot|Google-InspectionTool|bingbot|DuckDuckBot|YandexBot).*" }], "destination": "/api/seo?page=games" },
+    { "source": "/statistics", "has": [{ "type": "header", "key": "user-agent", "value": ".*(Googlebot|Google-InspectionTool|bingbot|DuckDuckBot|YandexBot).*" }], "destination": "/api/seo?page=statistics" },
+    { "source": "/tournaments", "has": [{ "type": "header", "key": "user-agent", "value": ".*(Googlebot|Google-InspectionTool|bingbot|DuckDuckBot|YandexBot).*" }], "destination": "/api/seo?page=tournaments" },
+    { "source": "/archive", "has": [{ "type": "header", "key": "user-agent", "value": ".*(Googlebot|Google-InspectionTool|bingbot|DuckDuckBot|YandexBot).*" }], "destination": "/api/seo?page=archive" },
+    { "source": "/guide", "has": [{ "type": "header", "key": "user-agent", "value": ".*(Googlebot|Google-InspectionTool|bingbot|DuckDuckBot|YandexBot).*" }], "destination": "/api/seo?page=guide" },
+    { "source": "/app", "has": [{ "type": "header", "key": "user-agent", "value": ".*(Googlebot|Google-InspectionTool|bingbot|DuckDuckBot|YandexBot).*" }], "destination": "/api/seo?page=app" },
+    { "source": "/privacy", "has": [{ "type": "header", "key": "user-agent", "value": ".*(Googlebot|Google-InspectionTool|bingbot|DuckDuckBot|YandexBot).*" }], "destination": "/api/seo?page=privacy" },
 
     { "source": "/((?!assets/).*)", "destination": "/" }
   ]

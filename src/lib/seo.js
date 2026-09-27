@@ -25,7 +25,10 @@ const DEFAULT_IMAGE = `${SITE_URL}/logos/main-logo.png`
 // /market is signed-in-only and age-gated, so it must never reach the index —
 // a public search result for a betting board on a league site with youth teams
 // is exactly the wrong front door.
-export const NOINDEX_PREFIXES = ['/admin', '/judge', '/me', '/creators', '/reset-password', '/market']
+// /media is a crowd-identification board of unnamed faces from game photos
+// (youth teams included) — useful to the community, wrong as a search result.
+// vercel.json also sends X-Robots-Tag: noindex for it, for non-rendering bots.
+export const NOINDEX_PREFIXES = ['/admin', '/judge', '/me', '/creators', '/reset-password', '/market', '/media']
 
 // Same idea, for routes a prefix can't express. /games/:id/tv is the fullscreen
 // board for a TV in the hall — the same fixture as /games/:id, with none of the
