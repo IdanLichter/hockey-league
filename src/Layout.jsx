@@ -12,7 +12,8 @@ import {
   Coins,
   ChevronDown,
   MoreHorizontal,
-  Gamepad2
+  Gamepad2,
+  ClipboardCheck
 } from "lucide-react"
 import { Rink, Standings, Crossed, Teams, Player, Whistle, Stats, Camera, Edit, Clipboard } from "./components/icons/HockeyIcons"
 import { useAuth } from "./lib/AuthContext"
@@ -247,6 +248,8 @@ export default function Layout({ children }) {
   const roleNav = [
     ...((isAdmin || coachTeamIds.length > 0 || isJudgeRole || isLeagueManager) ? [{ title: "ניהול", url: "/admin", icon: NavClipboard }] : []),
     ...(hasRole("judge") ? [{ title: "שיפוט", url: "/judge", icon: NavWhistle }] : []),
+    // Results from the handwritten form: referees + league managers (never coaches).
+    ...((isAdmin || isJudgeRole || isLeagueManager) ? [{ title: "הזנת תוצאות", url: "/results", icon: ClipboardCheck }] : []),
     ...(isContentEditor ? [{ title: "יוצרי תוכן", url: "/creators", icon: NavEdit }] : []),
   ]
 

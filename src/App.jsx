@@ -23,6 +23,8 @@ const Tournaments = lazy(() => import('./pages/Tournaments'))
 const TournamentDetail = lazy(() => import('./pages/TournamentDetail'))
 const Judge = lazy(() => import('./pages/Judge'))
 const JudgeGame = lazy(() => import('./pages/JudgeGame'))
+const GameResultEntry = lazy(() => import('./pages/GameResultEntry'))
+const ResultsPending = lazy(() => import('./pages/ResultsPending'))
 const Admin = lazy(() => import('./pages/Admin'))
 const StreamDebug = lazy(() => import('./pages/StreamDebug'))
 const ArchivePage = lazy(() => import('./pages/Archive'))
@@ -165,6 +167,7 @@ function App() {
             <Route path="/games/:id" element={<GameDetail />} />
             {/* Row 21 — fullscreen board for an HDMI-connected TV (fixed inset-0 covers the shell) */}
             <Route path="/games/:id/tv" element={<GameTv />} />
+            <Route path="/games/:id/result" element={<GameResultEntry />} />
             <Route path="/notifications" element={<Notifications />} />
             <Route path="/statistics" element={<Statistics />} />
             <Route path="/teams" element={<Teams />} />
@@ -185,6 +188,7 @@ function App() {
             <Route path="/creators" element={<ContentCreators />} />
             <Route path="/tournaments" element={<Tournaments />} />
             <Route path="/tournaments/:id" element={<TournamentDetail />} />
+            <Route path="/results" element={<ResultsPending />} />
             <Route path="/judge" element={<Judge />} />
             <Route path="/judge/:id" element={<JudgeGame />} />
             <Route path="/admin" element={<Admin />} />

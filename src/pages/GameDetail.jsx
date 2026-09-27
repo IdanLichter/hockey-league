@@ -3,7 +3,7 @@ import { useParams, Link, useLocation } from "react-router-dom"
 import { getGameById, getGameStatsByGameId, getTeams, getPlayers, getReferees, getGames } from "@/lib/api"
 import { getLiveGame } from "@/lib/live"
 import { useAuth } from "@/lib/AuthContext"
-import { ArrowRight, ArrowLeft, Calendar, CalendarClock, Clock, MapPin, Shield, Trophy, Users, Flame, Swords, TrendingUp, RefreshCw, Radio, Utensils, CalendarCheck, LogIn, UserPlus } from "lucide-react"
+import { ArrowRight, ArrowLeft, Calendar, CalendarClock, Clock, MapPin, Shield, Trophy, Users, Flame, Swords, TrendingUp, RefreshCw, Radio, ClipboardCheck, Utensils, CalendarCheck, LogIn, UserPlus } from "lucide-react"
 import { motion } from "framer-motion"
 import { format } from "date-fns"
 import TeamLogo from "@/components/TeamLogo"
@@ -22,6 +22,7 @@ import AddToCalendar from "@/components/games/AddToCalendar"
 import GameFormExport from "@/components/GameFormExport"
 import { getMyGameChangeRequest, cancelGameChangeRequest } from "@/lib/gameRequests"
 import { GameDetailSkeleton } from "@/components/skeletons/PageSkeletons"
+import { canEnterResults, isAwaitingResult } from "@/lib/gameFormResult"
 
 const statusCfg = {
   scheduled: { label: "מתוכנן", cls: "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300" },
@@ -51,7 +52,7 @@ function StatPills({ stat }) {
 export default function GameDetail() {
   const { id: routeKey } = useParams()
   const { id, notFound: unknownRoute } = useSlugId('games', routeKey)
-  const { user, isAdmin, isJudgeRole, profile, coachTeamIds, openAuth } = useAuth()
+  const { user, isAdmin, isJudgeRole, isLeagueManager, profile, coachTeamIds, openAuth } = useAuth()
   const { hash } = useLocation()
   const [game, setGame] = useState(null)
   const [stats, setStats] = useState([])
@@ -154,6 +155,8 @@ export default function GameDetail() {
   const showLive = !done && (game.status === 'in_progress' || !!live)
   // Officials (judge/admin) get an in-page entry to run the scoreboard + go live.
   const canOfficiate = isAdmin || isJudgeRole
+  // Played without the game clock → referee / LM enters it from the handwritten form.
+  const canEnterFromForm = canEnterResults({ isAdmin, isJudgeRole, isLeagueManager }) && isAwaitingResult(game) && !live
 
   // #3 / attendance: the viewer's linked player (if rostered in this game); which teams
   // they may see as an OFFICIAL (admin → both, coach → their own team) with full roster +
@@ -243,6 +246,11 @@ export default function GameDetail() {
         {canOfficiate && !done && (
           <Link to={`/judge/${id}`} className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg bg-brand text-brand-fg hover:bg-brand-hover transition-colors">
             <Radio className="w-3.5 h-3.5" /> {game.status === 'in_progress' ? 'נהל שידור חי' : 'שפוט / שדר משחק'}
+          </Link>
+        )}
+        {canEnterFromForm && (
+          <Link to={`/games/${id}/result`} className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg border border-brand text-brand hover:bg-surface-sunken transition-colors">
+            <ClipboardCheck className="w-3.5 h-3.5" /> הזנת תוצאה מטופס
           </Link>
         )}
         {/* Played: officials + the two coaches can pull the filled refereeing form */}
