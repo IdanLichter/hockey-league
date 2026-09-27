@@ -29,7 +29,10 @@
 
     <title>ליגת הוקי הגלגיליות הישראלית</title>
     <meta name="description" content="ליגת הוקי הגלגיליות הישראלית — טבלת הליגה המעודכנת, תוצאות ולוח משחקים, סטטיסטיקות שחקנים וקבוצות, שידורים חיים, גלריית תמונות וטורנירים. כל מה שקורה במגרש, במקום אחד." />
-    <link rel="canonical" href="https://rinkhockeyil.com/" />
+    <!-- No static canonical: this shell is served for EVERY route, so one here
+         told Google that all ~150 pages were copies of the homepage and it
+         stopped crawling them. src/lib/seo.js sets the per-route one; search
+         bots get server-rendered pages from api/seo.js. -->
 
     <!-- Static share preview. Crawlers (WhatsApp, Twitter) do not run JS, so the
          per-route tags set by src/lib/seo.js only reach JS-rendering crawlers
