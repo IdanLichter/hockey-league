@@ -141,7 +141,7 @@ export async function uploadTeamLogo(teamId, file) {
 // needs a DOB reads it per-row while signed in (see lib/birthDate.js).
 export const PLAYER_PUBLIC_COLUMNS =
   'id,first_name,last_name,jersey_number,position,team_id,is_referee,is_core,age,' +
-  'goals,games_played,blue_cards,red_cards,photo_url,created_at,slug'
+  'goals,games_played,blue_cards,red_cards,photo_url,created_at,slug,og_number'
 
 export async function getPlayers(orderBy = 'goals', ascending = false) {
   const { data, error } = await supabase

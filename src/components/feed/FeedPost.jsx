@@ -11,7 +11,7 @@ import { parseYouTubeId } from "@/lib/video"
 import FeedVideo from "@/components/feed/FeedVideo"
 import ReactionBar from "@/components/feed/ReactionBar"
 import ModerationMenu from "@/components/feed/ModerationMenu"
-import { RoleBadge, deriveRoleItems } from "@/components/RoleBadges"
+import { RoleBadge, OgBadge, deriveRoleItems } from "@/components/RoleBadges"
 import { TARGET_POST, TARGET_COMMENT } from "@/lib/moderation"
 import { FRIENDLY_GAME_TYPE } from "@/lib/leagueStats"
 import { entityPath } from "@/lib/slugs"
@@ -666,6 +666,7 @@ function PostCard({ post, likedPostIds, blockedIds, roleBadges, playersMap, team
             ) : (
               <span title="חשבון שאינו מקושר לשחקן" className="shrink-0 text-[10px] font-medium text-slate-500 dark:text-slate-400">אורח/ת</span>
             )}
+            <OgBadge number={linkedPlayerId && playersMap?.[linkedPlayerId]?.og_number} size="sm" />
             {authorRoleItems.map(it => <RoleBadge key={it.role} role={it.role} size="sm" />)}
           </div>
           <p className="text-[11px] text-slate-500 dark:text-slate-400 flex items-center gap-1">

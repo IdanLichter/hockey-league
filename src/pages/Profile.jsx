@@ -16,7 +16,7 @@ import MedicalCertificateCard from "@/components/MedicalCertificateCard"
 import BirthDateCard from "@/components/BirthDateCard"
 import BlockedUsersCard from "@/components/BlockedUsersCard"
 import SignInMethodsCard from "@/components/SignInMethodsCard"
-import { RoleBadges, deriveRoleItems } from "@/components/RoleBadges"
+import { RoleBadges, OgBadge, deriveRoleItems } from "@/components/RoleBadges"
 import { entityPath } from "@/lib/slugs"
 import { ProfileSkeleton } from "@/components/skeletons/PageSkeletons"
 
@@ -196,7 +196,10 @@ export default function Profile() {
           <div className="min-w-0">
             <h1 className="page-title truncate">{displayName}</h1>
             <p className="text-sm text-slate-500 dark:text-slate-400 truncate mt-0.5">{user.email}</p>
-            <RoleBadges items={roleItems} className="mt-2.5" />
+            <div className="flex flex-wrap items-center gap-1.5 mt-2.5">
+              <OgBadge number={player?.og_number} />
+              <RoleBadges items={roleItems} />
+            </div>
           </div>
         </div>
       </motion.div>

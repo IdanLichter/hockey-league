@@ -13,7 +13,7 @@ import { format } from "date-fns"
 import TeamLogo from "@/components/TeamLogo"
 import PlayerAvatar from "@/components/PlayerAvatar"
 import TeamMembershipCard from "@/components/TeamMembershipCard"
-import { RoleBadge, deriveRoleItems } from "@/components/RoleBadges"
+import { RoleBadge, OgBadge, deriveRoleItems } from "@/components/RoleBadges"
 import { BRAND_ORANGE } from '@/lib/brand'
 import { useSeo } from '@/lib/seo'
 import { useSlugId, entityPath } from '@/lib/slugs'
@@ -252,6 +252,7 @@ export default function PlayerDetail() {
               <span className={`stat-pill ${isGK ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400' : 'bg-slate-100 text-slate-500 dark:bg-slate-700 dark:text-slate-400'}`}>
                 <Shield className="w-3.5 h-3.5" /> {positionLabel}
               </span>
+              <OgBadge number={player.og_number} />
               {player.age != null && (
                 <span className="stat-pill bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300">גיל {player.age}</span>
               )}

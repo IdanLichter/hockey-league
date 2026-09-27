@@ -78,3 +78,23 @@ export function RoleBadges({ items = [], size = "md", className = "" }) {
     </div>
   )
 }
+
+// "OG #N" — one of the 25 players Ariel picked as the first to link their account to
+// their player card (players.og_number, 1..25, permanent). Gold on navy so it reads as a
+// distinction, not another role. Renders nothing for everyone else.
+export function OgBadge({ number, size = "md", className = "" }) {
+  if (!number) return null
+  const sizeCls = size === "sm"
+    ? "text-[10px] px-1.5 py-0.5 gap-1 rounded-full"
+    : "text-xs px-2.5 py-1 gap-1.5 rounded-full"
+  return (
+    <span
+      dir="ltr"
+      title={`OG #${number} — אחד מ־25 השחקנים הראשונים שחיברו את החשבון לכרטיס השחקן`}
+      className={`inline-flex items-center shrink-0 font-extrabold bg-gradient-to-l from-slate-900 to-slate-800 text-amber-300 ring-1 ring-amber-400/60 dark:from-amber-400/20 dark:to-amber-300/10 dark:text-amber-300 ${sizeCls} ${className}`}
+    >
+      <span className="tracking-wider">OG</span>
+      <span className="opacity-80">#{number}</span>
+    </span>
+  )
+}

@@ -19,6 +19,7 @@ import { Rink, Standings, Crossed, Teams, Player, Whistle, Stats, Camera, Edit, 
 import { useAuth } from "./lib/AuthContext"
 import AuthModal from "./components/AuthModal"
 import OnboardingModal from "./components/OnboardingModal"
+import OgCelebration from "./components/OgCelebration"
 import NotificationBell from "./components/NotificationBell"
 import ChatDrawer from "./components/ChatDrawer"
 import LiveEditPanel from "./components/liveedit/LiveEditPanel"
@@ -421,6 +422,9 @@ export default function Layout({ children }) {
 
       {/* First-run prompt to link the account to a player profile */}
       <OnboardingModal />
+
+      {/* One-time "OG #N" surprise for the 25 OG players */}
+      <OgCelebration />
 
       {/* Members-only chat / mailbox (self-gates to members) */}
       <ChatDrawer />

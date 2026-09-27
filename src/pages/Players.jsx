@@ -7,6 +7,7 @@ import { UserCheck, Search, RefreshCw } from "lucide-react"
 import { Player as PlayerIcon } from "@/components/icons/HockeyIcons"
 import { motion } from "framer-motion"
 import PlayerAvatar from "@/components/PlayerAvatar"
+import { OgBadge } from "@/components/RoleBadges"
 import { entityPath } from "@/lib/slugs"
 import { PlayersSkeleton } from "@/components/skeletons/PageSkeletons"
 
@@ -120,7 +121,10 @@ export default function Players() {
               <div className="flex items-center gap-3 min-w-0">
                 <PlayerAvatar player={player} team={teamsMap[player.team_id]} size={12} />
                 <div className="min-w-0">
-                  <h2 className="font-bold text-sm text-slate-900 dark:text-white truncate">{player.first_name} {player.last_name}</h2>
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <h2 className="font-bold text-sm text-slate-900 dark:text-white truncate">{player.first_name} {player.last_name}</h2>
+                    <OgBadge number={player.og_number} size="sm" />
+                  </div>
                   <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
                     {(() => {
                       const ids = [...(teamsByPlayer.get(player.id) || [])]
