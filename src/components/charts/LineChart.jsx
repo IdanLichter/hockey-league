@@ -46,7 +46,9 @@ export default function LineChart({ series = [], xTicks = [], unit = '', vbH = 2
   const tickXs = xTicks.map((t) => t.x)
   const minX = Math.min(...allX, ...tickXs)
   const maxX = Math.max(...allX)
-  const maxY = Math.max(...drawable.map((s) => s.points[s.points.length - 1].y), 1)
+  // Highest point, not the last one: a cumulative race ends at its max anyway, but a
+  // daily series (admin ניתוח משתמשים) peaks mid-range and would be clipped.
+  const maxY = Math.max(...drawable.flatMap((s) => s.points.map((p) => p.y)), 1)
   const { yMax, ticks } = axisTicks(maxY)
 
   const sx = scale(minX, maxX, M.left, VB_W - M.right)

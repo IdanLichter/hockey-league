@@ -47,14 +47,25 @@ const JSONLD_KEY = 'route'
  * telemetry row. And the question the dashboard answers is "which SCREENS get used",
  * which a thousand distinct player URLs actively obscures.
  */
-function normalisePath(pathname) {
+// Shared with the iOS/Android apps' screen paths so /admin ניתוח משתמשים can compare
+// platforms: ids and slugs collapse to :id, /judge/:id is /judge/game/:id, and an /admin
+// tab (?tab=) is its own screen, /admin/<tab>.
+function normalisePath(pathname, search = '') {
+  if (pathname === '/games/next') return pathname
+  if (pathname === '/admin') {
+    const tab = new URLSearchParams(search).get('tab')
+    return tab && /^[a-z_]{1,40}$/.test(tab) ? `/admin/${tab}` : '/admin'
+  }
   return pathname
-    .replace(/^\/(players|teams|games|tournaments|albums|posts)\/[^/]+/, '/$1/:id')
+    .replace(/^\/judge\/[^/]+/, '/judge/game/:id')
+    .replace(/^\/(players|teams|games|tournaments|albums|posts|market|archive)\/[^/]+/, '/$1/:id')
     .slice(0, 200)
 }
 
 export default function RouteSeo() {
-  const { pathname } = useLocation()
+  const { pathname, search } = useLocation()
+  // Only the admin tab matters from the query string; other params must not re-log a view.
+  const adminTab = pathname === '/admin' ? new URLSearchParams(search).get('tab') : null
   const noindex = isNoindexPath(pathname)
   const meta = ROUTES[pathname] || {}
   useSeo({ ...meta, path: pathname, noindex })
@@ -68,9 +79,9 @@ export default function RouteSeo() {
     // can never disagree about which routes were actually shown. The path is
     // normalised before it is stored (see normalisePath) — /players/<slug> is a
     // person's name, and the telemetry tab wants the SHAPE, not the individual.
-    trackPage(normalisePath(pathname))
+    trackPage(normalisePath(pathname, adminTab ? `?tab=${adminTab}` : ''))
     return () => cancelAnimationFrame(raf)
-  }, [pathname])
+  }, [pathname, adminTab])
 
   // Structured data: SportsOrganization on home; Person / SportsTeam /
   // SportsEvent on the detail routes. Detail entities are fetched with a small
