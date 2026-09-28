@@ -412,7 +412,16 @@ export async function updatePlayer(id, updates) {
 }
 
 export async function deletePlayer(id) {
-  const { error } = await supabase.from('players').delete().eq('id', id)
+  // .select() so an RLS-filtered delete (204, zero rows, error:null) reads as a failure
+  // instead of a silent no-op that just leaves the player on the list.
+  const { data, error } = await supabase.from('players').delete().eq('id', id).select('id')
+  if (error) throw error
+  if (!data?.length) throw new Error('השחקן לא נמחק — אין הרשאה')
+}
+
+/** Coach "remove from team": drops this team's membership; the card stays, as a free agent if no other team. */
+export async function releasePlayerFromTeam(playerId, teamId) {
+  const { error } = await supabase.rpc('coach_release_player', { p_player_id: playerId, p_team_id: teamId })
   if (error) throw error
 }
 

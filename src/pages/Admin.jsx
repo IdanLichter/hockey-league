@@ -4,7 +4,7 @@ import { useNavigate, Link, useSearchParams } from "react-router-dom"
 import {
   getTeams, getPlayers, getGames, getGameStats, getAdminUsers,
   createGame, updateGame, deleteGame,
-  createPlayer, updatePlayer, deletePlayer,
+  createPlayer, updatePlayer, deletePlayer, releasePlayerFromTeam,
   updateTeam, createTeam, deleteTeam, getPendingTeams, reviewTeam,
   createGameStat, deleteGameStatsByGameId,
   addAdminUser, removeAdminUser,
@@ -14,7 +14,7 @@ import {
   closeSeason, getArchivedSeasons, getCurrentSeason
 } from "@/lib/api"
 import {
-  Shield, Calendar, UserCheck, Users, Settings, LogOut, Trash2, Plus,
+  Shield, Calendar, UserCheck, Users, Settings, LogOut, Trash2, UserMinus, Plus,
   Pencil, X, Check, Save, ChevronDown, UserPlus, Crown, Trophy,
   Archive, AlertTriangle, Image, Flag, CalendarClock
 } from "lucide-react"
@@ -1053,6 +1053,22 @@ function PlayersAdmin({ players, teams, teamsMap, membersByPlayer = new Map(), r
     } catch (err) { alert('שגיאה: ' + err.message) }
   }
 
+  // A coach never deletes a player card — they release it from THEIR team. The player
+  // keeps their history/account and becomes a free agent if they have no other team.
+  const coachTeamOf = (p) => [p.team_id, ...(membersByPlayer.get(p.id) || []).map(m => m.team_id)]
+    .find(id => coachTeamIds?.includes(id))
+  const handleRelease = async (player) => {
+    const teamId = coachTeamOf(player)
+    if (!teamId) return
+    const name = `${player.first_name} ${player.last_name}`
+    if (!confirm(`להסיר את ${name} מ${teamsMap[teamId]?.name || 'הקבוצה'}? השחקן לא יימחק — הוא יעבור לשחקנים חופשיים.`)) return
+    try {
+      await releasePlayerFromTeam(player.id, teamId)
+      await reload()
+      setFeedback({ type: 'ok', text: `✓ ${name} הוסר/ה מהקבוצה ועבר/ה לשחקנים חופשיים` })
+    } catch (err) { setFeedback({ type: 'err', text: `ההסרה נכשלה: ${err.message}` }) }
+  }
+
   // A coach sees a player on their roster whether it's the player's primary team
   // or one of their multi-age memberships.
   const onCoachTeam = (p) => coachScoped && (
@@ -1261,10 +1277,17 @@ function PlayersAdmin({ players, teams, teamsMap, membersByPlayer = new Map(), r
                   className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors">
                   <Pencil className="w-3.5 h-3.5" />
                 </button>
-                <button onClick={() => handleDelete(player.id)}
-                  className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/30 text-slate-400 hover:text-red-500 transition-colors">
-                  <Trash2 className="w-3.5 h-3.5" />
-                </button>
+                {coachScoped ? (
+                  <button onClick={() => handleRelease(player)} title="הסר מהקבוצה" aria-label="הסר מהקבוצה"
+                    className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/30 text-slate-400 hover:text-red-500 transition-colors">
+                    <UserMinus className="w-3.5 h-3.5" />
+                  </button>
+                ) : (
+                  <button onClick={() => handleDelete(player.id)} title="מחק שחקן" aria-label="מחק שחקן"
+                    className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/30 text-slate-400 hover:text-red-500 transition-colors">
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                )}
               </div>
             </div>
           ))}
