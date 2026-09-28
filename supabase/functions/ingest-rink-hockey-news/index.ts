@@ -1,6 +1,6 @@
 // ============================================================================
-// ingest-rink-hockey-news — pull rink-hockey items from three vetted external
-// feeds and post them to the league feed as rows in public.posts.
+// ingest-rink-hockey-news — pull rink-hockey items from vetted external feeds
+// (SOURCES below) and post them to the league feed as rows in public.posts.
 //
 // Called by pg_cron (job `rink-hockey-news`, daily), NOT by end users. Auth is
 // the service-role key in the Authorization header, so verify_jwt stays ON.
@@ -82,6 +82,53 @@ const SOURCES: Source[] = [
     name: "Patines y Chuecas",
     url: "https://patinesychuecas.com/feed/",
     excludeCategories: ["Patinaje Artístico", "Patín Carrera", "Skate", "skateboarding"],
+  },
+  // ---- Added 2026-09-28: the five above left only two sources active off-season
+  // (OK Liga is idle Jul–Oct, WSE Europe silent since the Euros). These cover the
+  // Italian, Portuguese and Argentine leagues, which are in pre-season now.
+  {
+    // Italian hockey su pista (Serie A1/A2, Coppa Italia) — several items a day
+    // in season. The category feed is pista only; the site's inline is separate.
+    key: "hockeyitalia21",
+    kind: "rss",
+    name: "Hockey Italia 21",
+    url: "https://hockeyitalia21.com/category/hockey-su-pista/feed/",
+  },
+  {
+    // Italian national sports outlet, hockey-pista category — ~weekly.
+    key: "oasport",
+    kind: "rss",
+    name: "OA Sport",
+    url: "https://www.oasport.it/category/hockey-pista/feed/",
+  },
+  {
+    // Portuguese rink-hockey site (national + international) — a few a week.
+    key: "hoqueipatins-pt",
+    kind: "rss",
+    name: "HoqueiPatins.pt",
+    url: "https://www.hoqueipatins.pt/feed/",
+  },
+  {
+    // Portuguese federation, hóquei em patins category — no images in the feed.
+    key: "fpp",
+    kind: "rss",
+    name: "Federação de Patinagem de Portugal",
+    url: "https://fpp.pt/category/hp/feed/",
+  },
+  {
+    // Argentina's national rink-hockey committee (CNTHsP) — sporadic, no images.
+    key: "cnthsp",
+    kind: "rss",
+    name: "Comité Nacional Hockey sobre Patín (AR)",
+    url: "https://comitehockeypatin.ar/feed/",
+  },
+  {
+    // Highest-volume written source (Barça-heavy); quiet in summer, busy Oct–Jun.
+    // media:content carries the image.
+    key: "mundodeportivo",
+    kind: "rss",
+    name: "Mundo Deportivo",
+    url: "https://www.mundodeportivo.com/rss/hockey-patines",
   },
 ];
 

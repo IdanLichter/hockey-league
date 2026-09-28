@@ -12,6 +12,12 @@ search. Rink hockey only — no ice hockey, no inline.
 | World Skate Europe | `europe.worldskate.org/category/rink-hockey/feed/` | 10-item window; 10 items in 9 days during the Euros | first `<img>` in body | EN |
 | Andi Colaianni (coaching / tactics) | `…?channel_id=UCh-040jKgwZpAMuMxww_V3g` | sporadic — months of silence between posts | `media:thumbnail` | ES |
 | Patines y Chuecas (Chile / LatAm) | `patinesychuecas.com/feed/` | the most prolific here — near-daily | first `<img>` in body | ES |
+| Hockey Italia 21 (added 2026-09-28) | `hockeyitalia21.com/category/hockey-su-pista/feed/` | several/day in season (Serie A1/A2, Coppa Italia) | first `<img>` in body | IT |
+| OA Sport (added 2026-09-28) | `oasport.it/category/hockey-pista/feed/` | ~weekly | first `<img>` in body | IT |
+| HoqueiPatins.pt (added 2026-09-28) | `hoqueipatins.pt/feed/` | a few/week | first `<img>` in body | PT |
+| FPP — Portuguese federation (added 2026-09-28) | `fpp.pt/category/hp/feed/` | ~2/week | none | PT |
+| CNTHsP — Argentine rink-hockey committee (added 2026-09-28) | `comitehockeypatin.ar/feed/` | sporadic | none | ES |
+| Mundo Deportivo (added 2026-09-28) | `mundodeportivo.com/rss/hockey-patines` | 100-item window; ~40/month in season, quiet Jul–Sep | `media:content` | ES |
 
 Neither RSS source ships an enclosure, but both embed the article's lead image in
 the HTML body, so the parser takes the first `<img src>` instead of fetching each
@@ -72,3 +78,20 @@ API v3 enabled would allow a search → Gemini-classify → post pipeline.
 - **Nothing is in Hebrew.** Translation is an optional layer: without
   `ANTHROPIC_API_KEY` set on the function, items still post, under their original
   English/Spanish headline.
+
+## Third pass (2026-09-28): off-season coverage
+
+Only WSE TV and Patines y Chuecas were still posting; OK Liga and WSE Europe go
+quiet Jul–Oct. Added the six sources marked above (all probed, dry-run through
+the function, translated to Hebrew fine). Rejected this pass:
+
+- **worldskate.org `rink-hockey.feed`** — despite the URL it's the global news
+  feed (artistic, athlete elections, WSG logistics).
+- **Tiempo de San Juan** (`/rss/hockey-patines-a30953`) — active, but the feed is
+  mangled (`<link></link>URL`, entity-escaped CDATA titles); the parser drops it.
+- **noticiashoqueiempatins.blogspot.com** — last post Aug 2026, sporadic.
+- **hoqueipt.com** — feed returns no items. **record.pt / abola.pt / zerozero** —
+  no working RSS. **ojogo.pt** 403s. **fisr.it** — no feed at the tried paths.
+
+MAX_NEW_PER_RUN (8) is spent in SOURCES order, so a busy day's later sources wait
+for the next of the 3 daily runs (05/13/20 UTC) rather than being lost.
