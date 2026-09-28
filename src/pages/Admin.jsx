@@ -42,6 +42,7 @@ import UnavailabilityAdmin from "@/components/admin/UnavailabilityAdmin"
 import { getVenues } from "@/lib/venues"
 import { entityPath } from "@/lib/slugs"
 import OfficialsAdmin from "@/components/admin/OfficialsAdmin"
+import { getOfficialsOverview } from "@/lib/officials"
 import VenuesAdmin from "@/components/admin/VenuesAdmin"
 import SeasonCalendar from "@/components/admin/SeasonCalendar"
 import TelemetryAdmin from "@/components/admin/TelemetryAdmin"
@@ -364,6 +365,19 @@ function GamesAdmin({ games, teams, players, teamsMap, gameStats, tournaments = 
   useEffect(() => {
     getVenues().then(v => setVenueNames((v || []).map(x => x.name))).catch(() => {})
   }, [])
+  // Games with a judge assigned in שיבוץ שופטים (game_officials). referee_id is only
+  // filled when a game is recorded, so on its own it said "no judge" about nothing but
+  // finished games — 0 at the start of a season, when every fixture still needs one.
+  // Admin/LM-only RPC; for other roles it refuses and the flag falls back to referee_id.
+  const [judgedIds, setJudgedIds] = useState(() => new Set())
+  useEffect(() => {
+    getOfficialsOverview()
+      .then(rows => setJudgedIds(new Set((rows || [])
+        .filter(r => r.role === 'judge' && ['assigned', 'approved'].includes(r.status))
+        .map(r => r.game_id))))
+      .catch(() => {})
+  }, [games])
+  const missingJudge = g => !g.referee_id && !judgedIds.has(g.id) && !['cancelled', 'postponed'].includes(g.status)
   const [editingGame, setEditingGame] = useState(null)
   const [editingStats, setEditingStats] = useState(null)
   const [saving, setSaving] = useState(false)
@@ -393,10 +407,13 @@ function GamesAdmin({ games, teams, players, teamsMap, gameStats, tournaments = 
     type: g => g.game_type || '',
     status: g => g.status || '',
   }
-  const visibleGames = sortItems(
-    games.filter(g => refFilter === 'all' || (!g.referee_id && g.status === 'completed')),
+  // 🧪 test games (admin-only sandbox) pinned first — sorted by date they sank below a
+  // whole season of fixtures and looked missing.
+  const sortedGames = sortItems(
+    games.filter(g => refFilter === 'all' || missingJudge(g)),
     sort, gameAccessors
   )
+  const visibleGames = [...sortedGames.filter(g => g.is_test), ...sortedGames.filter(g => !g.is_test)]
 
   const resetForm = () => {
     setForm({
@@ -632,7 +649,7 @@ function GamesAdmin({ games, teams, players, teamsMap, gameStats, tournaments = 
         </button>
         <button onClick={() => setRefFilter('missing')}
           className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors flex items-center gap-1 ${refFilter === 'missing' ? 'bg-amber-500 text-white' : 'bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/30'}`}>
-          <AlertTriangle className="w-3 h-3" /> ללא שופט ({games.filter(g => !g.referee_id && g.status === 'completed').length})
+          <AlertTriangle className="w-3 h-3" /> ללא שופט ({games.filter(missingJudge).length})
         </button>
       </div>
 
@@ -667,7 +684,10 @@ function GamesAdmin({ games, teams, players, teamsMap, gameStats, tournaments = 
                   </div>
                 </div>
                 <div className="flex items-center gap-2 mr-3">
-                  {!game.referee_id && game.status === 'completed' && (
+                  {game.is_test && (
+                    <span title="משחק בדיקה — גלוי למנהלים בלבד" className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300">🧪 בדיקה</span>
+                  )}
+                  {missingJudge(game) && (
                     <span title="חסר שופט" className="text-amber-500"><AlertTriangle className="w-3.5 h-3.5" /></span>
                   )}
                   <span className="text-[10px] text-slate-400 hidden sm:inline">{format(new Date(game.game_date), "d/M/yy")}</span>
