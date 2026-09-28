@@ -102,10 +102,13 @@ export default function Admin() {
     // loan falls back to a manual vouch.
     // "unavailability" is the coach's own squad admin — he is the one a player's
     // self-report is addressed to, and the one who files an injury on his behalf.
+    // "medical" / "suspensions" / "readiness" are READ views of his own squad: the RPCs
+    // (medical_roster, active_suspensions, notification_readiness) scope a coach through
+    // is_coach_of_player; the write actions inside them stay admin / manager / judge.
+    // NOT "telemetry": app_event_* answer admins and league managers only, so a coach
+    // got an empty tab.
     ...(isCoach ? ["players", "claims", "tournaments", "games", "birthdates", "unavailability",
-        // Telemetry is gated server-side on is_admin() OR is_league_manager(); keep the
-        // tab list agreeing with the RPC rather than showing a tab that returns nothing.
-        "telemetry"] : []),
+        "medical", "suspensions", "readiness"] : []),
     ...(isJudgeRole ? ["games"] : []),
     // "claims" holds the player-card review queue — row 29 requires the league manager
     // to approve players, and approve_player_submission already permits him.
@@ -245,10 +248,10 @@ export default function Admin() {
               {currentTab === "season" && <SeasonAdmin games={games} teams={teams} players={players} reload={loadData} />}
               {currentTab === "claims" && <><div id="review-claims" className="scroll-mt-20"><ClaimsReview teamsMap={teamsMap} coachTeamIds={coachScoped ? coachTeamIds : null} /></div><div id="review-submissions" className="scroll-mt-20"><PlayerSubmissionsReview teamsMap={teamsMap} coachTeamIds={coachScoped ? coachTeamIds : null} /></div><div id="review-joins" className="scroll-mt-20"><TeamJoinRequestsReview teamsMap={teamsMap} coachTeamIds={coachScoped ? coachTeamIds : null} /></div>{(isAdmin || isLeagueManager) && <div id="review-coaches" className="scroll-mt-20"><CoachRequestsReview teamsMap={teamsMap} /></div>}<div id="review-medical" className="scroll-mt-20"><MedicalReview coachTeamIds={coachScoped ? coachTeamIds : null} /></div>{isAdmin && <SuggestionsReview players={players} />}</>}
               {currentTab === "game_requests" && <GameChangeRequestsReview teamsMap={teamsMap} />}
-              {currentTab === "medical" && <>{(isAdmin || isLeagueManager) && <div className="mb-8"><MedicalPodiumReview /></div>}<MedicalRosterAdmin /></>}
+              {currentTab === "medical" && <>{(isAdmin || isLeagueManager) && <div className="mb-8"><MedicalPodiumReview /></div>}<MedicalRosterAdmin canManage={isAdmin || isLeagueManager} /></>}
               {currentTab === "payments" && <PaymentsAdmin />}
               {currentTab === "readiness" && <ReadinessAdmin />}
-              {currentTab === "suspensions" && <SuspensionsAdmin players={players} teamsMap={teamsMap} />}
+              {currentTab === "suspensions" && <SuspensionsAdmin players={players} teamsMap={teamsMap} canManage={isAdmin || isLeagueManager || isJudgeRole} />}
               {currentTab === "unavailability" && <UnavailabilityAdmin players={players} teamsMap={teamsMap} membersByPlayer={membersByPlayer} coachTeamIds={coachScoped ? coachTeamIds : null} />}
               {currentTab === "birthdates" && <BirthDatesAdmin players={players} teamsMap={teamsMap} membersByPlayer={membersByPlayer} coachTeamIds={coachScoped ? coachTeamIds : null} />}
               {currentTab === "officials" && <OfficialsAdmin games={games} teamsMap={teamsMap} />}

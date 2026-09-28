@@ -6,7 +6,8 @@ import { supabase } from './supabase'
  * push before anything can reach his phone. This backs the admin chase-list so the
  * gaps get closed before the test rather than discovered during it.
  *
- * Backed by the notification_readiness RPC (admin / league-manager only — it exposes
+ * Backed by the notification_readiness RPC (admin / league-manager: the league; a coach:
+ * his own squad only, via is_coach_of_player — it exposes
  * who has and hasn't signed up).
  */
 

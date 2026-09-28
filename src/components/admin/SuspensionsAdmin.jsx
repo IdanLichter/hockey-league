@@ -15,7 +15,9 @@ import { SkeletonPanelRows } from "@/components/skeletons/PageSkeletons"
  * Serving is automatic: a block burns one game when a game the player's team plays
  * completes, and clears itself at zero. Nobody has to remember to lift it.
  */
-export default function SuspensionsAdmin({ players = [], teamsMap = {} }) {
+// canManage=false → a coach's read-only view of his own squad (active_suspensions scopes
+// it server-side); issue_suspension / clear_suspension would refuse him anyway.
+export default function SuspensionsAdmin({ players = [], teamsMap = {}, canManage = true }) {
   const [rows, setRows] = useState(null)
   const [error, setError] = useState(null)
   const [busy, setBusy] = useState(null)
@@ -59,10 +61,10 @@ export default function SuspensionsAdmin({ players = [], teamsMap = {} }) {
           <Ban className="w-5 h-5 text-brand" /> הרחקות (כרטיס אדום)
         </h2>
         <div className="flex items-center gap-2">
-          <button onClick={() => setAdding(a => !a)}
+          {canManage && <button onClick={() => setAdding(a => !a)}
             className="flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg bg-brand text-brand-fg hover:bg-brand-hover transition-colors">
             <Plus className="w-3.5 h-3.5" /> הרחקת שחקן
-          </button>
+          </button>}
           <button onClick={load} className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-600 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
             <RefreshCw className="w-3.5 h-3.5" /> רענון
           </button>
@@ -76,7 +78,7 @@ export default function SuspensionsAdmin({ players = [], teamsMap = {} }) {
 
       {error && <div className="card p-3 border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/30 text-sm text-red-700 dark:text-red-400">{error}</div>}
 
-      {adding && (
+      {canManage && adding && (
         <form onSubmit={submit} className="card p-4 space-y-2.5">
           <select value={playerId} onChange={e => setPlayerId(e.target.value)} aria-label="בחירת שחקן"
             className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-2 text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-brand/30">
@@ -121,11 +123,11 @@ export default function SuspensionsAdmin({ players = [], teamsMap = {} }) {
                 </p>
                 {r.reason && <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 italic">"{r.reason}"</p>}
               </div>
-              <button onClick={() => lift(r.id)} disabled={busy === r.id}
+              {canManage && <button onClick={() => lift(r.id)} disabled={busy === r.id}
                 title="ביטול ההרחקה (למשל אם הכרטיס ניתן בטעות)"
                 className="shrink-0 flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-600 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors disabled:opacity-50">
                 {busy === r.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Undo2 className="w-3.5 h-3.5" />} ביטול
-              </button>
+              </button>}
             </div>
           ))}
         </div>

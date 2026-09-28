@@ -54,7 +54,11 @@ function statusOf(row) {
   return { key: "missing", label: "חסר", cls: "bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300" }
 }
 
-export default function MedicalRosterAdmin() {
+// canManage=false → a coach's view of his own squad (medical_roster scopes it and
+// returns no פודיום data to him). Podium columns and the date / revoke actions are
+// admin + league-manager only — set_medical_exam_date / revoke_medical_certificate
+// would refuse him, and every row would read "לא רשום" from the empty podium fields.
+export default function MedicalRosterAdmin({ canManage = true }) {
   const [rows, setRows] = useState(null)
   const [error, setError] = useState(null)
   const [filter, setFilter] = useState("issues") // all | issues | expiring
@@ -159,8 +163,8 @@ export default function MedicalRosterAdmin() {
       <div className="flex items-center gap-2 flex-wrap">
         <FilterBtn id="issues" label="בעיות" n={counts.issues} />
         <FilterBtn id="expiring" label="פג בקרוב" n={counts.expiring} />
-        <FilterBtn id="no_podium" label="לא בפודיום" n={counts.noPodium} />
-        <FilterBtn id="unpaid" label="לא שילמו" n={counts.unpaid} />
+        {canManage && <FilterBtn id="no_podium" label="לא בפודיום" n={counts.noPodium} />}
+        {canManage && <FilterBtn id="unpaid" label="לא שילמו" n={counts.unpaid} />}
         <FilterBtn id="all" label="הכל" n={counts.total} />
         <div className="relative flex-1 min-w-[160px]">
           <Search className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
@@ -169,7 +173,7 @@ export default function MedicalRosterAdmin() {
         </div>
       </div>
 
-      <SortBar options={MED_SORT_OPTIONS} sort={sort} onChange={setSort} />
+      <SortBar options={canManage ? MED_SORT_OPTIONS : MED_SORT_OPTIONS.filter(o => o.key !== "podium" && o.key !== "paid")} sort={sort} onChange={setSort} />
 
       {rows === null ? (
         <SkeletonPanelRows />
@@ -184,11 +188,11 @@ export default function MedicalRosterAdmin() {
                   <th className="text-right font-bold px-4 py-2.5">שחקן</th>
                   <th className="text-right font-bold px-3 py-2.5">קבוצה</th>
                   <th className="text-right font-bold px-3 py-2.5">סטטוס רפואי</th>
-                  <th className="text-right font-bold px-3 py-2.5">פודיום</th>
-                  <th className="text-right font-bold px-3 py-2.5">תשלום</th>
+                  {canManage && <th className="text-right font-bold px-3 py-2.5">פודיום</th>}
+                  {canManage && <th className="text-right font-bold px-3 py-2.5">תשלום</th>}
                   <th className="text-right font-bold px-3 py-2.5">תאריך בדיקה</th>
                   <th className="text-right font-bold px-3 py-2.5">מסמך</th>
-                  <th className="text-right font-bold px-3 py-2.5">פעולות</th>
+                  {canManage && <th className="text-right font-bold px-3 py-2.5">פעולות</th>}
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-700/50">
@@ -199,6 +203,7 @@ export default function MedicalRosterAdmin() {
                     <td className="px-3 py-2.5"><span className={`inline-block text-[11px] font-bold px-2 py-0.5 rounded ${r.st.cls}`}>{r.st.label}</span></td>
                     {/* Did he do the federation process at all — the question Uri's
                         stage 2 exists to answer, answered before she opens the row. */}
+                    {canManage && <>
                     <td className="px-3 py-2.5 whitespace-nowrap">
                       {r.in_podium
                         ? <PodiumChip tone="emerald" Icon={BadgeCheck} label="רשום" title={r.podium_club || ""} />
@@ -212,6 +217,7 @@ export default function MedicalRosterAdmin() {
                               title={r.podium_paid_at ? format(new Date(r.podium_paid_at), "d/M/yyyy") : ""} />
                           : <PodiumChip tone="red" Icon={Wallet} label="לא שולם" />}
                     </td>
+                    </>}
                     <td className="px-3 py-2.5 text-slate-500 dark:text-slate-400 whitespace-nowrap tabular-nums">
                       {r.exam_date ? format(new Date(r.exam_date), "d/M/yy") : <span className="text-slate-300 dark:text-slate-600">—</span>}
                     </td>
@@ -229,6 +235,7 @@ export default function MedicalRosterAdmin() {
                     {/* The manager reviews these himself: correct a wrong exam date, or
                         revoke a file he judges inadequate. Only meaningful while the
                         player actually holds a valid certificate. */}
+                    {canManage && (
                     <td className="px-3 py-2.5 whitespace-nowrap">
                       {r.has_valid ? (
                         <div className="flex items-center gap-1.5">
@@ -245,6 +252,7 @@ export default function MedicalRosterAdmin() {
                         <span className="text-slate-300 dark:text-slate-600">—</span>
                       )}
                     </td>
+                    )}
                   </tr>
                 ))}
               </tbody>
