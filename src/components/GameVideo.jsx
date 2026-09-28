@@ -7,7 +7,7 @@ import { useAuth } from "@/lib/AuthContext"
 import { useStreamViewers } from "@/lib/useStreamViewers"
 import {
   getGameVideo, detachVideo, addMarker, deleteMarker,
-  subscribeGameVideo, fmtClock, goLiveCloudflare, getViewerIceServersDetailed,
+  subscribeGameVideo, fmtClock, goLiveCloudflare, getViewerIceServersDetailed, requestReplay,
 } from "@/lib/video"
 import { publishWHIP, confirmBroadcastLive } from "@/lib/whip"
 import { playWHEP, hasTurn } from "@/lib/whep"
@@ -54,6 +54,48 @@ function YouTubePlayer({ videoId, onReady }) {
   return (
     <div className="relative w-full aspect-video bg-black rounded-xl overflow-hidden">
       <div ref={hostRef} className="absolute inset-0" />
+    </div>
+  )
+}
+
+// Player for an app (RTMP) broadcast. Cloudflare records these and serves HLS, so the
+// standard Stream iframe plays both the live broadcast and the replay on any network —
+// none of the WHEP/TURN machinery below is needed. While the row still points at the
+// live input and nothing is on air, ask the server to swap it to the recording (the
+// realtime subscription then reloads the row), polling while it's still processing.
+function RtmpPlayer({ video }) {
+  const [state, setState] = useState(null) // null | live | processing | ready | none | error
+  const onInput = !!video.cf_live_input && video.video_id === video.cf_live_input
+
+  useEffect(() => {
+    if (!onInput) return
+    let cancelled = false, timer = null
+    const check = async () => {
+      const r = await requestReplay(video.id)
+      if (cancelled) return
+      setState(r.state)
+      // live: re-check in a minute (catches the end of the broadcast);
+      // processing: Cloudflare is still encoding — usually well under a minute.
+      if (r.state === "live" || r.state === "processing") timer = setTimeout(check, r.state === "live" ? 60000 : 15000)
+    }
+    check()
+    return () => { cancelled = true; clearTimeout(timer) }
+  }, [video.id, video.video_id, onInput])
+
+  const code = video.cf_customer_code
+  if (!code) return null
+  if (onInput && state === "processing") {
+    return (
+      <div className="w-full aspect-video bg-black rounded-xl grid place-items-center text-slate-300 text-sm text-center px-4">
+        השידור הסתיים — ההקלטה בעיבוד ותופיע כאן בעוד כמה דקות
+      </div>
+    )
+  }
+  const src = `https://customer-${code}.cloudflarestream.com/${video.video_id}/iframe?preload=auto${onInput ? "&autoplay=true&muted=true" : ""}`
+  return (
+    <div className="relative w-full aspect-video bg-black rounded-xl overflow-hidden">
+      <iframe src={src} className="absolute inset-0 w-full h-full border-0" title="וידאו מהמשחק"
+        allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;" allowFullScreen />
     </div>
   )
 }
@@ -431,7 +473,9 @@ export default function GameVideo({ game, home, away, players = [] }) {
         ) : video ? (
           <>
             {video.provider === "cloudflare"
-              ? <CloudflarePlayer video={video} isLive={isLive} />
+              ? (video.ingest === "rtmp"
+                  ? <RtmpPlayer video={video} />
+                  : <CloudflarePlayer video={video} isLive={isLive} />)
               : <YouTubePlayer videoId={video.video_id} onReady={onPlayerReady} />}
 
             {/* Proportional marker strip (hidden for live / unknown duration) */}

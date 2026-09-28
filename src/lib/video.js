@@ -38,7 +38,7 @@ export async function getGameVideo(gameId) {
   if (!gameId) return null
   const { data: videos, error } = await supabase
     .from('game_videos')
-    .select('id, provider, video_id, cf_customer_code, title, kind, clock_offset_seconds, is_primary, created_at')
+    .select('id, provider, video_id, cf_customer_code, ingest, cf_live_input, title, kind, clock_offset_seconds, is_primary, created_at')
     .eq('game_id', gameId)
     .order('is_primary', { ascending: false })
     .order('created_at', { ascending: false })
@@ -91,6 +91,20 @@ export async function getViewerIceServersDetailed() {
     // Thrown here = blocked before it left the device: ad-blocker, captive
     // portal, corporate proxy or DNS failure on the Supabase host.
     return { iceServers: null, error: String(e?.message || e), ms: ms() }
+  }
+}
+
+// An app (RTMP) broadcast's row points at the live input until the recording is
+// ready; this asks the server to swap it over. Anon-callable and idempotent — any
+// viewer's page can trigger it, so the replay appears even if the streamer's app died.
+// Returns { state: 'live' | 'processing' | 'ready' | 'none' | 'skip' }.
+export async function requestReplay(videoRowId) {
+  try {
+    const { data, error } = await supabase.functions.invoke('stream-replay', { body: { videoRowId } })
+    if (error) return { state: 'error' }
+    return data || { state: 'error' }
+  } catch {
+    return { state: 'error' }
   }
 }
 

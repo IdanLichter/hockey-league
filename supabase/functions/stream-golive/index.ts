@@ -4,9 +4,16 @@
 //
 // User-facing (called from the browser), so it: handles CORS preflight, verifies
 // the caller's Supabase JWT, and enforces can_stream_game() (content-editor +
-// admin) BEFORE creating a billable live input. Creates the input with automatic
-// recording (live becomes the VOD), inserts the public game_videos row (uid in
-// video_id), and returns the WHIP url + ICE servers for publishing.
+// admin) BEFORE creating a billable live input, inserts the public game_videos row
+// (uid in video_id), and returns what the caller needs to publish.
+//
+// Two ingests (body `ingest`):
+//   "webrtc" (default) -- the web page / old app builds publish over WHIP. Cloudflare
+//                          does NOT record WebRTC input, so these leave no replay.
+//   "rtmp"             -- the native apps publish over RTMPS (like Larix). Cloudflare
+//                          records it; viewers watch HLS (the Stream iframe), which works
+//                          on any network. When the broadcast ends, `stream-replay`
+//                          swaps the row from the live input to the recording.
 //
 // Secrets (Supabase -> Edge Functions -> Secrets):
 //   CF_ACCOUNT_ID / CF_STREAM_TOKEN   -- Cloudflare Stream (required)
@@ -80,9 +87,11 @@ Deno.serve(async (req) => {
   if (!authHeader.startsWith("Bearer ")) return json({ error: "unauthorized" }, 401);
 
   let gameId: string | null = null;
+  let ingest: "webrtc" | "rtmp" = "webrtc";
   try {
     const b = await req.json();
     gameId = (b?.gameId ?? b?.game_id ?? "").toString() || null;
+    if (b?.ingest === "rtmp") ingest = "rtmp";
   } catch { /* fallthrough to 400 */ }
   if (!gameId) return json({ error: "missing gameId" }, 400);
 
@@ -105,7 +114,8 @@ Deno.serve(async (req) => {
   }
   if (canStream !== true) return json({ error: "forbidden" }, 403);
 
-  // ---- Cloudflare: create the live input (auto-record so live becomes the VOD).
+  // ---- Cloudflare: create the live input. Recording is only honoured for RTMP/SRT;
+  // for RTMP, a 60s timeout lets a phone that drops and reconnects keep ONE recording.
   let cf: any = null;
   let cfStatus = 0;
   try {
@@ -114,7 +124,7 @@ Deno.serve(async (req) => {
       headers: { authorization: `Bearer ${CF_TOKEN}`, "content-type": "application/json" },
       body: JSON.stringify({
         meta: { name: `game:${gameId}` },
-        recording: { mode: "automatic", requireSignedURLs: false, timeoutSeconds: 10 },
+        recording: { mode: "automatic", requireSignedURLs: false, timeoutSeconds: ingest === "rtmp" ? 60 : 10 },
         preferLowLatency: true,
       }),
     });
@@ -153,6 +163,8 @@ Deno.serve(async (req) => {
       kind: "live",
       is_primary: true,
       cf_customer_code: cfCode,
+      ingest,
+      cf_live_input: uid,
       created_by: user.id,
     })
     .select("id")
@@ -165,6 +177,26 @@ Deno.serve(async (req) => {
       headers: { authorization: `Bearer ${CF_TOKEN}` },
     }).catch(() => {});
     return json({ error: "insert failed" }, 500);
+  }
+
+  if (ingest === "rtmp") {
+    // rtmpsUrl + streamKey -> the app's encoder publishes here (the key is the secret;
+    // only an authorized streamer ever receives it). No ICE: RTMPS is plain TLS/TCP 443.
+    const rtmpsUrl: string = cf.result.rtmps?.url ?? "";
+    const streamKey: string = cf.result.rtmps?.streamKey ?? "";
+    if (!rtmpsUrl || !streamKey) {
+      console.log("cloudflare live_input has no rtmps", JSON.stringify(cf.result));
+      return json({ error: "cloudflare error" }, 502);
+    }
+    return json({
+      uid,
+      ingest,
+      rtmpsUrl,
+      streamKey,
+      cfCustomerCode: cfCode,
+      videoRowId: row.id,
+      playerUrl: cfCode ? `https://customer-${cfCode}.cloudflarestream.com/${uid}/iframe` : null,
+    });
   }
 
   // whipUrl    -> the browser publishes its camera here (WHIP).
