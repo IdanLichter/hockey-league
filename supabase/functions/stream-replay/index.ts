@@ -12,7 +12,9 @@
 // the row is read server-side, only RTMP rows still on their live input are touched, and
 // the recording is looked up from Cloudflare with our own token. Idempotent.
 //
-// POST { videoRowId } -> { state: "live" | "processing" | "ready" | "none" | "skip", videoId? }
+// POST { videoRowId } -> { state: "live" | "processing" | "ready" | "none" | "skip", videoId?, parts? }
+// A broadcast that dropped for longer than the input's timeout leaves several recordings;
+// each becomes its own game_videos row, ordered by created_at (the game page's חלק 1, 2…).
 //
 // Secrets: CF_ACCOUNT_ID / CF_STREAM_TOKEN. SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY
 // are auto-injected.
@@ -80,21 +82,45 @@ Deno.serve(async (req) => {
   if (videos.some((v) => v?.status?.state === "live-inprogress")) return json({ state: "live" });
 
   // One recording per broadcast. A reconnect inside the input's timeout continues the
-  // same recording; a longer outage starts a new one — keep the longest as the replay.
+  // same recording; a longer outage starts a new one. Every piece becomes a PART of the
+  // game (חלק 1, חלק 2…): the first takes over this row, the rest get rows of their own.
+  // Wait until every piece is encoded so the parts appear together and in order.
   const recs = videos.filter((v) => v?.uid && v?.status?.state !== "error");
   if (!recs.length) return json({ state: "none" });
-  const ready = recs.filter((v) => v.readyToStream);
-  if (!ready.length) return json({ state: "processing" });
-  const best = ready.sort((a, b) => (b.duration ?? 0) - (a.duration ?? 0))[0];
+  if (recs.some((v) => !v.readyToStream)) return json({ state: "processing" });
+  recs.sort((a, b) => String(a.created).localeCompare(String(b.created)));
+  const [first, ...rest] = recs;
 
-  const { error: upErr } = await admin
+  const { data: swapped, error: upErr } = await admin
     .from("game_videos")
-    .update({ video_id: best.uid, kind: "full" })
+    .update({ video_id: first.uid, kind: "full", created_at: first.created })
     .eq("id", row.id)
-    .eq("video_id", row.cf_live_input); // no-op if another caller already swapped it
+    .eq("video_id", row.cf_live_input) // no-op if another caller already swapped it
+    .select("id");
   if (upErr) {
     console.log("game_videos swap failed", upErr.message);
     return json({ error: "update failed" }, 500);
   }
-  return json({ state: "ready", videoId: best.uid, pieces: ready.length });
+  // Only the caller that won the swap adds the extra parts — no duplicates on a race.
+  if (swapped?.length && rest.length) {
+    const { data: base } = await admin
+      .from("game_videos")
+      .select("game_id, provider, cf_customer_code, created_by")
+      .eq("id", row.id)
+      .single();
+    const { error: insErr } = await admin.from("game_videos").insert(rest.map((v) => ({
+      game_id: base!.game_id,
+      provider: base!.provider,
+      video_id: v.uid,
+      kind: "full",
+      is_primary: true,
+      cf_customer_code: base!.cf_customer_code,
+      created_by: base!.created_by,
+      ingest: "rtmp",
+      cf_live_input: row.cf_live_input,
+      created_at: v.created,
+    })));
+    if (insErr) console.log("extra parts insert failed", insErr.message);
+  }
+  return json({ state: "ready", videoId: first.uid, parts: recs.length });
 });

@@ -6,7 +6,7 @@ import { Video, Radio, Trash2, ExternalLink, Tag, Camera, Square, Eye, Stethosco
 import { useAuth } from "@/lib/AuthContext"
 import { useStreamViewers } from "@/lib/useStreamViewers"
 import {
-  getGameVideo, detachVideo, addMarker, deleteMarker,
+  getGameVideos, isLiveRow, detachVideo, addMarker, deleteMarker,
   subscribeGameVideo, fmtClock, goLiveCloudflare, getViewerIceServersDetailed, requestReplay,
 } from "@/lib/video"
 import { publishWHIP, confirmBroadcastLive } from "@/lib/whip"
@@ -302,9 +302,33 @@ function LocalBroadcast({ previewRef, starting, onStop, quality, onQualityChange
   )
 }
 
+// חלק 1 / חלק 2 … — one pill per video of the game, in recording order. The part on air
+// right now is marked live.
+function PartTabs({ videos, selected, onSelect }) {
+  return (
+    <div className="flex gap-1.5 overflow-x-auto pb-1 -mx-1 px-1" role="tablist" aria-label="חלקי הווידאו">
+      {videos.map((v, i) => {
+        const on = v.id === selected?.id
+        return (
+          <button key={v.id} role="tab" aria-selected={on} onClick={() => onSelect(v)}
+            className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${on
+              ? "bg-brand text-white"
+              : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700"}`}>
+            {isLiveRow(v) && <Radio className={`w-3.5 h-3.5 ${on ? "" : "text-red-500"} animate-pulse`} />}
+            חלק {i + 1}
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
 export default function GameVideo({ game, home, away, players = [] }) {
   const { isAdmin, isContentEditor } = useAuth()
-  const [video, setVideo] = useState(null)
+  // All of the game's videos, oldest first. More than one = parts (חלק 1, חלק 2…): the
+  // streamer restarted, or a long connection drop split the recording.
+  const [videos, setVideos] = useState([])
+  const [selectedId, setSelectedId] = useState(null)
   const [loading, setLoading] = useState(true)
   const [player, setPlayer] = useState(null)
   const [duration, setDuration] = useState(0)
@@ -317,6 +341,9 @@ export default function GameVideo({ game, home, away, players = [] }) {
 
   const gameId = game?.id
   const isLive = game?.status === "in_progress"
+  // Default view: whatever is on air right now, else part 1.
+  const liveRow = [...videos].reverse().find(isLiveRow)
+  const video = videos.find(v => v.id === selectedId) || liveRow || videos[0] || null
   // Video is managed by content creators (content_editor) + admin only — mirrors
   // the can_stream_game() backend gate. (Was admin/editor/judge/coach.)
   const canStream = isContentEditor || isAdmin
@@ -329,7 +356,12 @@ export default function GameVideo({ game, home, away, players = [] }) {
 
   const load = useCallback(async () => {
     if (!gameId) return
-    try { setVideo(await getGameVideo(gameId)) }
+    try {
+      const all = await getGameVideos(gameId)
+      setVideos(all)
+      // Keep the viewer on the part they picked; drop a selection that no longer exists.
+      setSelectedId(id => (all.some(v => v.id === id) ? id : null))
+    }
     catch (e) { console.error(e) }
     finally { setLoading(false) }
   }, [gameId])
@@ -446,7 +478,7 @@ export default function GameVideo({ game, home, away, players = [] }) {
   if (!video && !(isLive && canStream)) return null
 
   return (
-    <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="card overflow-hidden">
+    <motion.div id="video" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="card overflow-hidden scroll-mt-20">
       <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between gap-2">
         <h2 className="flex items-center gap-2 font-bold text-sm text-slate-900 dark:text-white">
           {(isLive && video) || broadcast
@@ -472,11 +504,14 @@ export default function GameVideo({ game, home, away, players = [] }) {
             quality={quality} onQualityChange={changeQuality} actual={actualSettings} />
         ) : video ? (
           <>
+            {videos.length > 1 && (
+              <PartTabs videos={videos} selected={video} onSelect={(v) => { setSelectedId(v.id); setPlayer(null); setDuration(0) }} />
+            )}
             {video.provider === "cloudflare"
               ? (video.ingest === "rtmp"
-                  ? <RtmpPlayer video={video} />
-                  : <CloudflarePlayer video={video} isLive={isLive} />)
-              : <YouTubePlayer videoId={video.video_id} onReady={onPlayerReady} />}
+                  ? <RtmpPlayer key={video.id} video={video} />
+                  : <CloudflarePlayer key={video.id} video={video} isLive={isLive} />)
+              : <YouTubePlayer key={video.id} videoId={video.video_id} onReady={onPlayerReady} />}
 
             {/* Proportional marker strip (hidden for live / unknown duration) */}
             {duration > 0 && video.markers.length > 0 && (

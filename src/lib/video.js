@@ -32,26 +32,62 @@ export function fmtClock(totalSeconds) {
   return h > 0 ? `${h}:${pad(m)}:${pad(sec)}` : `${m}:${pad(sec)}`
 }
 
-// A game's primary video + its markers (ordered for the timeline), or null when
-// the game has no video. Public read — safe for anon spectators.
-export async function getGameVideo(gameId) {
-  if (!gameId) return null
+const VIDEO_COLS = 'id, provider, video_id, cf_customer_code, ingest, cf_live_input, title, kind, clock_offset_seconds, is_primary, created_at'
+
+// Every video of a game, oldest first, each with its markers. A game can have several:
+// the streamer stopped and restarted, or the connection dropped long enough for
+// Cloudflare to start a new recording — the game page shows them as חלק 1, חלק 2…
+// Public read — safe for anon spectators.
+export async function getGameVideos(gameId) {
+  if (!gameId) return []
   const { data: videos, error } = await supabase
     .from('game_videos')
-    .select('id, provider, video_id, cf_customer_code, ingest, cf_live_input, title, kind, clock_offset_seconds, is_primary, created_at')
+    .select(VIDEO_COLS)
     .eq('game_id', gameId)
-    .order('is_primary', { ascending: false })
-    .order('created_at', { ascending: false })
+    .order('created_at', { ascending: true })
   if (error) throw error
-  if (!videos?.length) return null
-  const primary = videos[0]
+  if (!videos?.length) return []
   const { data: markers, error: e2 } = await supabase
     .from('game_video_markers')
-    .select('id, video_seconds, kind, label, player_id, team_id, source')
-    .eq('video_ref', primary.id)
+    .select('id, video_ref, video_seconds, kind, label, player_id, team_id, source')
+    .in('video_ref', videos.map(v => v.id))
     .order('video_seconds', { ascending: true })
   if (e2) throw e2
-  return { ...primary, markers: markers || [] }
+  return videos.map(v => ({ ...v, markers: (markers || []).filter(m => m.video_ref === v.id) }))
+}
+
+// A row still pointing at its Cloudflare live input = a broadcast that's on air (or just
+// ended and not yet swapped to its recording). WebRTC rows never swap; they're "live"
+// while their kind says so.
+export const isLiveRow = (v) =>
+  v?.kind === 'live' || (!!v?.cf_live_input && v.video_id === v.cf_live_input)
+
+// A game's primary video (the newest) + its markers, or null. Kept for callers that
+// only ever show one video.
+export async function getGameVideo(gameId) {
+  const all = await getGameVideos(gameId)
+  return all.length ? all[all.length - 1] : null
+}
+
+// Every recorded game video across the league, newest first, for the /media page —
+// joined to its game and teams. Live rows are excluded (nothing to replay yet).
+export async function getAllGameVideos({ limit = 60 } = {}) {
+  const { data, error } = await supabase
+    .from('game_videos')
+    .select(`${VIDEO_COLS}, game:games!inner(id, slug, game_date, status, game_type, home_score, away_score, home_team_id, away_team_id, is_test)`)
+    .order('created_at', { ascending: false })
+    .limit(limit)
+  if (error) throw error
+  return (data || []).filter(v => !isLiveRow(v) || v.game?.status === 'in_progress')
+}
+
+// Poster image for a video card.
+export function videoThumb(v) {
+  if (v.provider === 'cloudflare' && v.cf_customer_code) {
+    return `https://customer-${v.cf_customer_code}.cloudflarestream.com/${v.video_id}/thumbnails/thumbnail.jpg?time=10s&height=360`
+  }
+  if (v.provider === 'youtube') return `https://i.ytimg.com/vi/${v.video_id}/hqdefault.jpg`
+  return null
 }
 
 // Editor/streamer: attach a video to a game. `kind` is 'live' while the game is
