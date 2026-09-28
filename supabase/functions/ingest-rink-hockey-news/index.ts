@@ -302,6 +302,24 @@ async function fetchFeed(src: Source): Promise<string> {
   throw lastErr ?? new Error(`${src.key}: fetch failed`);
 }
 
+// The article page's og:image, or null. Only og:image — a page's first <img> is
+// usually the site logo (CNTHsP's is), which is worse than no card at all.
+async function fetchOgImage(url: string): Promise<string | null> {
+  try {
+    const res = await fetch(url, {
+      headers: { "user-agent": "rinkhockeyil-feed-bot/1.0 (+https://rinkhockeyil.com)" },
+      signal: AbortSignal.timeout(10_000),
+    });
+    if (!res.ok) return null;
+    const html = await res.text();
+    const m = html.match(/<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i) ??
+      html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image["']/i);
+    return m ? decodeEntities(m[1]) : null;
+  } catch {
+    return null;
+  }
+}
+
 async function ingestSource(src: Source, authorId: string, budget: number, dryRun: boolean, maxAgeDays: number) {
   const items = parseFeed(await fetchFeed(src), src);
   const cutoff = Date.now() - maxAgeDays * 86_400_000;
@@ -314,8 +332,20 @@ async function ingestSource(src: Source, authorId: string, budget: number, dryRu
   if (seenErr) throw seenErr;
   const seenSet = new Set((seen ?? []).map((r) => r.external_guid));
 
-  const todo = fresh.filter((i) => !seenSet.has(i.guid))
-    .slice(0, Math.min(MAX_NEW_PER_SOURCE, budget));
+  const unseen = fresh.filter((i) => !seenSet.has(i.guid));
+  const cap = Math.min(MAX_NEW_PER_SOURCE, budget);
+
+  // A news card without media is not shown (product call, 2026-09-28). Items the
+  // feed ships without an image get one try at the article's og:image; anything
+  // still bare is skipped — and stays unseen, so it isn't counted against the cap.
+  const todo: Item[] = [];
+  const noMedia: string[] = [];
+  for (const item of unseen) {
+    if (todo.length >= cap) break;
+    if (!item.image) item.image = await fetchOgImage(item.link);
+    if (item.image) todo.push(item);
+    else noMedia.push(item.guid);
+  }
 
   const posted: string[] = [];
   const preview: unknown[] = [];
@@ -349,7 +379,7 @@ async function ingestSource(src: Source, authorId: string, budget: number, dryRu
     if (error) { console.error(`${src.key}: insert failed`, error); continue; }
     posted.push(item.guid);
   }
-  return { source: src.key, fetched: items.length, fresh: fresh.length, posted, preview };
+  return { source: src.key, fetched: items.length, fresh: fresh.length, posted, preview, no_media: noMedia };
 }
 
 Deno.serve(async (req) => {
