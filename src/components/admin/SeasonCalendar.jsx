@@ -60,7 +60,8 @@ export default function SeasonCalendar() {
     try {
       const [ss, ts, vs] = await Promise.all([getSeasons(), getTeams(), getVenues()])
       setSeasons(ss)
-      setTeams(ts)
+      // Test teams (🧪) exist only for sandbox games — never in a real season's fixtures.
+      setTeams(ts.filter(t => !t.is_test))
       setVenues(vs)
       const preferred = ss.find(s => s.status === "planned") || ss.find(s => s.status === "active")
       if (preferred) {

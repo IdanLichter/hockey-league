@@ -58,7 +58,7 @@ async function gamesOn(ymd: string) {
   const { data, error } = await admin.from("games")
     .select("id,slug,game_date,venue,game_type,status,playoff_round,series_game,home_team_id,away_team_id,season_id")
     .gte("game_date", new Date(lo).toISOString()).lt("game_date", new Date(hi).toISOString())
-    .neq("game_type", "ידידותי").order("game_date");
+    .neq("game_type", "ידידותי").eq("is_test", false).order("game_date");
   if (error) throw error;
   return (data ?? []).filter((g) => localParts(new Date(g.game_date)).date === ymd);
 }
@@ -98,7 +98,7 @@ async function buildFacts(ymd: string) {
   if (current) {
     const { data: seasonGames } = await admin.from("games")
       .select("home_team_id,away_team_id,home_score,away_score").eq("season_id", current.id)
-      .eq("status", "completed").eq("game_type", "ליגה");
+      .eq("status", "completed").eq("game_type", "ליגה").eq("is_test", false);
     const acc = new Map<string, any>();
     const row = (id: string) => acc.get(id) ?? acc.set(id, { team_id: id, played: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, pts: 0 }).get(id);
     for (const g of seasonGames ?? []) {
