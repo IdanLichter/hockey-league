@@ -1,5 +1,6 @@
 import { supabase } from './supabase'
 import { createPlayer } from './api'
+import { setPlayerBirthDate } from './birthDate'
 
 /**
  * Podium mirror (2026-09-22). Players register and pay for the season in
@@ -89,9 +90,12 @@ export async function createPlayerForAthlete(athlete, { teamId = null, position 
     last_name: parts.slice(1).join(' ') || '',
     position,
     team_id: teamId,
-    birth_date: athlete.birth_date || null,
   }
+  // birth_date is NOT in the insert: `authenticated` has no INSERT privilege on that
+  // column (minors' DOB), so including it 403s the whole row ("permission denied for
+  // table players"). It goes through the gated set_player_birth_date RPC instead.
   const created = await createPlayer(player)
+  if (athlete.birth_date) await setPlayerBirthDate(created.id, athlete.birth_date)
   await linkPodiumAthlete(athlete.podium_id, created.id)
   return created
 }
