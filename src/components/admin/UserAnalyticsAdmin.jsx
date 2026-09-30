@@ -292,7 +292,7 @@ function VersionsTable({ rows }) {
     if (!latest[r.platform] || code > latest[r.platform]) latest[r.platform] = code
   }
   return (
-    <table className="w-full text-xs">
+    <div className="overflow-x-auto"><table className="w-full text-xs whitespace-nowrap">
       <thead><tr className="text-slate-500 text-right"><th className="py-1 font-medium">פלטפורמה</th><th className="font-medium">גרסה</th><th className="font-medium">משתמשים</th><th className="font-medium">נראה לאחרונה</th></tr></thead>
       <tbody>
         {rows.map(r => {
@@ -308,7 +308,7 @@ function VersionsTable({ rows }) {
           )
         })}
       </tbody>
-    </table>
+    </table></div>
   )
 }
 
@@ -543,7 +543,7 @@ function UserDrawer({ user: u, days, onClose }) {
               <div className="card p-3">
                 <h4 className="text-xs font-bold text-slate-700 dark:text-slate-200 mb-2">סשנים אחרונים</h4>
                 {data.sessions?.length ? (
-                  <table className="w-full text-xs">
+                  <div className="overflow-x-auto"><table className="w-full text-xs whitespace-nowrap">
                     <thead><tr className="text-right text-slate-500"><th className="py-1 font-medium">התחלה</th><th className="font-medium">משך</th><th className="font-medium">פלטפורמה</th><th className="font-medium">מסכים</th></tr></thead>
                     <tbody>
                       {data.sessions.slice(0, 15).map(s => {
@@ -558,7 +558,7 @@ function UserDrawer({ user: u, days, onClose }) {
                         )
                       })}
                     </tbody>
-                  </table>
+                  </table></div>
                 ) : <p className="text-xs text-slate-400">אין סשנים מדווחים בתקופה.</p>}
               </div>
 

@@ -190,15 +190,15 @@ export default function Admin() {
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto space-y-5">
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
-        <div className="flex items-center justify-between">
-          <div>
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0">
             <h1 className="page-title flex items-center gap-2.5">
               <Shield className="w-7 h-7 text-brand" /> ניהול
             </h1>
-            <p className="page-subtitle mt-1">מחובר כ-{user.email}</p>
+            <p className="page-subtitle mt-1 truncate">מחובר כ-{user.email}</p>
           </div>
           <button onClick={() => { signOut(); navigate('/') }}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors">
+            className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold shrink-0 text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors">
             <LogOut className="w-4 h-4" /> התנתק
           </button>
         </div>
@@ -664,49 +664,57 @@ function GamesAdmin({ games, teams, players, teamsMap, gameStats, tournaments = 
         <div className="divide-y divide-slate-100 dark:divide-slate-700/50">
           {visibleGames.map(game => (
             <div key={game.id}>
-              <div className="flex items-center justify-between px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
-                <div className="flex items-center gap-3 flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
+              {/* Phone: two lines (matchup, then meta + actions). The single-line layout
+                  overflowed below ~640px — names, status and badges painted over each other. */}
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 px-3 sm:px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-1 min-w-0">
                     <TeamLogo team={teamsMap[game.home_team_id]} size={7} />
-                    <span className="font-semibold text-xs text-slate-900 dark:text-white truncate max-w-[80px] sm:max-w-none">{teamsMap[game.home_team_id]?.name}</span>
+                    <span className="font-semibold text-xs text-slate-900 dark:text-white truncate min-w-0">{teamsMap[game.home_team_id]?.name}</span>
                   </div>
                   {/* RTL: away first, home last so each score renders beside its team (home is on the right).
                       dir=ltr — the spaces around the colon are neutrals and would otherwise swap the digits. */}
-                  <div className="text-center px-2">
+                  <div className="text-center shrink-0">
                     {game.status === 'completed' ? (
-                      <span dir="ltr" className="font-bold text-sm text-slate-900 dark:text-white tabular-nums">{game.away_score} : {game.home_score}</span>
+                      <span dir="ltr" className="font-bold text-sm text-slate-900 dark:text-white tabular-nums whitespace-nowrap">{game.away_score} : {game.home_score}</span>
                     ) : (
-                      <span className="text-[10px] font-semibold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-2 py-0.5 rounded-md">
+                      <span className="text-[10px] font-semibold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-2 py-0.5 rounded-md whitespace-nowrap">
                         {game.status === 'scheduled' ? 'מתוכנן' : game.status === 'postponed' ? 'נדחה' : game.status}
                       </span>
                     )}
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-semibold text-xs text-slate-900 dark:text-white truncate max-w-[80px] sm:max-w-none">{teamsMap[game.away_team_id]?.name}</span>
+                  <div className="flex items-center justify-end gap-2 flex-1 min-w-0">
+                    <span className="font-semibold text-xs text-slate-900 dark:text-white truncate min-w-0">{teamsMap[game.away_team_id]?.name}</span>
                     <TeamLogo team={teamsMap[game.away_team_id]} size={7} />
                   </div>
                 </div>
-                <div className="flex items-center gap-2 mr-3">
-                  {game.is_test && (
-                    <span title="משחק בדיקה — גלוי למנהלים בלבד" className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300">🧪 בדיקה</span>
-                  )}
-                  {missingJudge(game) && (
-                    <span title="חסר שופט" className="text-amber-500"><AlertTriangle className="w-3.5 h-3.5" /></span>
-                  )}
-                  <span className="text-[10px] text-slate-400 hidden sm:inline">{format(new Date(game.game_date), "d/M/yy")}</span>
-                  <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400">{game.game_type}</span>
-                  <button onClick={() => setEditingStats(editingStats === game.id ? null : game.id)}
-                    className="p-1.5 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/30 text-blue-500 transition-colors" title="סטטיסטיקות">
-                    <Settings className="w-3.5 h-3.5" />
-                  </button>
-                  <button onClick={() => startEdit(game)}
-                    className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors">
-                    <Pencil className="w-3.5 h-3.5" />
-                  </button>
-                  <button onClick={() => handleDelete(game.id)}
-                    className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/30 text-slate-400 hover:text-red-500 transition-colors">
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
+                <div className="flex items-center justify-between sm:justify-end gap-2 shrink-0">
+                  <div className="flex items-center gap-1.5 flex-wrap min-w-0">
+                    {game.is_test && (
+                      <span title="משחק בדיקה — גלוי למנהלים בלבד" className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300 whitespace-nowrap">🧪 בדיקה</span>
+                    )}
+                    {missingJudge(game) && (
+                      <span title="חסר שופט" className="inline-flex items-center gap-1 text-[10px] font-semibold text-amber-600 dark:text-amber-400 whitespace-nowrap">
+                        <AlertTriangle className="w-3.5 h-3.5" /><span className="sm:hidden">חסר שופט</span>
+                      </span>
+                    )}
+                    <span dir="ltr" className="text-[10px] text-slate-400 tabular-nums whitespace-nowrap">{format(new Date(game.game_date), "d/M/yy")}</span>
+                    <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 whitespace-nowrap">{game.game_type}</span>
+                  </div>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <button onClick={() => setEditingStats(editingStats === game.id ? null : game.id)}
+                      className="p-1.5 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/30 text-blue-500 transition-colors" title="סטטיסטיקות">
+                      <Settings className="w-3.5 h-3.5" />
+                    </button>
+                    <button onClick={() => startEdit(game)}
+                      className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors">
+                      <Pencil className="w-3.5 h-3.5" />
+                    </button>
+                    <button onClick={() => handleDelete(game.id)}
+                      className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/30 text-slate-400 hover:text-red-500 transition-colors">
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                 </div>
               </div>
               {editingStats === game.id && (
@@ -1261,10 +1269,10 @@ function PlayersAdmin({ players, teams, teamsMap, membersByPlayer = new Map(), r
       <div className="card overflow-hidden">
         <div className="divide-y divide-slate-100 dark:divide-slate-700/50">
           {filtered.map(player => (
-            <div key={player.id} className="flex items-center justify-between px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
-              <div className="flex items-center gap-3">
+            <div key={player.id} className="flex items-center justify-between gap-2 px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+              <div className="flex items-center gap-3 min-w-0">
                 <TeamLogo team={teamsMap[player.team_id]} size={7} />
-                <div>
+                <div className="min-w-0 break-words">
                   <span className="font-semibold text-sm text-slate-900 dark:text-white">{player.first_name} {player.last_name}</span>
                   {player.jersey_number && <span className="text-[10px] text-slate-400 font-mono mr-1.5">#{player.jersey_number}</span>}
                   <div className="flex gap-1 mt-0.5">
@@ -1518,10 +1526,10 @@ function TeamsAdmin({ teams, reload, reviewOnly = false }) {
       )}
       {!reviewOnly && sortItems(teams, sort, teamAccessors).map(team => (
         <div key={team.id} className="card overflow-hidden">
-          <div className="flex items-center justify-between p-4">
-            <div className="flex items-center gap-3">
+          <div className="flex items-center justify-between gap-2 p-4">
+            <div className="flex items-center gap-3 min-w-0">
               <TeamLogo team={team} size={10} />
-              <div>
+              <div className="min-w-0">
                 <h3 className="font-bold text-sm text-slate-900 dark:text-white">{team.name}</h3>
                 <p className="text-xs text-slate-500">{team.city} • {team.points} נקודות • {team.wins}נ {team.ties}ת {team.losses}ה</p>
               </div>
@@ -1961,17 +1969,17 @@ function UsersAdmin({ adminUsers, currentUserEmail, reload }) {
         </div>
         <div className="divide-y divide-slate-100 dark:divide-slate-700/50">
           {adminUsers.map(u => (
-            <div key={u.id} className="flex items-center justify-between px-5 py-3.5">
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-full bg-brand/10 dark:bg-brand/20 flex items-center justify-center">
+            <div key={u.id} className="flex items-center justify-between gap-2 px-4 sm:px-5 py-3.5">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-9 h-9 shrink-0 rounded-full bg-brand/10 dark:bg-brand/20 flex items-center justify-center">
                   <Crown className="w-4 h-4 text-brand dark:text-brand-light" />
                 </div>
-                <div>
-                  <p className="font-semibold text-sm text-slate-900 dark:text-white">{u.name || u.email}</p>
-                  <p className="text-xs text-slate-400" dir="ltr">{u.email}</p>
+                <div className="min-w-0">
+                  <p className="font-semibold text-sm text-slate-900 dark:text-white truncate">{u.name || u.email}</p>
+                  <p className="text-xs text-slate-400 truncate" dir="ltr">{u.email}</p>
                 </div>
                 {u.email === currentUserEmail && (
-                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400">אתה</span>
+                  <span className="shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400">אתה</span>
                 )}
               </div>
               <button onClick={() => handleRemove(u.id, u.email)}
