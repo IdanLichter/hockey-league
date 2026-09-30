@@ -10,9 +10,28 @@ let reportRequest = null
 
 /**
  * Register a reporter for Supabase requests.
- * @param {(info:{path:string,method:string,status:number,ok:boolean,duration_ms:number})=>void} fn
+ * @param {(info:{path:string,method:string,status:number,ok:boolean,duration_ms:number,error?:{code?:string,reason?:string}})=>void} fn
  */
 export function setRequestReporter(fn) { reportRequest = fn }
+
+/**
+ * The server's own reason for a refusal ("not authorized", "player_already_linked"),
+ * read from a clone so the caller still gets the untouched body. Only `code` and the
+ * message (as `reason`: telemetry's scrubber drops any key named `message`) are kept —
+ * PostgREST's `details` can echo row values back. Covers both the
+ * PostgREST shape ({code, message}) and GoTrue's ({error_code, msg} / {error_description}).
+ */
+async function serverReason(res) {
+  try {
+    const body = await res.clone().json()
+    const message = body?.message || body?.msg || body?.error_description || body?.error
+    const code = body?.code || body?.error_code
+    const out = {}
+    if (code != null) out.code = String(code).slice(0, 40)
+    if (message) out.reason = String(message).slice(0, 200)
+    return Object.keys(out).length ? out : undefined
+  } catch { return undefined }
+}
 
 /**
  * Every REST/RPC/storage call the app makes goes through this fetch, so a rejected
@@ -31,7 +50,7 @@ export function setRequestReporter(fn) { reportRequest = fn }
  */
 const instrumentedFetch = (input, init) => {
   const started = Date.now()
-  const report = (status, ok) => {
+  const report = (status, ok, error, took = Date.now() - started) => {
     try {
       if (!reportRequest) return
       const url = new URL(typeof input === 'string' ? input : input.url)
@@ -41,12 +60,21 @@ const instrumentedFetch = (input, init) => {
         method: (init?.method || 'GET').toUpperCase(),
         status,
         ok,
-        duration_ms: Date.now() - started,
+        duration_ms: took,
+        ...(error ? { error } : {}),
       })
     } catch { /* reporting must never affect the request */ }
   }
   return fetch(input, init).then(
-    (res) => { report(res.status, res.ok); return res },
+    (res) => {
+      if (res.ok) report(res.status, true)
+      else {
+        // Timed now: reading the reason must not count toward the request's duration.
+        const took = Date.now() - started
+        serverReason(res).then((error) => report(res.status, false, error, took))
+      }
+      return res
+    },
     (err) => {
       // The request never completed — offline, DNS, a blocked origin. This is the
       // case the edge log can NEVER show you, because nothing reached the server.

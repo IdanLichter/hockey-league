@@ -237,7 +237,7 @@ export function initTelemetry() {
   // Every Supabase request the app makes. Failures become errors — the class of bug
   // that is invisible in the edge logs because the caller catches it and renders an
   // empty list instead. Writes become the action log.
-  setRequestReporter(({ path, method, status, ok, duration_ms }) => {
+  setRequestReporter(({ path, method, status, ok, duration_ms, error }) => {
     // The telemetry RPC travels through the same instrumented fetch. Reporting ITS
     // failure would queue an event, whose flush fails, which queues another event:
     // a self-feeding loop that hammers the server precisely when it is already
@@ -245,7 +245,7 @@ export function initTelemetry() {
     if (path.endsWith('/rpc/log_app_events')) return
 
     if (!ok) {
-      track('error', 'request_failed', { path, status, duration_ms, detail: { method, op: describe(path, method) } })
+      track('error', 'request_failed', { path, status, duration_ms, detail: { method, op: describe(path, method), ...error } })
       return
     }
     // A successful read is not news. A successful write is exactly what "what are

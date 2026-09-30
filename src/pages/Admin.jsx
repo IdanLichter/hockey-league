@@ -371,15 +371,19 @@ function GamesAdmin({ games, teams, players, teamsMap, gameStats, tournaments = 
   // Games with a judge assigned in שיבוץ שופטים (game_officials). referee_id is only
   // filled when a game is recorded, so on its own it said "no judge" about nothing but
   // finished games — 0 at the start of a season, when every fixture still needs one.
-  // Admin/LM-only RPC; for other roles it refuses and the flag falls back to referee_id.
+  // Admin/LM-only RPC, so it is only called for them; a judge asking just earned a 400
+  // "not authorized" in the error log. For other roles the flag falls back to referee_id.
+  const { isAdmin, isLeagueManager } = useAuth()
+  const canSeeOfficials = isAdmin || isLeagueManager
   const [judgedIds, setJudgedIds] = useState(() => new Set())
   useEffect(() => {
+    if (!canSeeOfficials) return
     getOfficialsOverview()
       .then(rows => setJudgedIds(new Set((rows || [])
         .filter(r => r.role === 'judge' && ['assigned', 'approved'].includes(r.status))
         .map(r => r.game_id))))
       .catch(() => {})
-  }, [games])
+  }, [games, canSeeOfficials])
   const missingJudge = g => !g.referee_id && !judgedIds.has(g.id) && !['cancelled', 'postponed'].includes(g.status)
   const [editingGame, setEditingGame] = useState(null)
   const [editingStats, setEditingStats] = useState(null)
